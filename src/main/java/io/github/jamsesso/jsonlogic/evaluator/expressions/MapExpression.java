@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class MapExpression implements JsonLogicExpression {
+public class MapExpression extends JsonPathHandlerJsonLogicExpression implements JsonLogicExpression {
   public static final MapExpression INSTANCE = new MapExpression();
 
   private MapExpression() {
@@ -23,22 +23,34 @@ public class MapExpression implements JsonLogicExpression {
   }
 
   @Override
-  public Object evaluate(JsonLogicEvaluator evaluator, JsonLogicArray arguments, Object data, String jsonPath)
+  public Object evaluate(JsonLogicEvaluator evaluator, JsonLogicArray arguments, Object data)
     throws JsonLogicEvaluationException {
     if (arguments.size() != 2) {
-      throw new JsonLogicEvaluationException("map expects exactly 2 arguments", jsonPath);
+      throw new JsonLogicEvaluationException("map expects exactly 2 arguments");
     }
 
-    Object maybeArray = evaluator.evaluate(arguments.get(0), data, jsonPath + "[0]");
+      Object maybeArray;
 
-    if (!ArrayLike.isEligible(maybeArray)) {
+      try {
+          maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+      } catch (JsonLogicEvaluationException e) {
+          e.prependPartialJsonPath("[0]");
+          throw e;
+      }
+
+      if (!ArrayLike.isEligible(maybeArray)) {
       return Collections.emptyList();
     }
 
     List<Object> result = new ArrayList<>();
 
     for (Object item : new ArrayLike(maybeArray)) {
-      result.add(evaluator.evaluate(arguments.get(1), item, jsonPath + "[1]"));
+        try {
+            result.add(evaluator.evaluate(arguments.get(1), item, ""));
+        } catch (JsonLogicEvaluationException e) {
+            e.prependPartialJsonPath("[1]");
+            throw e;
+        }
     }
 
     return result;

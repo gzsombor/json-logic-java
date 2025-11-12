@@ -2,6 +2,7 @@ package io.github.jamsesso.jsonlogic;
 
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
+import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicExpression;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.*;
@@ -84,7 +85,12 @@ public final class JsonLogic {
       evaluator = new JsonLogicEvaluator(expressions);
     }
 
-    return evaluator.evaluate(parseCache.get(json), data, "$");
+      try {
+          return evaluator.evaluate(parseCache.get(json), data, "");
+      } catch (JsonLogicException e) {
+          e.prependPartialJsonPath("$");
+          throw e;
+      }
   }
 
   public static boolean truthy(Object value) {
