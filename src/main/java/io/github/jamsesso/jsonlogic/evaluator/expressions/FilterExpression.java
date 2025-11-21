@@ -24,18 +24,18 @@ public class FilterExpression extends JsonPathHandlerJsonLogicExpression impleme
 
   @Override
   public Object evaluate(JsonLogicEvaluator evaluator, JsonLogicArray arguments, Object data)
-    throws JsonLogicEvaluationException {
+      throws JsonLogicEvaluationException {
     if (arguments.size() != 2) {
       throw new JsonLogicEvaluationException("filter expects exactly 2 arguments");
     }
 
-      Object maybeArray;
-      try {
-          maybeArray = evaluator.evaluate(arguments.get(0), data, "");
-      } catch (JsonLogicEvaluationException e) {
-          e.prependPartialJsonPath("[0]");
-          throw e;
-      }
+    Object maybeArray;
+    try {
+      maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+    } catch (JsonLogicEvaluationException e) {
+      e.prependPartialJsonPath("[0]");
+      throw e;
+    }
 
     if (!ArrayLike.isEligible(maybeArray)) {
       throw new JsonLogicEvaluationException("first argument to filter must be a valid array", "[0]");
@@ -44,14 +44,14 @@ public class FilterExpression extends JsonPathHandlerJsonLogicExpression impleme
     List<Object> result = new ArrayList<>();
 
     for (Object item : new ArrayLike(maybeArray)) {
-        try {
-            if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item, ""))) {
-                result.add(item);
-            }
-        } catch (JsonLogicEvaluationException e) {
-            e.prependPartialJsonPath("[1]");
-            throw e;
+      try {
+        if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item, ""))) {
+          result.add(item);
         }
+      } catch (JsonLogicEvaluationException e) {
+        e.prependPartialJsonPath("[1]");
+        throw e;
+      }
     }
 
     return result;

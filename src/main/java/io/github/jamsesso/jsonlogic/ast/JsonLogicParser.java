@@ -16,12 +16,10 @@ public final class JsonLogicParser {
   public static JsonLogicNode parse(String json) throws JsonLogicParseException {
     try {
       return parse(PARSER.parse(json));
-    }
-    catch (JsonLogicParseException e) {
-        e.prependPartialJsonPath("$");
-        throw e;
-    }
-    catch (JsonSyntaxException e) {
+    } catch (JsonLogicParseException e) {
+      e.prependPartialJsonPath("$");
+      throw e;
+    } catch (JsonSyntaxException e) {
       throw new JsonLogicParseException(e, "$");
     }
   }
@@ -46,8 +44,7 @@ public final class JsonLogicParser {
 
       if (primitive.isBoolean() && primitive.getAsBoolean()) {
         return JsonLogicBoolean.TRUE;
-      }
-      else {
+      } else {
         return JsonLogicBoolean.FALSE;
       }
     }
@@ -58,15 +55,15 @@ public final class JsonLogicParser {
       List<JsonLogicNode> elements = new ArrayList<>(array.size());
 
       for (int index = 0; index < array.size(); index++) {
-          JsonElement element = array.get(index);
-          JsonLogicNode arrayNode;
-          try {
-              arrayNode = parse(element);
-          } catch (JsonLogicParseException e) {
-                e.prependPartialJsonPath("[" + (index) + "]");
-                throw e;
-          }
-          elements.add(arrayNode);
+        JsonElement element = array.get(index);
+        JsonLogicNode arrayNode;
+        try {
+          arrayNode = parse(element);
+        } catch (JsonLogicParseException e) {
+          e.prependPartialJsonPath("[" + (index) + "]");
+          throw e;
+        }
+        elements.add(arrayNode);
       }
 
       return new JsonLogicArray(elements);
@@ -83,18 +80,17 @@ public final class JsonLogicParser {
     JsonLogicNode argumentNode;
     JsonLogicArray arguments;
 
-      try {
-          argumentNode = parse(object.get(key));
-      } catch (JsonLogicParseException e) {
-            e.prependPartialJsonPath("." + key);
-            throw e;
-      }
+    try {
+      argumentNode = parse(object.get(key));
+    } catch (JsonLogicParseException e) {
+      e.prependPartialJsonPath("." + key);
+      throw e;
+    }
 
-      // Always coerce single-argument operations into a JsonLogicArray with a single element.
+    // Always coerce single-argument operations into a JsonLogicArray with a single element.
     if (argumentNode instanceof JsonLogicArray) {
       arguments = (JsonLogicArray) argumentNode;
-    }
-    else {
+    } else {
       arguments = new JsonLogicArray(Collections.singletonList(argumentNode));
     }
 

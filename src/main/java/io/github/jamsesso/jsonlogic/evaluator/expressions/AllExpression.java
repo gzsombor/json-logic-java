@@ -21,7 +21,7 @@ public class AllExpression extends JsonPathHandlerJsonLogicExpression implements
 
   @Override
   public Object evaluate(JsonLogicEvaluator evaluator, JsonLogicArray arguments, Object data)
-    throws JsonLogicEvaluationException {
+      throws JsonLogicEvaluationException {
     if (arguments.size() != 2) {
       throw new JsonLogicEvaluationException("all expects exactly 2 arguments");
     }

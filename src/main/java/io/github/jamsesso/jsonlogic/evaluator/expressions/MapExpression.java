@@ -24,33 +24,33 @@ public class MapExpression extends JsonPathHandlerJsonLogicExpression implements
 
   @Override
   public Object evaluate(JsonLogicEvaluator evaluator, JsonLogicArray arguments, Object data)
-    throws JsonLogicEvaluationException {
+      throws JsonLogicEvaluationException {
     if (arguments.size() != 2) {
       throw new JsonLogicEvaluationException("map expects exactly 2 arguments");
     }
 
-      Object maybeArray;
+    Object maybeArray;
 
-      try {
-          maybeArray = evaluator.evaluate(arguments.get(0), data, "");
-      } catch (JsonLogicEvaluationException e) {
-          e.prependPartialJsonPath("[0]");
-          throw e;
-      }
+    try {
+      maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+    } catch (JsonLogicEvaluationException e) {
+      e.prependPartialJsonPath("[0]");
+      throw e;
+    }
 
-      if (!ArrayLike.isEligible(maybeArray)) {
+    if (!ArrayLike.isEligible(maybeArray)) {
       return Collections.emptyList();
     }
 
     List<Object> result = new ArrayList<>();
 
     for (Object item : new ArrayLike(maybeArray)) {
-        try {
-            result.add(evaluator.evaluate(arguments.get(1), item, ""));
-        } catch (JsonLogicEvaluationException e) {
-            e.prependPartialJsonPath("[1]");
-            throw e;
-        }
+      try {
+        result.add(evaluator.evaluate(arguments.get(1), item, ""));
+      } catch (JsonLogicEvaluationException e) {
+        e.prependPartialJsonPath("[1]");
+        throw e;
+      }
     }
 
     return result;

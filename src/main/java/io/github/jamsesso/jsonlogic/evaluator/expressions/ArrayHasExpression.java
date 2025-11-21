@@ -24,19 +24,19 @@ public class ArrayHasExpression extends JsonPathHandlerJsonLogicExpression imple
 
   @Override
   public Object evaluate(JsonLogicEvaluator evaluator, JsonLogicArray arguments, Object data)
-    throws JsonLogicEvaluationException {
+      throws JsonLogicEvaluationException {
     if (arguments.size() != 2) {
       throw new JsonLogicEvaluationException(key() + " expects exactly 2 arguments");
     }
 
-      Object maybeArray;
+    Object maybeArray;
 
-      try {
-          maybeArray = evaluator.evaluate(arguments.get(0), data, "");
-      } catch (JsonLogicEvaluationException e) {
-          e.prependPartialJsonPath("[0]");
-          throw e;
-      }
+    try {
+      maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+    } catch (JsonLogicEvaluationException e) {
+      e.prependPartialJsonPath("[0]");
+      throw e;
+    }
 
     // Array objects can have null values according to http://jsonlogic.com/
     if (maybeArray == null) {
@@ -52,14 +52,14 @@ public class ArrayHasExpression extends JsonPathHandlerJsonLogicExpression imple
     }
 
     for (Object item : new ArrayLike(maybeArray)) {
-        try {
-            if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item, ""))) {
-                return isSome;
-            }
-        } catch (JsonLogicEvaluationException e) {
-            e.prependPartialJsonPath("[1]");
-            throw e;
+      try {
+        if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item, ""))) {
+          return isSome;
         }
+      } catch (JsonLogicEvaluationException e) {
+        e.prependPartialJsonPath("[1]");
+        throw e;
+      }
     }
 
     return !isSome;

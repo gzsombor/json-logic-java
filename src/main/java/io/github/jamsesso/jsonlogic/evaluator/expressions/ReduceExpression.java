@@ -23,29 +23,29 @@ public class ReduceExpression extends JsonPathHandlerJsonLogicExpression impleme
 
   @Override
   public Object evaluate(JsonLogicEvaluator evaluator, JsonLogicArray arguments, Object data)
-    throws JsonLogicEvaluationException {
+      throws JsonLogicEvaluationException {
     if (arguments.size() != 3) {
       throw new JsonLogicEvaluationException("reduce expects exactly 3 arguments");
     }
 
-      Object maybeArray;
-      Object accumulator;
+    Object maybeArray;
+    Object accumulator;
 
-      try {
-          maybeArray = evaluator.evaluate(arguments.get(0), data, "");
-      } catch (JsonLogicEvaluationException e) {
-          e.prependPartialJsonPath("[0]");
-          throw e;
-      }
+    try {
+      maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+    } catch (JsonLogicEvaluationException e) {
+      e.prependPartialJsonPath("[0]");
+      throw e;
+    }
 
-      try {
-          accumulator = evaluator.evaluate(arguments.get(2), data, "");
-      } catch (JsonLogicEvaluationException e) {
-          e.prependPartialJsonPath("[2]");
-          throw e;
-      }
+    try {
+      accumulator = evaluator.evaluate(arguments.get(2), data, "");
+    } catch (JsonLogicEvaluationException e) {
+      e.prependPartialJsonPath("[2]");
+      throw e;
+    }
 
-      if (!ArrayLike.isEligible(maybeArray)) {
+    if (!ArrayLike.isEligible(maybeArray)) {
       return accumulator;
     }
 
@@ -54,12 +54,12 @@ public class ReduceExpression extends JsonPathHandlerJsonLogicExpression impleme
 
     for (Object item : new ArrayLike(maybeArray)) {
       context.put("current", item);
-        try {
-            context.put("accumulator", evaluator.evaluate(arguments.get(1), context, ""));
-        } catch (JsonLogicEvaluationException e) {
-            e.prependPartialJsonPath("[1]");
-            throw e;
-        }
+      try {
+        context.put("accumulator", evaluator.evaluate(arguments.get(1), context, ""));
+      } catch (JsonLogicEvaluationException e) {
+        e.prependPartialJsonPath("[1]");
+        throw e;
+      }
     }
 
     return context.get("accumulator");

@@ -24,24 +24,24 @@ public class LogicExpression extends JsonPathHandlerJsonLogicExpression implemen
 
   @Override
   public Object evaluate(JsonLogicEvaluator evaluator, JsonLogicArray arguments, Object data)
-    throws JsonLogicEvaluationException {
+      throws JsonLogicEvaluationException {
     if (arguments.size() < 1) {
       throw new JsonLogicEvaluationException(key() + " operator expects at least 1 argument");
     }
 
     Object result = null;
 
-    for (int index = 0; index < arguments.size() ; index++) {
-        JsonLogicNode element = arguments.get(index);
+    for (int index = 0; index < arguments.size(); index++) {
+      JsonLogicNode element = arguments.get(index);
 
-        try {
-            result = evaluator.evaluate(element, data, "");
-        } catch (JsonLogicEvaluationException e) {
-            e.prependPartialJsonPath("[" + (index) + "]");
-            throw e;
-        }
+      try {
+        result = evaluator.evaluate(element, data, "");
+      } catch (JsonLogicEvaluationException e) {
+        e.prependPartialJsonPath("[" + (index) + "]");
+        throw e;
+      }
 
-        if ((isAnd && !JsonLogic.truthy(result)) || (!isAnd && JsonLogic.truthy(result))) {
+      if ((isAnd && !JsonLogic.truthy(result)) || (!isAnd && JsonLogic.truthy(result))) {
         return result;
       }
     }
