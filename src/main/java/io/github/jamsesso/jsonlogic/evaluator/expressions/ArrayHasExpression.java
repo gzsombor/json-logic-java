@@ -32,7 +32,7 @@ public class ArrayHasExpression extends JsonPathHandlerJsonLogicExpression imple
     Object maybeArray;
 
     try {
-      maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+      maybeArray = evaluator.evaluate(arguments.get(0), data);
     } catch (JsonLogicEvaluationException e) {
       e.prependPartialJsonPath("[0]");
       throw e;
@@ -53,7 +53,7 @@ public class ArrayHasExpression extends JsonPathHandlerJsonLogicExpression imple
 
     for (Object item : new ArrayLike(maybeArray)) {
       try {
-        if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item, ""))) {
+        if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item))) {
           return isSome;
         }
       } catch (JsonLogicEvaluationException e) {

@@ -31,7 +31,7 @@ public class FilterExpression extends JsonPathHandlerJsonLogicExpression impleme
 
     Object maybeArray;
     try {
-      maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+      maybeArray = evaluator.evaluate(arguments.get(0), data);
     } catch (JsonLogicEvaluationException e) {
       e.prependPartialJsonPath("[0]");
       throw e;
@@ -45,7 +45,7 @@ public class FilterExpression extends JsonPathHandlerJsonLogicExpression impleme
 
     for (Object item : new ArrayLike(maybeArray)) {
       try {
-        if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item, ""))) {
+        if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item))) {
           result.add(item);
         }
       } catch (JsonLogicEvaluationException e) {

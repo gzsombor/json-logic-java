@@ -32,7 +32,7 @@ public class MapExpression extends JsonPathHandlerJsonLogicExpression implements
     Object maybeArray;
 
     try {
-      maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+      maybeArray = evaluator.evaluate(arguments.get(0), data);
     } catch (JsonLogicEvaluationException e) {
       e.prependPartialJsonPath("[0]");
       throw e;
@@ -46,7 +46,7 @@ public class MapExpression extends JsonPathHandlerJsonLogicExpression implements
 
     for (Object item : new ArrayLike(maybeArray)) {
       try {
-        result.add(evaluator.evaluate(arguments.get(1), item, ""));
+        result.add(evaluator.evaluate(arguments.get(1), item));
       } catch (JsonLogicEvaluationException e) {
         e.prependPartialJsonPath("[1]");
         throw e;

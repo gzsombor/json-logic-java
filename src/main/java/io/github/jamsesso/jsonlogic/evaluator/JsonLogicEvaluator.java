@@ -89,7 +89,7 @@ public class JsonLogicEvaluator {
     Object defaultValue;
 
     try {
-      defaultValue = evaluate(variable.getDefaultValue(), null, "");
+      defaultValue = evaluate(variable.getDefaultValue(), null);
     } catch (JsonLogicEvaluationException e) {
       e.prependPartialJsonPath("[1]");
       throw e;
@@ -102,7 +102,7 @@ public class JsonLogicEvaluator {
     Object key;
 
     try {
-      key = evaluate(variable.getKey(), data, "");
+      key = evaluate(variable.getKey(), data);
     } catch (JsonLogicEvaluationException e) {
       e.prependPartialJsonPath("[0]");
       throw e;
@@ -111,7 +111,7 @@ public class JsonLogicEvaluator {
     if (key == null) {
       Object varValue;
       try {
-        varValue = evaluate(variable.getDefaultValue(), null, "");
+        varValue = evaluate(variable.getDefaultValue(), null);
       } catch (JsonLogicEvaluationException e) {
         e.prependPartialJsonPath("[0]");
         throw e;
@@ -214,7 +214,7 @@ public class JsonLogicEvaluator {
     for (int index = 0; index < array.size(); index++) {
       JsonLogicNode element = array.get(index);
       try {
-        values.add(evaluate(element, data, ""));
+        values.add(evaluate(element, data));
       } catch (JsonLogicEvaluationException e) {
         e.prependPartialJsonPath("[" + index + "]");
         throw e;

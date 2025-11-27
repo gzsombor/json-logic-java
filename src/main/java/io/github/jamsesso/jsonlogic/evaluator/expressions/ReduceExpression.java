@@ -32,14 +32,14 @@ public class ReduceExpression extends JsonPathHandlerJsonLogicExpression impleme
     Object accumulator;
 
     try {
-      maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+      maybeArray = evaluator.evaluate(arguments.get(0), data);
     } catch (JsonLogicEvaluationException e) {
       e.prependPartialJsonPath("[0]");
       throw e;
     }
 
     try {
-      accumulator = evaluator.evaluate(arguments.get(2), data, "");
+      accumulator = evaluator.evaluate(arguments.get(2), data);
     } catch (JsonLogicEvaluationException e) {
       e.prependPartialJsonPath("[2]");
       throw e;
@@ -55,7 +55,7 @@ public class ReduceExpression extends JsonPathHandlerJsonLogicExpression impleme
     for (Object item : new ArrayLike(maybeArray)) {
       context.put("current", item);
       try {
-        context.put("accumulator", evaluator.evaluate(arguments.get(1), context, ""));
+        context.put("accumulator", evaluator.evaluate(arguments.get(1), context));
       } catch (JsonLogicEvaluationException e) {
         e.prependPartialJsonPath("[1]");
         throw e;

@@ -28,7 +28,7 @@ public class AllExpression extends JsonPathHandlerJsonLogicExpression implements
 
     Object maybeArray;
     try {
-      maybeArray = evaluator.evaluate(arguments.get(0), data, "");
+      maybeArray = evaluator.evaluate(arguments.get(0), data);
     } catch (JsonLogicEvaluationException e) {
       e.prependPartialJsonPath("[0]");
       throw e;
@@ -51,7 +51,7 @@ public class AllExpression extends JsonPathHandlerJsonLogicExpression implements
     int index = 1;
     for (Object item : array) {
       try {
-        if (!JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item, ""))) {
+        if (!JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item))) {
           return false;
         }
       } catch (JsonLogicEvaluationException e) {

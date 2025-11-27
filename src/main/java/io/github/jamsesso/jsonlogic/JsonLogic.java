@@ -133,7 +133,7 @@ public final class JsonLogic {
     }
 
     try {
-      return evaluator.evaluate(parseCache.get(json), data, "");
+      return evaluator.evaluate(parseCache.get(json), data);
     } catch (JsonLogicException e) {
       e.prependPartialJsonPath("$");
       throw e;

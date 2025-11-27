@@ -35,7 +35,7 @@ public class LogicExpression extends JsonPathHandlerJsonLogicExpression implemen
       JsonLogicNode element = arguments.get(index);
 
       try {
-        result = evaluator.evaluate(element, data, "");
+        result = evaluator.evaluate(element, data);
       } catch (JsonLogicEvaluationException e) {
         e.prependPartialJsonPath("[" + (index) + "]");
         throw e;
