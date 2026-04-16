@@ -2,6 +2,8 @@ package io.github.jamsesso.jsonlogic;
 
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
+import io.github.jamsesso.jsonlogic.compiler.CompiledRule;
+import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompiler;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicExpression;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.*;
@@ -10,13 +12,23 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 public final class JsonLogic {
+  private static final Logger LOG = Logger.getLogger(JsonLogic.class.getName());
+
   private final Map<String, JsonLogicNode> parseCache = new ConcurrentHashMap<>();
   private final Map<String, JsonLogicExpression> expressions = new ConcurrentHashMap<>();
   private JsonLogicEvaluator evaluator;
 
+  /** Non-null when compilation is enabled (default). Pass {@code false} to {@link #JsonLogic(boolean)} to disable. */
+  private JsonLogicCompiler compiler;
+
   public JsonLogic() {
+    this(true);
+  }
+
+  public JsonLogic(boolean enableCompilation) {
     // Add default operations
     addOperation(MathExpression.ADD);
     addOperation(MathExpression.SUBTRACT);
@@ -52,6 +64,18 @@ public final class JsonLogic {
     addOperation(SubstringExpression.INSTANCE);
     addOperation(MissingExpression.ALL);
     addOperation(MissingExpression.SOME);
+
+    // Enable compilation by default; fall back gracefully if no JDK compiler is present.
+    if (enableCompilation) {
+      try {
+        this.compiler = new JsonLogicCompiler(getOrBuildEvaluator());
+      } catch (IllegalStateException e) {
+        LOG.warning("Compilation is unavailable. "
+            + "Rules will be evaluated by the interpreter. "
+            + "To suppress this warning, use new JsonLogic(false).");
+        this.compiler = null;
+      }
+    }
   }
 
   public static boolean truthy(Object value) {
@@ -119,13 +143,40 @@ public final class JsonLogic {
   public JsonLogic addOperation(JsonLogicExpression expression) {
     expressions.put(expression.key(), expression);
     evaluator = null;
-
+    if (compiler != null) {
+      compiler.invalidate();
+    }
     return this;
   }
 
+  /** Returns {@code true} if compilation is currently enabled. */
+  public boolean isCompilationEnabled() {
+    return compiler != null;
+  }
+
   public Object apply(String json, Object data) throws JsonLogicException {
-    if (!parseCache.containsKey(json)) {
-      parseCache.put(json, JsonLogicParser.parse(json));
+    JsonLogicNode ast;
+    try {
+      ast = parseCache.computeIfAbsent(json, k -> {
+        try {
+          return JsonLogicParser.parse(k);
+        } catch (JsonLogicException e) {
+          throw new RuntimeException(e);
+        }
+      });
+    } catch (RuntimeException e) {
+      if (e.getCause() instanceof JsonLogicException) throw (JsonLogicException) e.getCause();
+      throw e;
+    }
+
+    if (compiler != null) {
+      CompiledRule rule = compiler.compile(json, ast);
+      try {
+        return rule.apply(data);
+      } catch (JsonLogicException e) {
+        e.prependPartialJsonPath("$");
+        throw e;
+      }
     }
 
     if (evaluator == null) {
@@ -133,10 +184,17 @@ public final class JsonLogic {
     }
 
     try {
-      return evaluator.evaluate(parseCache.get(json), data);
+      return evaluator.evaluate(ast, data);
     } catch (JsonLogicException e) {
       e.prependPartialJsonPath("$");
       throw e;
     }
+  }
+
+  private JsonLogicEvaluator getOrBuildEvaluator() {
+    if (evaluator == null) {
+      evaluator = new JsonLogicEvaluator(expressions);
+    }
+    return evaluator;
   }
 }

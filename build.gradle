@@ -23,6 +23,44 @@ dependencies {
   testImplementation "junit:junit:4.12"
 }
 
+sourceSets {
+  jmh {
+    java.srcDirs = ['src/jmh/java']
+    compileClasspath += sourceSets.main.output + configurations.jmhCompileClasspath
+    runtimeClasspath += sourceSets.main.output + configurations.jmhRuntimeClasspath
+  }
+}
+
+configurations {
+  jmhImplementation.extendsFrom implementation
+  jmhAnnotationProcessor
+  jmhCompileClasspath.extendsFrom jmhImplementation
+  jmhRuntimeClasspath.extendsFrom jmhImplementation
+}
+
+dependencies {
+  jmhImplementation "org.openjdk.jmh:jmh-core:1.37"
+  jmhAnnotationProcessor "org.openjdk.jmh:jmh-generator-annprocess:1.37"
+}
+
+// Wire the annotation processor for the jmh source set
+compileJmhJava.options.annotationProcessorPath = configurations.jmhAnnotationProcessor
+
+// Simple task to run JMH benchmarks
+task jmh(type: JavaExec, dependsOn: compileJmhJava) {
+  group = 'benchmark'
+  description = 'Run JMH benchmarks (org.openjdk.jmh.Main)'
+  mainClass = 'org.openjdk.jmh.Main'
+  classpath = sourceSets.jmh.runtimeClasspath
+  // pass any args through via -PjmhArgs='"-i 3 -wi 3 -f 1"' or configure here
+  doFirst {
+    if (project.hasProperty('jmhArgs')) {
+      def parts = project.property('jmhArgs').toString().split('\\s+') as List
+      setArgs(parts)
+    }
+  }
+}
+
 test {
   testLogging {
     events "passed", "skipped", "failed"
