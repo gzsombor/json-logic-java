@@ -1,32 +1,26 @@
 plugins {
   id "java"
-  id "maven"
+  id "maven-publish"
   id "signing"
 }
 
 group "io.github.jamsesso"
 version "1.1.1-SNAPSHOT"
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java {
+  sourceCompatibility = JavaVersion.VERSION_23
+  targetCompatibility = JavaVersion.VERSION_23
+  withJavadocJar()
+  withSourcesJar()
+}
 
 repositories {
   mavenCentral()
 }
 
 dependencies {
-  compile "com.google.code.gson:gson:2.8.5"
-  testCompile "junit:junit:4.12"
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-  classifier = "javadoc"
-  from javadoc.destinationDir
-}
-
-task sourcesJar(type: Jar) {
-  classifier = "sources"
-  from sourceSets.main.allSource
+  implementation "com.google.code.gson:gson:2.8.5"
+  testImplementation "junit:junit:4.12"
 }
 
 test {
@@ -35,10 +29,6 @@ test {
     exceptionFormat "full"
     showStandardStreams = true
   }
-}
-
-artifacts {
-  archives jar, javadocJar, sourcesJar
 }
 
 def getSonatypeUsername() {
@@ -57,54 +47,58 @@ def hasCredentials() {
   return result
 }
 
-signing {
-  required { gradle.taskGraph.hasTask("uploadArchives") }
-  useInMemoryPgpKeys(System.getenv('SIGNING_KEY'), System.getenv('SIGNING_PASSWORD'))
-  sign configurations.archives
-}
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      artifactId = "json-logic-java"
+      from components.java
 
-uploadArchives {
-  repositories {
-    mavenDeployer {
-      beforeDeployment { deployment -> signing.signPom(deployment) }
-
-      repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-        authentication(userName: getSonatypeUsername(), password: getSonatypePassword())
-      }
-
-      snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-        authentication(userName: getSonatypeUsername(), password: getSonatypePassword())
-      }
-
-      pom.project {
-        name "json-logic-java"
-        artifactId "json-logic-java"
-        packaging "jar"
-        description "A native Java implementation of the json-logic project"
-        url "https://github.com/jamsesso/json-logic-java"
+      pom {
+        name = "json-logic-java"
+        description = "A native Java implementation of the json-logic project"
+        url = "https://github.com/jamsesso/json-logic-java"
 
         scm {
-          connection "scm:git@github.com:jamsesso/json-logic-java.git"
-          developerConnection "scm:git@github.com:jamsesso/json-logic-java.git"
-          url "https://github.com/jamsesso/json-logic-java.git"
+          connection = "scm:git@github.com:jamsesso/json-logic-java.git"
+          developerConnection = "scm:git@github.com:jamsesso/json-logic-java.git"
+          url = "https://github.com/jamsesso/json-logic-java.git"
         }
 
         licenses {
           license {
-            name "MIT License"
-            url "https://github.com/jamsesso/json-logic-java/blob/master/LICENSE"
+            name = "MIT License"
+            url = "https://github.com/jamsesso/json-logic-java/blob/master/LICENSE"
           }
         }
 
         developers {
           developer {
-            id "jamsesso"
-            name "Sam Jesso"
-            email "samuel.jesso@gmail.com"
+            id = "jamsesso"
+            name = "Sam Jesso"
+            email = "samuel.jesso@gmail.com"
           }
         }
       }
     }
   }
-  onlyIf { hasCredentials() }
+
+  repositories {
+    maven {
+      def releasesUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+      def snapshotsUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+      url = version.endsWith('SNAPSHOT') ? snapshotsUrl : releasesUrl
+      credentials {
+        username = getSonatypeUsername()
+        password = getSonatypePassword()
+      }
+    }
+  }
 }
+
+signing {
+  required { gradle.taskGraph.hasTask("publish") }
+  useInMemoryPgpKeys(System.getenv('SIGNING_KEY'), System.getenv('SIGNING_PASSWORD'))
+  sign publishing.publications.mavenJava
+}
+
+publish.onlyIf { hasCredentials() }
