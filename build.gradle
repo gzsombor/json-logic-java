@@ -3,7 +3,7 @@ plugins {
   id "com.vanniktech.maven.publish" version "0.36.0"
 }
 
-group "io.github.jamsesso"
+group "io.github.gzsombor"
 version "1.1.1-SNAPSHOT"
 
 java {
@@ -73,12 +73,12 @@ mavenPublishing {
   pom {
     name = "json-logic-java"
     description = "A native Java implementation of the json-logic project"
-    url = "https://github.com/jamsesso/json-logic-java"
+    url = "https://github.com/gzsombor/json-logic-java"
 
     licenses {
       license {
         name = "MIT License"
-        url = "https://github.com/jamsesso/json-logic-java/blob/master/LICENSE"
+        url = "https://github.com/gzsombor/json-logic-java/blob/master/LICENSE"
       }
     }
 
@@ -88,12 +88,17 @@ mavenPublishing {
         name = "Sam Jesso"
         url = "https://github.com/jamsesso/"
       }
+      developer {
+        id = "gzsombor"
+        name = "Zsombor Gegesy"
+        url = "https://github.com/gzsombor/"
+      }
     }
 
     scm {
-      url = "https://github.com/jamsesso/json-logic-java/"
-      connection = "scm:git:git://github.com/jamsesso/json-logic-java.git"
-      developerConnection = "scm:git:ssh://git@github.com/jamsesso/json-logic-java.git"
+      url = "https://github.com/gzsombor/json-logic-java/"
+      connection = "scm:git:git://github.com/gzsombor/json-logic-java.git"
+      developerConnection = "scm:git:ssh://git@github.com/gzsombor/json-logic-java.git"
     }
   }
 }
