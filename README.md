@@ -9,9 +9,9 @@ JsonLogic is documented extensively at [JsonLogic.com](http://jsonlogic.com), in
 
 ```xml
 <dependency>
-  <groupId>io.github.jamsesso</groupId>
+  <groupId>io.github.gzsombor</groupId>
   <artifactId>json-logic-java</artifactId>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
 </dependency>
 ```
 
