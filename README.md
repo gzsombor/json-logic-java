@@ -15,6 +15,28 @@ JsonLogic is documented extensively at [JsonLogic.com](http://jsonlogic.com), in
 </dependency>
 ```
 
+## Performance
+
+By default, the forked `JsonLogic` compiles each unique rule into a native Java method at first use via `javax.tools`, then caches and reuses it - delivering a **5–8× throughput improvement** over the tree-walking interpreter. If no compiler is available a warning is logged and the interpreter is used as a fallback. To opt out of compilation entirely, pass `false` to the constructor:
+
+```java
+JsonLogic jsonLogic = new JsonLogic(false);
+```
+
+## Benchmarks
+
+JMH benchmarks comparing interpreter vs compiled throughput are in `src/jmh`. Run them with:
+
+```bash
+gradle jmh
+```
+
+To run a specific benchmark, pass its name (or a substring) via `jmhArgs`:
+
+```bash
+gradle jmh -PjmhArgs="TwentyClauses"
+```
+
 ## Examples
 
 The public API for json-logic-java attempts to mimic the public API of the original Javascript implementation as close as possible.
