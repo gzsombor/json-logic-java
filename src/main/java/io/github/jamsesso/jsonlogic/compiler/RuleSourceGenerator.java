@@ -58,39 +58,39 @@ public final class RuleSourceGenerator {
     final String resultVar = freshVar("result");
     emitStatement(ast, resultVar, body, "data");
 
-    // Use .formatted() only for the static header - body is NOT passed through it,
+    // Use String.format() only for the static header - body is NOT passed through it,
     // so any % characters in rule expressions are safe.
-    final String header = """
-        package %s;
-
-        import io.github.jamsesso.jsonlogic.JsonLogic;
-        import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
-        import io.github.jamsesso.jsonlogic.compiler.CompiledRule;
-        import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
-        import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
-        import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;
-        import java.util.*;
-
-        public final class %s implements CompiledRule {
-
-          private final JsonLogicEvaluator fallback;
-          private final JsonLogicNode[] fallbackNodes;
-          private final String ruleJson;
-
-          public %s(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson) {
-            this.fallback = fallback;
-            this.fallbackNodes = fallbackNodes;
-            this.ruleJson = ruleJson;
-          }
-
-          @Override
-          public String toString() {
-            return "CompiledRule(" + ruleJson + ")";
-          }
-
-          @Override
-          public Object apply(Object data) throws JsonLogicEvaluationException {
-        """.formatted(GEN_PACKAGE, className, className);
+    final String header = String.format(
+        "package %s;\n"
+        + "\n"
+        + "import io.github.jamsesso.jsonlogic.JsonLogic;\n"
+        + "import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;\n"
+        + "import io.github.jamsesso.jsonlogic.compiler.CompiledRule;\n"
+        + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;\n"
+        + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;\n"
+        + "import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;\n"
+        + "import java.util.*;\n"
+        + "\n"
+        + "public final class %s implements CompiledRule {\n"
+        + "\n"
+        + "  private final JsonLogicEvaluator fallback;\n"
+        + "  private final JsonLogicNode[] fallbackNodes;\n"
+        + "  private final String ruleJson;\n"
+        + "\n"
+        + "  public %s(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson) {\n"
+        + "    this.fallback = fallback;\n"
+        + "    this.fallbackNodes = fallbackNodes;\n"
+        + "    this.ruleJson = ruleJson;\n"
+        + "  }\n"
+        + "\n"
+        + "  @Override\n"
+        + "  public String toString() {\n"
+        + "    return \"CompiledRule(\" + ruleJson + \")\";\n"
+        + "  }\n"
+        + "\n"
+        + "  @Override\n"
+        + "  public Object apply(Object data) throws JsonLogicEvaluationException {\n",
+        GEN_PACKAGE, className, className);
 
     return header
         + body
@@ -115,7 +115,8 @@ public final class RuleSourceGenerator {
   // -------------------------------------------------------------------------
 
   private void emitStatement(JsonLogicNode node, String targetVar, StringBuilder out, String dataExpr) {
-    if (node instanceof JsonLogicOperation op) {
+    if (node instanceof JsonLogicOperation) {
+      final JsonLogicOperation op = (JsonLogicOperation) node;
       switch (op.getOperator()) {
         case "if":
         case "?:":
@@ -151,10 +152,12 @@ public final class RuleSourceGenerator {
     if (node instanceof JsonLogicNull) {
       return "null";
     }
-    if (node instanceof JsonLogicBoolean bool) {
+    if (node instanceof JsonLogicBoolean) {
+      final JsonLogicBoolean bool = (JsonLogicBoolean) node;
       return bool.getValue() ? "Boolean.TRUE" : "Boolean.FALSE";
     }
-    if (node instanceof JsonLogicNumber num) {
+    if (node instanceof JsonLogicNumber) {
+      final JsonLogicNumber num = (JsonLogicNumber) node;
       final double value = num.getValue();
       if (Double.isNaN(value)) {
         return "Double.NaN";
@@ -167,17 +170,17 @@ public final class RuleSourceGenerator {
       }
       return "Double.longBitsToDouble(" + Double.doubleToLongBits(value) + "L)";
     }
-    if (node instanceof JsonLogicString str) {
-      return javaStringLiteral(str.getValue());
+    if (node instanceof JsonLogicString) {
+      return javaStringLiteral(((JsonLogicString) node).getValue());
     }
-    if (node instanceof JsonLogicArray arr) {
-      return emitArrayLiteral(arr, pre, dataExpr);
+    if (node instanceof JsonLogicArray) {
+      return emitArrayLiteral((JsonLogicArray) node, pre, dataExpr);
     }
-    if (node instanceof JsonLogicVariable var) {
-      return emitVariable(var, pre, dataExpr);
+    if (node instanceof JsonLogicVariable) {
+      return emitVariable((JsonLogicVariable) node, pre, dataExpr);
     }
-    if (node instanceof JsonLogicOperation op) {
-      // Control-flow ops need statement context — lift into a temp var
+    if (node instanceof JsonLogicOperation) {
+      final JsonLogicOperation op = (JsonLogicOperation) node;
       if (isControlFlow(op.getOperator())) {
         final String tmp = freshVar("ctrl");
         emitStatement(node, tmp, pre, dataExpr);

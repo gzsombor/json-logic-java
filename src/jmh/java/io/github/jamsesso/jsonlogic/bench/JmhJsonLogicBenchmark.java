@@ -66,10 +66,9 @@ public class JmhJsonLogicBenchmark {
     jsonLogicCompiled = new JsonLogic();
 
     // --- original ---
-    logic5 = """
-        {"and":[{">":[{"var":"score"},10]},{"<":[{"var":"count"},100]},\
-        {"==":[{"var":"category"},"x"]},{"!=":[{"var":"tag"},"y"]},\
-        {">=":[{"var":"offset"},0]}]}""";
+    logic5 = "{\"and\":[{\">\":[{\"var\":\"score\"},10]},{\"<\":[{\"var\":\"count\"},100]},"
+        + "{\"==\":[{\"var\":\"category\"},\"x\"]},{\"!=\":[{\"var\":\"tag\"},\"y\"]},"
+        + "{\">=\":[{\"var\":\"offset\"},0]}]}";
     data5 = new HashMap<>();
     data5.put("score", 42);
     data5.put("count", 50);
@@ -78,32 +77,29 @@ public class JmhJsonLogicBenchmark {
     data5.put("offset", 0);
 
     // --- 2 string comparisons ---
-    logicStr2 = """
-        {"if":[{"and":[{"==":[{"var":"role"},"admin"]},\
-        {"==":[{"var":"region"},"us"]}]},\
-        "full-access","limited"]}""";
+    logicStr2 = "{\"if\":[{\"and\":[{\"==\":[{\"var\":\"role\"},\"admin\"]},"
+        + "{\"==\":[{\"var\":\"region\"},\"us\"]}]},"
+        + "\"full-access\",\"limited\"]}";
     dataStr2 = new HashMap<>();
     dataStr2.put("role", "admin");
     dataStr2.put("region", "us");
 
     // --- 3 string comparisons ---
-    logicStr3 = """
-        {"if":[{"and":[{"==":[{"var":"role"},"editor"]},\
-        {"==":[{"var":"region"},"eu"]},\
-        {"==":[{"var":"tier"},"pro"]}]},\
-        "eu-pro-editor","default"]}""";
+    logicStr3 = "{\"if\":[{\"and\":[{\"==\":[{\"var\":\"role\"},\"editor\"]},"
+        + "{\"==\":[{\"var\":\"region\"},\"eu\"]},"
+        + "{\"==\":[{\"var\":\"tier\"},\"pro\"]}]},"
+        + "\"eu-pro-editor\",\"default\"]}";
     dataStr3 = new HashMap<>();
     dataStr3.put("role", "editor");
     dataStr3.put("region", "eu");
     dataStr3.put("tier", "pro");
 
     // --- 4 string comparisons ---
-    logicStr4 = """
-        {"if":[{"and":[{"==":[{"var":"role"},"viewer"]},\
-        {"==":[{"var":"region"},"ap"]},\
-        {"==":[{"var":"tier"},"free"]},\
-        {"==":[{"var":"lang"},"en"]}]},\
-        "ap-free-viewer-en","default"]}""";
+    logicStr4 = "{\"if\":[{\"and\":[{\"==\":[{\"var\":\"role\"},\"viewer\"]},"
+        + "{\"==\":[{\"var\":\"region\"},\"ap\"]},"
+        + "{\"==\":[{\"var\":\"tier\"},\"free\"]},"
+        + "{\"==\":[{\"var\":\"lang\"},\"en\"]}]},"
+        + "\"ap-free-viewer-en\",\"default\"]}";
     dataStr4 = new HashMap<>();
     dataStr4.put("role", "viewer");
     dataStr4.put("region", "ap");
@@ -111,42 +107,40 @@ public class JmhJsonLogicBenchmark {
     dataStr4.put("lang", "en");
 
     // --- dispatch table (5-branch if/elseif) ---
-    logicDispatch = """
-        {"if":[
-          {"==":[{"var":"status"},"pending"]},"Pending Review",
-          {"==":[{"var":"status"},"approved"]},"Approved",
-          {"==":[{"var":"status"},"rejected"]},"Rejected",
-          {"==":[{"var":"status"},"cancelled"]},"Cancelled",
-          "Unknown"]}""";
+    logicDispatch = "{\"if\":["
+        + "{\"==\":[{\"var\":\"status\"},\"pending\"]},\"Pending Review\","
+        + "{\"==\":[{\"var\":\"status\"},\"approved\"]},\"Approved\","
+        + "{\"==\":[{\"var\":\"status\"},\"rejected\"]},\"Rejected\","
+        + "{\"==\":[{\"var\":\"status\"},\"cancelled\"]},\"Cancelled\","
+        + "\"Unknown\"]}";
     dataDispatchHit = new HashMap<>();
     dataDispatchHit.put("status", "rejected");   // matches branch 3
     dataDispatchMiss = new HashMap<>();
     dataDispatchMiss.put("status", "archived");  // falls through to "Unknown"
 
     // --- 20-clause and ---
-    logic20 = """
-        {"and":[
-          {">":[{"var":"n0"},0]},
-          {">":[{"var":"n1"},1]},
-          {">":[{"var":"n2"},2]},
-          {">":[{"var":"n3"},3]},
-          {">":[{"var":"n4"},4]},
-          {">":[{"var":"n5"},5]},
-          {">":[{"var":"n6"},6]},
-          {">":[{"var":"n7"},7]},
-          {">":[{"var":"n8"},8]},
-          {">":[{"var":"n9"},9]},
-          {"==":[{"var":"s0"},"a"]},
-          {"==":[{"var":"s1"},"b"]},
-          {"==":[{"var":"s2"},"c"]},
-          {"==":[{"var":"s3"},"d"]},
-          {"==":[{"var":"s4"},"e"]},
-          {"==":[{"var":"s5"},"f"]},
-          {"==":[{"var":"s6"},"g"]},
-          {"==":[{"var":"s7"},"h"]},
-          {"==":[{"var":"s8"},"i"]},
-          {"==":[{"var":"s9"},"j"]}
-        ]}""";
+    logic20 = "{\"and\":["
+        + "{\">\":[{\"var\":\"n0\"},0]},"
+        + "{\">\":[{\"var\":\"n1\"},1]},"
+        + "{\">\":[{\"var\":\"n2\"},2]},"
+        + "{\">\":[{\"var\":\"n3\"},3]},"
+        + "{\">\":[{\"var\":\"n4\"},4]},"
+        + "{\">\":[{\"var\":\"n5\"},5]},"
+        + "{\">\":[{\"var\":\"n6\"},6]},"
+        + "{\">\":[{\"var\":\"n7\"},7]},"
+        + "{\">\":[{\"var\":\"n8\"},8]},"
+        + "{\">\":[{\"var\":\"n9\"},9]},"
+        + "{\"==\":[{\"var\":\"s0\"},\"a\"]},"
+        + "{\"==\":[{\"var\":\"s1\"},\"b\"]},"
+        + "{\"==\":[{\"var\":\"s2\"},\"c\"]},"
+        + "{\"==\":[{\"var\":\"s3\"},\"d\"]},"
+        + "{\"==\":[{\"var\":\"s4\"},\"e\"]},"
+        + "{\"==\":[{\"var\":\"s5\"},\"f\"]},"
+        + "{\"==\":[{\"var\":\"s6\"},\"g\"]},"
+        + "{\"==\":[{\"var\":\"s7\"},\"h\"]},"
+        + "{\"==\":[{\"var\":\"s8\"},\"i\"]},"
+        + "{\"==\":[{\"var\":\"s9\"},\"j\"]}"
+        + "]}";
     data20 = new HashMap<>();
     for (int i = 0; i < 10; i++) {
       data20.put("n" + i, i + 1);

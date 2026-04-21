@@ -32,39 +32,39 @@ public final class RuleHelpers {
     if (left == null || right == null) {
       return false;
     }
-    if (left instanceof Number leftNum && right instanceof Number rightNum) {
-      return Double.valueOf(leftNum.doubleValue()).equals(rightNum.doubleValue());
+    if (left instanceof Number && right instanceof Number) {
+      return Double.valueOf(((Number) left).doubleValue()).equals(((Number) right).doubleValue());
     }
-    if (left instanceof Number leftNum && right instanceof String rightStr) {
-      return numEqStr(leftNum, rightStr);
+    if (left instanceof Number && right instanceof String) {
+      return numEqStr((Number) left, (String) right);
     }
-    if (left instanceof Number leftNum && right instanceof Boolean rightBool) {
-      return numEqBool(leftNum, rightBool);
+    if (left instanceof Number && right instanceof Boolean) {
+      return numEqBool((Number) left, (Boolean) right);
     }
-    if (left instanceof String leftStr && right instanceof String rightStr) {
-      return leftStr.equals(rightStr);
+    if (left instanceof String && right instanceof String) {
+      return left.equals(right);
     }
-    if (left instanceof String leftStr && right instanceof Number rightNum) {
-      return numEqStr(rightNum, leftStr);
+    if (left instanceof String && right instanceof Number) {
+      return numEqStr((Number) right, (String) left);
     }
-    if (left instanceof String leftStr && right instanceof Boolean rightBool) {
-      return strEqBool(leftStr, rightBool);
+    if (left instanceof String && right instanceof Boolean) {
+      return strEqBool((String) left, (Boolean) right);
     }
-    if (left instanceof Boolean leftBool && right instanceof Boolean rightBool) {
-      return leftBool.booleanValue() == rightBool.booleanValue();
+    if (left instanceof Boolean && right instanceof Boolean) {
+      return ((Boolean) left).booleanValue() == ((Boolean) right).booleanValue();
     }
-    if (left instanceof Boolean leftBool && right instanceof Number rightNum) {
-      return numEqBool(rightNum, leftBool);
+    if (left instanceof Boolean && right instanceof Number) {
+      return numEqBool((Number) right, (Boolean) left);
     }
-    if (left instanceof Boolean leftBool && right instanceof String rightStr) {
-      return strEqBool(rightStr, leftBool);
+    if (left instanceof Boolean && right instanceof String) {
+      return strEqBool((String) right, (Boolean) left);
     }
     return !JsonLogic.truthy(left) && !JsonLogic.truthy(right);
   }
 
   public static boolean strictEq(Object left, Object right) {
-    if (left instanceof Number leftNum && right instanceof Number rightNum) {
-      return leftNum.doubleValue() == rightNum.doubleValue();
+    if (left instanceof Number && right instanceof Number) {
+      return ((Number) left).doubleValue() == ((Number) right).doubleValue();
     }
     if (left == null && right == null) {
       return true;
@@ -95,18 +95,18 @@ public final class RuleHelpers {
   // ---- numeric coercion ----
 
   public static double toDouble(Object value) {
-    if (value instanceof Number num) {
-      return num.doubleValue();
+    if (value instanceof Number) {
+      return ((Number) value).doubleValue();
     }
-    if (value instanceof String str) {
+    if (value instanceof String) {
       try {
-        return Double.parseDouble(str);
+        return Double.parseDouble((String) value);
       } catch (NumberFormatException ex) {
         return Double.NaN;
       }
     }
-    if (value instanceof Boolean bool) {
-      return bool ? 1.0 : 0.0;
+    if (value instanceof Boolean) {
+      return (Boolean) value ? 1.0 : 0.0;
     }
     return Double.NaN;
   }
@@ -116,12 +116,12 @@ public final class RuleHelpers {
     if (value == null) {
       return null;
     }
-    if (value instanceof Number num) {
-      return num.doubleValue();
+    if (value instanceof Number) {
+      return ((Number) value).doubleValue();
     }
-    if (value instanceof String str) {
+    if (value instanceof String) {
       try {
-        return Double.parseDouble(str);
+        return Double.parseDouble((String) value);
       } catch (NumberFormatException ex) {
         return null;
       }
@@ -134,7 +134,7 @@ public final class RuleHelpers {
   /** Unwraps nested single-element arrays, mirroring {@code MathExpression}'s behaviour for {@code +} and {@code *}. */
   public static Object unwrapArrayArg(Object value) {
     while (ArrayLike.isEligible(value)) {
-      final var list = new ArrayLike(value);
+      final ArrayLike list = new ArrayLike(value);
       if (list.isEmpty()) {
         return null;
       }
@@ -177,7 +177,8 @@ public final class RuleHelpers {
     if (value == null) {
       return "";
     }
-    if (value instanceof Double dbl) {
+    if (value instanceof Double) {
+      final Double dbl = (Double) value;
       if (dbl == Math.floor(dbl) && !Double.isInfinite(dbl)) {
         return String.valueOf(dbl.longValue());
       }
@@ -192,17 +193,18 @@ public final class RuleHelpers {
       return defaultValue;
     }
     if (key == null) {
-      return (data instanceof Number num) ? num.doubleValue() : data;
+      return (data instanceof Number) ? ((Number) data).doubleValue() : data;
     }
-    if (key instanceof Number numKey) {
-      final int idx = numKey.intValue();
+    if (key instanceof Number) {
+      final int idx = ((Number) key).intValue();
       if (ArrayLike.isEligible(data)) {
-        final var list = new ArrayLike(data);
+        final ArrayLike list = new ArrayLike(data);
         return (idx >= 0 && idx < list.size()) ? list.get(idx) : defaultValue;
       }
       return defaultValue;
     }
-    if (key instanceof String strKey) {
+    if (key instanceof String) {
+      final String strKey = (String) key;
       if (strKey.isEmpty()) {
         return data;
       }
@@ -214,7 +216,7 @@ public final class RuleHelpers {
         }
         if (ArrayLike.isEligible(cur)) {
           try {
-            final var list = new ArrayLike(cur);
+            final ArrayLike list = new ArrayLike(cur);
             final int idx = Integer.parseInt(part);
             if (idx < 0 || idx >= list.size()) {
               return defaultValue;
@@ -223,12 +225,13 @@ public final class RuleHelpers {
           } catch (NumberFormatException ex) {
             return null;
           }
-        } else if (cur instanceof Map<?, ?> map) {
+        } else if (cur instanceof Map) {
+          final Map<?, ?> map = (Map<?, ?>) cur;
           if (!map.containsKey(part)) {
             return defaultValue;
           }
           final Object raw = map.get(part);
-          cur = (raw instanceof Number rawNum) ? rawNum.doubleValue() : raw;
+          cur = (raw instanceof Number) ? ((Number) raw).doubleValue() : raw;
         } else {
           return null;
         }
