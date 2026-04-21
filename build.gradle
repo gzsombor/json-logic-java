@@ -1,14 +1,15 @@
 plugins {
   id "java"
-  id "com.vanniktech.maven.publish" version "0.25.3"
+  id "com.vanniktech.maven.publish" version "0.34.0"
 }
 
 group "io.github.gzsombor"
 version "1.1.2-SNAPSHOT"
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_11
-  targetCompatibility = JavaVersion.VERSION_11
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(11)
+  }
 }
 
 repositories {

@@ -1,4 +1,4 @@
 [tools]
-gradle = "7.6.4"
-java = "temurin-11"
+gradle = "8.8"
+java = "temurin-17"
 
