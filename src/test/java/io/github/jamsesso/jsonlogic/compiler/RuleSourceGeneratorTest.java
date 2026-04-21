@@ -95,7 +95,7 @@ public class RuleSourceGeneratorTest {
 
   @Test
   public void andShortCircuitsOnFalse() throws JsonLogicException {
-    // Second arg is an error-throwing var — must not be evaluated
+    // Second arg is an error-throwing var - must not be evaluated
     Map<String, Object> data = new HashMap<>();
     data.put("flag", false);
     // {and: [false, true]} → false  (no error)

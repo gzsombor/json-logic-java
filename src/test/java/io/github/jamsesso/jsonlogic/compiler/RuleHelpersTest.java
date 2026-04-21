@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;
 import static org.junit.Assert.*;

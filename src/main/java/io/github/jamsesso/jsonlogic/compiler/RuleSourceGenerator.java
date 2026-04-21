@@ -58,7 +58,7 @@ public final class RuleSourceGenerator {
     final String resultVar = freshVar("result");
     emitStatement(ast, resultVar, body, "data");
 
-    // Use .formatted() only for the static header — body is NOT passed through it,
+    // Use .formatted() only for the static header - body is NOT passed through it,
     // so any % characters in rule expressions are safe.
     final String header = """
         package %s;
@@ -249,7 +249,7 @@ public final class RuleSourceGenerator {
   //
   // We MUST use nested if/else rather than flat else-if because the condition variable
   // for branch N is declared AFTER we close branch N-1's body, making it visible only
-  // from that point inside the else block — not in a subsequent "} else if" on the same
+  // from that point inside the else block - not in a subsequent "} else if" on the same
   // nesting level.
   //
   private void emitIf(JsonLogicArray args, String targetVar, StringBuilder out, String dataExpr) {
@@ -293,7 +293,7 @@ public final class RuleSourceGenerator {
 
     out.append("    } else {\n");
     // The next condition variable is declared inside this else block, so it is in scope
-    // for the nested if that follows — correct Java scoping.
+    // for the nested if that follows - correct Java scoping.
     emitIfChain(args, index + 2, targetVar, out, dataExpr);
     out.append("    }\n");
   }

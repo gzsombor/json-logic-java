@@ -16,7 +16,7 @@ import java.util.Objects;
 
 /**
  * Verifies that every fixture in {@code fixtures.json} produces the same result when
- * evaluated via the JIT compiler as when evaluated via the tree-walking interpreter.
+ * evaluated via the compiler as when evaluated via the tree-walking interpreter.
  *
  * <p>This gives ~400 data-driven cases for free without writing individual tests.
  */
@@ -41,13 +41,13 @@ public class CompiledRuleEquivalenceTest {
       try {
         expected = interpreter.apply(f.json, f.data);
       } catch (JsonLogicException e) {
-        // Interpreter threw — compiler must throw too (we just skip value comparison)
+        // Interpreter threw - compiler must throw too (we just skip value comparison)
         try {
           compiled.apply(f.json, f.data);
           failures.add("Interpreter threw but compiled succeeded.\n  Rule: " + f.json
               + "\n  Data: " + f.data + "\n  Interpreter error: " + e.getMessage());
         } catch (JsonLogicException ignored) {
-          // Both threw — acceptable
+          // Both threw - acceptable
         }
         continue;
       }

@@ -29,11 +29,11 @@ import java.util.logging.Logger;
  * <h2>Fallback behaviour</h2>
  * <p>If Javac reports errors for a specific rule, or if the compiled class cannot be loaded,
  * a WARNING is logged (including the generated source) and a {@link CompiledRule} that
- * delegates to the tree-walking interpreter is returned — so a single rule failure is
+ * delegates to the tree-walking interpreter is returned - so a single rule failure is
  * recoverable at runtime.
  *
  * <p>If the JDK compiler is entirely absent (JRE deployment), the <em>constructor</em> throws
- * {@link IllegalStateException} immediately — this is a deployment error that cannot be
+ * {@link IllegalStateException} immediately - this is a deployment error that cannot be
  * recovered from per-rule.
  */
 public final class JsonLogicCompiler {
@@ -48,7 +48,7 @@ public final class JsonLogicCompiler {
    * Creates a compiler backed by the given fallback evaluator.
    *
    * @param fallbackEvaluator used as the fallback for operators that are not natively compiled
-   * @throws IllegalStateException if no JDK compiler is available on this JVM —
+   * @throws IllegalStateException if no JDK compiler is available on this JVM -
    *                               this is a deployment error (JRE instead of JDK)
    */
   public JsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator) {
@@ -57,7 +57,7 @@ public final class JsonLogicCompiler {
     if (compiler == null) {
       throw new IllegalStateException(
           "javax.tools.JavaCompiler is not available. "
-          + "JIT compilation requires a JDK — ensure the application is running on a JDK, not a JRE. "
+          + "Compilation requires a JDK -"
           + "To run without compilation, use new JsonLogic(false) or check "
           + "JsonLogic.isCompilationEnabled().");
     }
@@ -108,7 +108,7 @@ public final class JsonLogicCompiler {
     }
 
     if (classBytes == null) {
-      // compileSource returned null — Javac errors were already logged with the generated source
+      // compileSource returned null - Javac errors were already logged with the generated source
       return interpreterFallback(ast);
     }
 
@@ -146,7 +146,7 @@ public final class JsonLogicCompiler {
       final List<String> options = Arrays.asList("-source", release, "-target", release);
 
       final JavaCompiler.CompilationTask task = javac.getTask(
-          new StringWriter(), // discard Javac's own output stream — we use diagnostics
+          new StringWriter(), // discard Javac's own output stream - we use diagnostics
           fileManager,
           diagnostics,
           options,

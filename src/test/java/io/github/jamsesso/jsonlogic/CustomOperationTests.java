@@ -48,7 +48,7 @@ public class CustomOperationTests {
     Assert.assertEquals("Hello json-logic!", jsonLogic.apply("{\"Greet\": [\"json-logic\"]}", null));
   }
 
-  // ---- isUpperCase — predicate operator that inspects its argument ----
+  // ---- isUpperCase - predicate operator that inspects its argument ----
 
   @Test
   public void isUpperCase_trueForAllCaps() throws JsonLogicException {
@@ -82,7 +82,7 @@ public class CustomOperationTests {
     Assert.assertEquals("normal",   jsonLogic.apply(rule, Map.of("name", "Alice")));
   }
 
-  // ---- currentYear — zero-argument expression ----
+  // ---- currentYear - zero-argument expression ----
 
   @Test
   public void currentYear_returnsCurrentYear() throws JsonLogicException {

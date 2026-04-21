@@ -22,7 +22,7 @@ import java.util.Map;
 @BenchmarkMode(Mode.Throughput)
 public class JmhJsonLogicBenchmark {
   private JsonLogic jsonLogic;
-  private JsonLogic jsonLogicCompiled;  // same rules, JIT-compiled path
+  private JsonLogic jsonLogicCompiled;  // same rules, compiled path
 
   // Original: 5-clause mixed numeric+string "and" chain
   private String logic5;
