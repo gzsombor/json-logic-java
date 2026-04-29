@@ -17,7 +17,7 @@ JsonLogic is documented extensively at [JsonLogic.com](http://jsonlogic.com), in
 
 ## Performance
 
-By default, the forked `JsonLogic` compiles each unique rule into a native Java method at first use via `javax.tools`, then caches and reuses it - delivering a **5–8× throughput improvement** over the tree-walking interpreter. If no compiler is available a warning is logged and the interpreter is used as a fallback. To opt out of compilation entirely, pass `false` to the constructor:
+By default, the forked `JsonLogic` compiles each unique rule into a native Java method at first use via `javax.tools`, then caches and reuses it - delivering a **3–18× throughput improvement** over the tree-walking interpreter depending on rule complexity (see [Benchmarks](#benchmarks) below). If no compiler is available a warning is logged and the interpreter is used as a fallback. To opt out of compilation entirely, pass `false` to the constructor:
 
 ```java
 JsonLogic jsonLogic = new JsonLogic(false);
@@ -36,6 +36,28 @@ To run a specific benchmark, pass its name (or a substring) via `jmhArgs`:
 ```bash
 gradle jmh -PjmhArgs="TwentyClauses"
 ```
+
+### Results
+
+Throughput on an Intel i9-12950HX, JDK 17, 3 forks × 5 s warmup + 5 s measurement.
+Higher is better (ops/s = rule evaluations per second).
+
+| Scenario | Interpreter (ops/s) | Compiled (ops/s) | Speedup |
+|---|--:|--:|--:|
+| Dispatch table hit (cached rule, no data) | 1,633,768 | 19,694,163 | **12.1×** |
+| Dispatch table miss (uncached rule) | 1,136,814 | 20,649,754 | **18.2×** |
+| Two string comparisons | 2,859,606 | 11,506,996 | **4.0×** |
+| Repeated var lookup (same key used 5×) | 1,334,866 | 12,962,381 | **9.7×** |
+| Three string comparisons | 2,253,688 | 8,968,601 | **4.0×** |
+| Four string comparisons | 1,595,199 | 6,733,857 | **4.2×** |
+| Five mixed operations | 1,338,222 | 5,324,886 | **4.0×** |
+| Twenty-clause AND chain | 362,342 | 1,084,053 | **3.0×** |
+
+Key observations:
+
+- **Dispatch overhead is eliminated.** The interpreter pays a map lookup + virtual dispatch on every operator; the compiler emits a direct Java call. For rules that consist of a single cached lookup, the compiled path is ~12–18× faster.
+- **Repeated variable access scales well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals, reducing five map lookups to one. That alone accounts for the ~9.7× gain on the repeated-lookup benchmark vs ~4× for single-use vars.
+- **Complex rules still benefit.** Even a twenty-clause AND chain — the worst case for compilation overhead — sees a 3× improvement, because every intermediate truthiness check and var resolution is a direct primitive operation rather than a virtual dispatch through the evaluator tree.
 
 ## Examples
 
