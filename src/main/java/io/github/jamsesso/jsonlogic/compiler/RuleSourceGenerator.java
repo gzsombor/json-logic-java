@@ -153,7 +153,8 @@ public final class RuleSourceGenerator {
     final var pre = new StringBuilder();
     final String expr = emitExpression(node, pre, dataExpr);
     out.append(pre);
-    out.append("    Object ").append(targetVar).append(" = ").append(expr).append(";\n");
+    final String javaType = isBooleanExpression(node) ? "boolean" : "Object";
+    out.append("    ").append(javaType).append(" ").append(targetVar).append(" = ").append(expr).append(";\n");
   }
 
   // -------------------------------------------------------------------------
@@ -210,6 +211,21 @@ public final class RuleSourceGenerator {
 
   private static boolean isControlFlow(String op) {
     return op.equals("if") || op.equals("?:") || op.equals("and") || op.equals("or");
+  }
+
+  /** Returns true when a node is guaranteed to produce a primitive {@code boolean}. */
+  private static boolean isBooleanExpression(JsonLogicNode node) {
+    if (!(node instanceof JsonLogicOperation)) {
+      return false;
+    }
+    switch (((JsonLogicOperation) node).getOperator()) {
+      case "==": case "!=": case "===": case "!==":
+      case "!":  case "!!":
+      case ">":  case ">=": case "<":   case "<=":
+        return true;
+      default:
+        return false;
+    }
   }
 
   // ---- variable ----

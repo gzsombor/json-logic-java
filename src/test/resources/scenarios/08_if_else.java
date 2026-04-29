@@ -29,7 +29,7 @@ public final class TestRule implements CompiledRule {
   public Object apply(Object data) throws JsonLogicEvaluationException {
     final Object var_role_2 = resolveVar(data, "role", null);
     Object result_0;
-    Object ifCond_1 = looseEq(var_role_2, "admin");
+    boolean ifCond_1 = looseEq(var_role_2, "admin");
     if (JsonLogic.truthy(ifCond_1)) {
     Object ifCons_3 = "full";
       result_0 = ifCons_3;

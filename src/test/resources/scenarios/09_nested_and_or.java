@@ -32,15 +32,15 @@ public final class TestRule implements CompiledRule {
     final Object var_c_7 = resolveVar(data, "c", null);
     Object result_0 = null;
     Object orV_1 = null;
-    Object andV_2 = (toDouble(var_a_3) > 0.0);
+    boolean andV_2 = (toDouble(var_a_3) > 0.0);
     orV_1 = andV_2;
     if (JsonLogic.truthy(orV_1)) {
-      Object andV_4 = (toDouble(var_b_5) < 10.0);
+      boolean andV_4 = (toDouble(var_b_5) < 10.0);
       orV_1 = andV_4;
     }
     result_0 = orV_1;
     if (!JsonLogic.truthy(result_0)) {
-      Object orV_6 = looseEq(var_c_7, "yes");
+      boolean orV_6 = looseEq(var_c_7, "yes");
       result_0 = orV_6;
     }
     return result_0;
