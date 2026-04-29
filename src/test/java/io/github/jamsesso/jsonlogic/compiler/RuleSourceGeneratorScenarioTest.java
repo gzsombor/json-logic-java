@@ -19,22 +19,24 @@ import java.util.List;
 
 /**
  * Parametrized golden-file test: for every *.json scenario under
- * src/test/resources/scenarios/ the generator output must exactly match the
- * sibling *.java file.
+ * src/test/resources/scenarios/ (and its error/ subdirectory) the generator
+ * output must exactly match the sibling *.java file.
  */
 @RunWith(Parameterized.class)
 public class RuleSourceGeneratorScenarioTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> scenarios() throws IOException {
-    URL dir = RuleSourceGeneratorScenarioTest.class
-        .getClassLoader()
-        .getResource("scenarios");
-    Assert.assertNotNull("scenarios/ resource directory not found", dir);
-
-    Path scenariosDir = Paths.get(dir.getPath());
     List<Object[]> params = new ArrayList<>();
+    addScenariosFrom("scenarios", params);
+    addScenariosFrom("scenarios/error", params);
+    return params;
+  }
 
+  private static void addScenariosFrom(String resource, List<Object[]> params) throws IOException {
+    URL dir = RuleSourceGeneratorScenarioTest.class.getClassLoader().getResource(resource);
+    if (dir == null) return;
+    Path scenariosDir = Paths.get(dir.getPath());
     Files.list(scenariosDir)
         .filter(p -> p.toString().endsWith(".json"))
         .sorted()
@@ -43,8 +45,6 @@ public class RuleSourceGeneratorScenarioTest {
           Path javaPath = jsonPath.resolveSibling(base + ".java");
           params.add(new Object[]{base, jsonPath, javaPath});
         });
-
-    return params;
   }
 
   private final String scenarioName;

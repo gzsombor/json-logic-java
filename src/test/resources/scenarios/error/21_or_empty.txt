@@ -1,0 +1,2 @@
+message: or operator expects at least 1 argument
+path: $.or

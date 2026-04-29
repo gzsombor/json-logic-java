@@ -72,6 +72,13 @@ public final class RuleSourceGenerator {
 
   private final AtomicInteger counter = new AtomicInteger(0);
 
+  /**
+   * Set to {@code true} when the top-level statement is an unconditional {@code throw}
+   * (e.g. {@code and []} or {@code or []}), so {@code generate()} can omit the
+   * unreachable {@code return} that would otherwise produce a javac warning.
+   */
+  private boolean bodyAlwaysThrows = false;
+
   // -------------------------------------------------------------------------
   // Public API
   // -------------------------------------------------------------------------
@@ -119,7 +126,7 @@ public final class RuleSourceGenerator {
     return header
         + varPreamble
         + body
-        + "    return " + resultVar + ";\n"
+        + (bodyAlwaysThrows ? "" : "    return " + resultVar + ";\n")
         + "  }\n"
         + "}\n";
   }
@@ -234,8 +241,8 @@ public final class RuleSourceGenerator {
         // Only emit as boolean when exactly 1 arg; otherwise falls back to interpreter
         return argc == 1;
       case ">":  case ">=": case "<":  case "<=":
-        // Only emit as boolean when at least 2 args; otherwise falls back to interpreter
-        return argc >= 2;
+        // Only emit as boolean when 2 or 3 args; <2 or >3 falls back to interpreter
+        return argc >= 2 && argc <= 3;
       // == != === !== require exactly 2 args; with wrong arg count they fall back to
       // the interpreter (which returns Object), so only treat them as boolean when
       // they will actually be compiled inline.
@@ -271,7 +278,7 @@ public final class RuleSourceGenerator {
     // Pass the parent path; the evaluator will prepend ".var" to exceptions itself.
     final int idx = fallbackNodes.size();
     fallbackNodes.add(node);
-    pre.append("    // fallback var: ").append(node.getKey()).append("\n");
+    pre.append("    // fallback var: ").append(node.getKey().getClass().getSimpleName()).append("\n");
     return "fallback.evaluate(fallbackNodes[" + idx + "], " + dataExpr + ", " + javaStringLiteral(path) + ")";
   }
 
@@ -417,7 +424,7 @@ public final class RuleSourceGenerator {
   private void emitAnd(JsonLogicArray args, String targetVar, StringBuilder out,
                        String dataExpr, String path) {
     if (args.isEmpty()) {
-      out.append("    Object ").append(targetVar).append(";\n");
+      bodyAlwaysThrows = true;
       out.append("    throw new JsonLogicEvaluationException(\"and operator expects at least 1 argument\", ")
          .append(javaStringLiteral(path)).append(");\n");
       return;
@@ -447,7 +454,7 @@ public final class RuleSourceGenerator {
   private void emitOr(JsonLogicArray args, String targetVar, StringBuilder out,
                       String dataExpr, String path) {
     if (args.isEmpty()) {
-      out.append("    Object ").append(targetVar).append(";\n");
+      bodyAlwaysThrows = true;
       out.append("    throw new JsonLogicEvaluationException(\"or operator expects at least 1 argument\", ")
          .append(javaStringLiteral(path)).append(");\n");
       return;
