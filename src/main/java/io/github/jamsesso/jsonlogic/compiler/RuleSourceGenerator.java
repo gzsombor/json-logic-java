@@ -3,7 +3,9 @@ package io.github.jamsesso.jsonlogic.compiler;
 import io.github.jamsesso.jsonlogic.ast.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -46,6 +48,20 @@ public final class RuleSourceGenerator {
 
   /** Nodes that must be evaluated by the fallback interpreter, in insertion order. */
   private final List<JsonLogicNode> fallbackNodes = new ArrayList<>();
+
+  /**
+   * Cache of simple string-key vars seen during generation.
+   * Key: the variable name string (e.g. "a" or "user.age").
+   * Value: the Java local variable name that holds the resolved value.
+   * Variables are emitted as {@code final Object} declarations before the first use.
+   */
+  private final Map<String, String> varCache = new LinkedHashMap<>();
+
+  /**
+   * Statements declaring the cached var locals, accumulated during generation and
+   * flushed into the method body as a preamble.
+   */
+  private final StringBuilder varPreamble = new StringBuilder();
 
   private final AtomicInteger counter = new AtomicInteger(0);
 
@@ -93,6 +109,7 @@ public final class RuleSourceGenerator {
         GEN_PACKAGE, className, className);
 
     return header
+        + varPreamble
         + body
         + "    return " + resultVar + ";\n"
         + "  }\n"
@@ -198,9 +215,34 @@ public final class RuleSourceGenerator {
   // ---- variable ----
 
   private String emitVariable(JsonLogicVariable node, StringBuilder pre, String dataExpr) {
+    // Optimisation: if the key is a plain string literal and the default is null,
+    // resolve the variable once into a final local and reuse it on subsequent references.
+    if (node.getKey() instanceof JsonLogicString && node.getDefaultValue() instanceof JsonLogicNull) {
+      final String varName = ((JsonLogicString) node.getKey()).getValue();
+      final String cached = varCache.get(varName);
+      if (cached != null) {
+        return cached;
+      }
+      // First occurrence: emit the declaration into the preamble.
+      final String localName = freshVar("var_" + sanitize(varName));
+      varCache.put(varName, localName);
+      varPreamble.append("    final Object ").append(localName)
+          .append(" = resolveVar(data, ").append(javaStringLiteral(varName)).append(", null);\n");
+      return localName;
+    }
+    // General case: key is dynamic or a non-null default is present — emit inline.
     final String keyExpr     = emitExpression(node.getKey(), pre, dataExpr);
     final String defaultExpr = emitExpression(node.getDefaultValue(), pre, dataExpr);
     return "resolveVar(" + dataExpr + ", " + keyExpr + ", " + defaultExpr + ")";
+  }
+
+  /**
+   * Strips characters that are not valid in a Java identifier from a var name so it can
+   * be used as part of a local variable name.  The sanitised form is only used for
+   * readability; uniqueness is guaranteed by the numeric suffix added by {@link #freshVar}.
+   */
+  private static String sanitize(String varName) {
+    return varName.replaceAll("[^A-Za-z0-9_]", "_");
   }
 
   // ---- array literal ----

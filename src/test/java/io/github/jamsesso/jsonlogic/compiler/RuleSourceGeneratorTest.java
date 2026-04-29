@@ -233,6 +233,52 @@ public class RuleSourceGeneratorTest {
     Assert.assertEquals(10.0, withCustom.apply("{\"double\":[5]}", null));
   }
 
+  // ---- var deduplication ----
+
+  @Test
+  public void repeatedVarIsResolvedOnlyOnce() throws Exception {
+    // Verify correctness: same var referenced twice in and-expression should produce same value.
+    Map<String, Object> data = new HashMap<>();
+    data.put("score", 75);
+    // {"and": [{">=": [{"var":"score"}, 50]}, {"<": [{"var":"score"}, 100]}]}
+    String rule = "{\"and\":[{\">=\":[{\"var\":\"score\"},50]},{\"<\":[{\"var\":\"score\"},100]}]}";
+    Assert.assertEquals(Boolean.TRUE, compiled.apply(rule, data));
+
+    data.put("score", 25);
+    Assert.assertEquals(Boolean.FALSE, compiled.apply(rule, data));
+
+    data.put("score", 100);
+    Assert.assertEquals(Boolean.FALSE, compiled.apply(rule, data));
+  }
+
+  @Test
+  public void repeatedVarGeneratesOneFinalLocal() throws Exception {
+    // Verify the generated source contains exactly one resolveVar call for the repeated var,
+    // and that a final local is used for subsequent occurrences.
+    final String ruleJson = "{\"and\":[{\">\":[{\"var\":\"x\"},0]},{\"<\":[{\"var\":\"x\"},10]}]}";
+    final var generator = new RuleSourceGenerator();
+    final String source = generator.generate(
+        io.github.jamsesso.jsonlogic.ast.JsonLogicParser.parse(ruleJson), "TestRule");
+
+    // Only one resolveVar call for "x" - the rest use the cached final local.
+    int resolveVarCount = countOccurrences(source, "resolveVar(data, \"x\", null)");
+    Assert.assertEquals("Expected exactly 1 resolveVar call for 'x'", 1, resolveVarCount);
+
+    // The generated source must contain a final Object declaration for the local.
+    Assert.assertTrue("Expected a final Object local for var 'x'",
+        source.contains("final Object var_x_"));
+  }
+
+  private static int countOccurrences(String haystack, String needle) {
+    int count = 0;
+    int idx = 0;
+    while ((idx = haystack.indexOf(needle, idx)) != -1) {
+      count++;
+      idx += needle.length();
+    }
+    return count;
+  }
+
   // ---- toString ----
 
   @Test

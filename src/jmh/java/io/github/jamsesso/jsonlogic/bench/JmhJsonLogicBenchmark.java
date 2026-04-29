@@ -60,6 +60,10 @@ public class JmhJsonLogicBenchmark {
   private String logic20;
   private Map<String, Object> data20;
 
+  // 'a' appears 3 times, 'b' appears 3 times → 6 map lookups without deduplication, 2 with.
+  private String lookupRepeated;
+  private Map<String, Object> dataLookupRepeated;
+
   @Setup
   public void setup() {
     jsonLogic = new JsonLogic(false);
@@ -149,6 +153,17 @@ public class JmhJsonLogicBenchmark {
     for (int i = 0; i < 10; i++) {
       data20.put("s" + i, letters[i]);
     }
+
+    lookupRepeated = "{\"and\":[{\">\":[{\"var\":\"a\"},10]},{\"<\":[{\"var\":\"a\"},100]}"
+        + ",{\">=\":[{\"var\":\"b\"},0]},{\"<=\":[{\"var\":\"b\"},50]}"
+        + ",{\"!=\":[{\"var\":\"a\"},{\"var\":\"b\"}]}]}";
+
+    dataLookupRepeated = new HashMap<>();
+    dataLookupRepeated.put("a", 42);
+    dataLookupRepeated.put("b", 30);
+    dataLookupRepeated.put("c", "x");
+    dataLookupRepeated.put("d", "z");
+    dataLookupRepeated.put("e", 0);
   }
 
   @Benchmark
@@ -179,6 +194,11 @@ public class JmhJsonLogicBenchmark {
   @Benchmark
   public Object evaluateDispatchTableMiss() throws JsonLogicException {
     return jsonLogic.apply(logicDispatch, dataDispatchMiss);
+  }
+
+  @Benchmark
+  public Object evaluateRepeatedLookup() throws JsonLogicException {
+    return jsonLogic.apply(lookupRepeated, dataLookupRepeated);
   }
 
   // ---- compiled variants ----
@@ -222,4 +242,10 @@ public class JmhJsonLogicBenchmark {
   public Object compiledEvaluateTwentyClauses() throws JsonLogicException {
     return jsonLogicCompiled.apply(logic20, data20);
   }
+
+    @Benchmark
+  public Object compiledEvaluateRepeatedLookup() throws JsonLogicException {
+    return jsonLogicCompiled.apply(lookupRepeated, dataLookupRepeated);
+  }
+
 }
