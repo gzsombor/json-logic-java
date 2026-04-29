@@ -1,0 +1,1 @@
+{"if":[{"and":[{"===":[{"var":"customer"},"cus1"]},{"===":[{"var":"action"},"login"]}]},"log",{"if":[{"and":[{"===":[{"var":"customer"},"cus2"]},{"===":[{"var":"action"},"delete"]}]},"log","allow"]}]}
