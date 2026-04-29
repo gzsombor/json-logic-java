@@ -32,10 +32,10 @@ public final class TestRule implements CompiledRule {
     final Object var_c_7 = resolveVar(data, "c", null);
     Object result_0 = null;
     Object orV_1 = null;
-    Object andV_2 = (toDouble(var_a_3) > toDouble(Double.longBitsToDouble(0L)));
+    Object andV_2 = (toDouble(var_a_3) > 0.0);
     orV_1 = andV_2;
     if (JsonLogic.truthy(orV_1)) {
-      Object andV_4 = (toDouble(var_b_5) < toDouble(Double.longBitsToDouble(4621819117588971520L)));
+      Object andV_4 = (toDouble(var_b_5) < 10.0);
       orV_1 = andV_4;
     }
     result_0 = orV_1;

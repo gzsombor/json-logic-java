@@ -29,10 +29,10 @@ public final class TestRule implements CompiledRule {
   public Object apply(Object data) throws JsonLogicEvaluationException {
     final Object var_score_2 = resolveVar(data, "score", null);
     Object result_0 = null;
-    Object andV_1 = (toDouble(var_score_2) > toDouble(Double.longBitsToDouble(0L)));
+    Object andV_1 = (toDouble(var_score_2) > 0.0);
     result_0 = andV_1;
     if (JsonLogic.truthy(result_0)) {
-      Object andV_3 = (toDouble(var_score_2) < toDouble(Double.longBitsToDouble(4636737291354636288L)));
+      Object andV_3 = (toDouble(var_score_2) < 100.0);
       result_0 = andV_3;
     }
     return result_0;

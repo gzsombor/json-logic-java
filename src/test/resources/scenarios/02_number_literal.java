@@ -27,7 +27,7 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object result_0 = Double.longBitsToDouble(4631107791820423168L);
+    Object result_0 = 42.0;
     return result_0;
   }
 }

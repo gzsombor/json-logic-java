@@ -185,7 +185,7 @@ public final class RuleSourceGenerator {
       if (value == Double.NEGATIVE_INFINITY) {
         return "Double.NEGATIVE_INFINITY";
       }
-      return "Double.longBitsToDouble(" + Double.doubleToLongBits(value) + "L)";
+      return Double.toString(value);
     }
     if (node instanceof JsonLogicString) {
       return javaStringLiteral(((JsonLogicString) node).getValue());
@@ -411,14 +411,12 @@ public final class RuleSourceGenerator {
 
   private String numCmp(String op, JsonLogicArray args, StringBuilder pre, String dataExpr) {
     if (args.size() >= 3) {
-      final String left  = arg(args, 0, pre, dataExpr);
-      final String mid   = arg(args, 1, pre, dataExpr);
-      final String right = arg(args, 2, pre, dataExpr);
-      return "(toDouble(" + left + ") " + op + " toDouble(" + mid + ") "
-          + "&& toDouble(" + mid + ") " + op + " toDouble(" + right + "))";
+      final String left  = numericArg(args, 0, pre, dataExpr);
+      final String mid   = numericArg(args, 1, pre, dataExpr);
+      final String right = numericArg(args, 2, pre, dataExpr);
+      return "(" + left + " " + op + " " + mid + " && " + mid + " " + op + " " + right + ")";
     }
-    return "(toDouble(" + arg(args,0,pre,dataExpr) + ") "
-        + op + " toDouble(" + arg(args,1,pre,dataExpr) + "))";
+    return "(" + numericArg(args,0,pre,dataExpr) + " " + op + " " + numericArg(args,1,pre,dataExpr) + ")";
   }
 
   // ---- arithmetic ----
@@ -446,9 +444,9 @@ public final class RuleSourceGenerator {
       return "null";
     }
     if (args.size() == 1) {
-      return "toDouble(" + arg(args, 0, pre, dataExpr) + ")";
+      return numericArg(args, 0, pre, dataExpr);
     }
-    return "(toDouble(" + arg(args,0,pre,dataExpr) + ") " + op + " toDouble(" + arg(args,1,pre,dataExpr) + "))";
+    return "(" + numericArg(args,0,pre,dataExpr) + " " + op + " " + numericArg(args,1,pre,dataExpr) + ")";
   }
 
   private String emitMinus(JsonLogicArray args, StringBuilder pre, String dataExpr) {
@@ -456,20 +454,39 @@ public final class RuleSourceGenerator {
       return "null";
     }
     if (args.size() == 1) {
-      return "(-toDouble(" + arg(args,0,pre,dataExpr) + "))";
+      return "(-" + numericArg(args,0,pre,dataExpr) + ")";
     }
-    return "(toDouble(" + arg(args,0,pre,dataExpr) + ") - toDouble(" + arg(args,1,pre,dataExpr) + "))";
+    return "(" + numericArg(args,0,pre,dataExpr) + " - " + numericArg(args,1,pre,dataExpr) + ")";
   }
 
   private String minMax(String fn, JsonLogicArray args, StringBuilder pre, String dataExpr) {
     if (args.isEmpty()) {
       return "null";
     }
-    String acc = "toDouble(" + arg(args, 0, pre, dataExpr) + ")";
+    String acc = numericArg(args, 0, pre, dataExpr);
     for (int i = 1; i < args.size(); i++) {
-      acc = "Math." + fn + "(" + acc + ", toDouble(" + arg(args, i, pre, dataExpr) + "))";
+      acc = "Math." + fn + "(" + acc + ", " + numericArg(args, i, pre, dataExpr) + ")";
     }
     return acc;
+  }
+
+  /**
+   * Returns a Java {@code double} expression for an argument.
+   * If the argument is a number literal, emits it directly (e.g. {@code 10.0}).
+   * Otherwise wraps the Object expression in {@code toDouble(...)}.
+   */
+  private String numericArg(JsonLogicArray args, int index, StringBuilder pre, String dataExpr) {
+    if (index >= args.size()) {
+      return "toDouble(null)";
+    }
+    final JsonLogicNode node = args.get(index);
+    if (node instanceof JsonLogicNumber) {
+      final double v = ((JsonLogicNumber) node).getValue();
+      if (!Double.isNaN(v) && !Double.isInfinite(v)) {
+        return Double.toString(v);
+      }
+    }
+    return "toDouble(" + emitExpression(node, pre, dataExpr) + ")";
   }
 
   // ---- cat ----

@@ -29,7 +29,7 @@ public final class TestRule implements CompiledRule {
   public Object apply(Object data) throws JsonLogicEvaluationException {
     final Object var_x_1 = resolveVar(data, "x", null);
     final Object var_y_2 = resolveVar(data, "y", null);
-    Object result_0 = mathReduce("+", Arrays.<Object>asList(mathReduce("*", Arrays.<Object>asList(var_x_1, Double.longBitsToDouble(4611686018427387904L))), var_y_2));
+    Object result_0 = mathReduce("+", Arrays.<Object>asList(mathReduce("*", Arrays.<Object>asList(var_x_1, 2.0)), var_y_2));
     return result_0;
   }
 }
