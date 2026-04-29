@@ -204,31 +204,31 @@ public class RuleHelpersTest {
   // ---- resolveVar ----
 
   @Test
-  public void resolveVar_nullDataReturnsDefault() {
+  public void resolveVar_nullDataReturnsDefault() throws Exception {
     assertEquals("default", resolveVar(null, "key", "default"));
   }
 
   @Test
-  public void resolveVar_nullKeyReturnsData() {
+  public void resolveVar_nullKeyReturnsData() throws Exception {
     assertEquals(42.0, resolveVar(42.0, null, "default"));
   }
 
   @Test
-  public void resolveVar_mapLookup() {
+  public void resolveVar_mapLookup() throws Exception {
     final var data = new HashMap<String, Object>();
     data.put("name", "Alice");
     assertEquals("Alice", resolveVar(data, "name", null));
   }
 
   @Test
-  public void resolveVar_missingMapKeyReturnsDefault() {
+  public void resolveVar_missingMapKeyReturnsDefault() throws Exception {
     final var data = new HashMap<String, Object>();
     data.put("name", "Alice");
     assertEquals("missing", resolveVar(data, "age", "missing"));
   }
 
   @Test
-  public void resolveVar_nestedMapLookup() {
+  public void resolveVar_nestedMapLookup() throws Exception {
     final var inner = new HashMap<String, Object>();
     inner.put("city", "Budapest");
     final var data = new HashMap<String, Object>();
@@ -237,19 +237,19 @@ public class RuleHelpersTest {
   }
 
   @Test
-  public void resolveVar_listIndexLookup() {
+  public void resolveVar_listIndexLookup() throws Exception {
     final List<Object> data = Arrays.asList("a", "b", "c");
     assertEquals("b", resolveVar(data, 1.0, null));
   }
 
   @Test
-  public void resolveVar_listIndexOutOfBoundsReturnsDefault() {
+  public void resolveVar_listIndexOutOfBoundsReturnsDefault() throws Exception {
     final List<Object> data = Arrays.asList("a", "b");
     assertEquals("default", resolveVar(data, 5.0, "default"));
   }
 
   @Test
-  public void resolveVar_emptyStringKeyReturnsData() {
+  public void resolveVar_emptyStringKeyReturnsData() throws Exception {
     assertEquals("hello", resolveVar("hello", "", null));
   }
 }

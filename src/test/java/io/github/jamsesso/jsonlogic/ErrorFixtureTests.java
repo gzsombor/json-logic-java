@@ -15,7 +15,7 @@ public class ErrorFixtureTests {
 
   @Test
   public void testAllFixtures() {
-    JsonLogic jsonLogic = new JsonLogic(false);
+    JsonLogic jsonLogic = new JsonLogic();
     List<TestResult> failures = new ArrayList<>();
 
     for (ErrorFixture fixture : FIXTURES) {

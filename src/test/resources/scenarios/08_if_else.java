@@ -27,7 +27,7 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    final Object var_role_2 = resolveVar(data, "role", null);
+    final Object var_role_2 = resolveVarChecked(data, "role", null);
     Object result_0;
     boolean ifCond_1 = looseEq(var_role_2, "admin");
     if (JsonLogic.truthy(ifCond_1)) {

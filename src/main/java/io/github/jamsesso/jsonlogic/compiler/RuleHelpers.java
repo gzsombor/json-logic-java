@@ -1,6 +1,7 @@
 package io.github.jamsesso.jsonlogic.compiler;
 
 import io.github.jamsesso.jsonlogic.JsonLogic;
+import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.utils.ArrayLike;
 
 import java.util.List;
@@ -188,7 +189,7 @@ public final class RuleHelpers {
 
   // ---- variable resolution ----
 
-  public static Object resolveVar(Object data, Object key, Object defaultValue) {
+  public static Object resolveVar(Object data, Object key, Object defaultValue) throws JsonLogicEvaluationException {
     if (data == null) {
       return defaultValue;
     }
@@ -223,7 +224,7 @@ public final class RuleHelpers {
             }
             cur = list.get(idx);
           } catch (NumberFormatException ex) {
-            return null;
+            throw new JsonLogicEvaluationException(ex, "[0]");
           }
         } else if (cur instanceof Map) {
           final Map<?, ?> map = (Map<?, ?>) cur;
@@ -239,5 +240,20 @@ public final class RuleHelpers {
       return cur;
     }
     return defaultValue;
+  }
+
+  /**
+   * Variant of {@link #resolveVar} used in generated preamble code for hoisted var locals.
+   * Catches any {@link JsonLogicEvaluationException} and prepends {@code ".var"} to the path,
+   * matching the path that the tree-walking evaluator produces for {@code var} errors.
+   */
+  public static Object resolveVarChecked(Object data, String key, Object defaultValue)
+      throws JsonLogicEvaluationException {
+    try {
+      return resolveVar(data, key, defaultValue);
+    } catch (JsonLogicEvaluationException e) {
+      e.prependPartialJsonPath(".var");
+      throw e;
+    }
   }
 }

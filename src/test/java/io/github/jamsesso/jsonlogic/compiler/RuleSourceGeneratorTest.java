@@ -261,8 +261,8 @@ public class RuleSourceGeneratorTest {
         io.github.jamsesso.jsonlogic.ast.JsonLogicParser.parse(ruleJson), "TestRule");
 
     // Only one resolveVar call for "x" - the rest use the cached final local.
-    int resolveVarCount = countOccurrences(source, "resolveVar(data, \"x\", null)");
-    Assert.assertEquals("Expected exactly 1 resolveVar call for 'x'", 1, resolveVarCount);
+    int resolveVarCount = countOccurrences(source, "resolveVarChecked(data, \"x\", null)");
+    Assert.assertEquals("Expected exactly 1 resolveVarChecked call for 'x'", 1, resolveVarCount);
 
     // The generated source must contain a final Object declaration for the local.
     Assert.assertTrue("Expected a final Object local for var 'x'",
