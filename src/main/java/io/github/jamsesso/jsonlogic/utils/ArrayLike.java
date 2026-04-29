@@ -180,11 +180,7 @@ public class ArrayLike implements List<Object> {
         i++;
       }
 
-      if (i != delegate.size()) {
-        return false;
-      }
-
-      return false;
+      return i == delegate.size();
     }
 
     return false;

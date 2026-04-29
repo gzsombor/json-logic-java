@@ -6,7 +6,6 @@ import io.github.jamsesso.jsonlogic.utils.ArrayLike;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class MergeExpression implements PreEvaluatedArgumentsExpression {
