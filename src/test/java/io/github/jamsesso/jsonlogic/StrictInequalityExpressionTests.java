@@ -6,7 +6,7 @@ import static io.github.jamsesso.jsonlogic.JsonLogicExceptionTestUtility.testErr
 import static org.junit.Assert.assertEquals;
 
 public class StrictInequalityExpressionTests {
-  private static final JsonLogic jsonLogic = new JsonLogic(false);
+  private static final JsonLogic jsonLogic = new JsonLogic();
 
   @Test
   public void testSameValueSameType() throws JsonLogicException {

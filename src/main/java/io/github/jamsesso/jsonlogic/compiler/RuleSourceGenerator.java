@@ -285,8 +285,12 @@ public final class RuleSourceGenerator {
     switch (operator) {
       case "==":  return "looseEq("   + arg(args,0,pre,dataExpr) + ", " + arg(args,1,pre,dataExpr) + ")";
       case "!=":  return "!looseEq("  + arg(args,0,pre,dataExpr) + ", " + arg(args,1,pre,dataExpr) + ")";
-      case "===": return "strictEq("  + arg(args,0,pre,dataExpr) + ", " + arg(args,1,pre,dataExpr) + ")";
-      case "!==": return "!strictEq(" + arg(args,0,pre,dataExpr) + ", " + arg(args,1,pre,dataExpr) + ")";
+      // === and !== require exactly 2 arguments; fall back to the interpreter otherwise so it
+      // can throw the same JsonLogicEvaluationException the tree-walking evaluator would throw.
+      case "===": if (args.size() != 2) return emitFallback(op, pre, dataExpr);
+                  return "strictEq("  + arg(args,0,pre,dataExpr) + ", " + arg(args,1,pre,dataExpr) + ")";
+      case "!==": if (args.size() != 2) return emitFallback(op, pre, dataExpr);
+                  return "!strictEq(" + arg(args,0,pre,dataExpr) + ", " + arg(args,1,pre,dataExpr) + ")";
       case "!":   return "!JsonLogic.truthy("  + arg(args,0,pre,dataExpr) + ")";
       case "!!":  return  "JsonLogic.truthy("  + arg(args,0,pre,dataExpr) + ")";
       case ">":   return numCmp(">",  args, pre, dataExpr);
@@ -297,6 +301,7 @@ public final class RuleSourceGenerator {
       case "+":   return emitMathReduce("+",  args, pre, dataExpr);
       case "*":   return emitMathReduce("*",  args, pre, dataExpr);
       case "-":   return emitMinus(args, pre, dataExpr);
+      // / and % require exactly 2 arguments; a single argument returns null (matches interpreter)
       case "/":   return emitBinArith("/", args, pre, dataExpr);
       case "%":   return emitBinArith("%", args, pre, dataExpr);
       case "min": return minMax("min", args, pre, dataExpr);
@@ -456,11 +461,9 @@ public final class RuleSourceGenerator {
   }
 
   private String emitBinArith(String op, JsonLogicArray args, StringBuilder pre, String dataExpr) {
-    if (args.isEmpty()) {
+    if (args.isEmpty() || args.size() == 1) {
+      // / and % with fewer than 2 args return null (matches MathExpression interpreter behaviour)
       return "null";
-    }
-    if (args.size() == 1) {
-      return numericArg(args, 0, pre, dataExpr);
     }
     return "(" + numericArg(args,0,pre,dataExpr) + " " + op + " " + numericArg(args,1,pre,dataExpr) + ")";
   }
