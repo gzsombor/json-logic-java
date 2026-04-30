@@ -60,6 +60,13 @@ public class JmhJsonLogicBenchmark {
   private String logic20;
   private Map<String, Object> data20;
 
+  // Set-membership check: if customer is in {"cust1".."cust5"} → "ok" else "not_ok".
+  // Equivalent Java: if (Set.of("cust1","cust2","cust3","cust4","cust5").contains(customer))
+  // The "in" operator falls back to the interpreter; the surrounding "if" is compiled.
+  private String logicInSet;
+  private Map<String, Object> dataInSetHit;   // customer = "cust3" → "ok"
+  private Map<String, Object> dataInSetMiss;  // customer = "unknown" → "not_ok"
+
   // 'a' appears 3 times, 'b' appears 3 times → 6 map lookups without deduplication, 2 with.
   private String lookupRepeated;
   private Map<String, Object> dataLookupRepeated;
@@ -164,6 +171,15 @@ public class JmhJsonLogicBenchmark {
     dataLookupRepeated.put("c", "x");
     dataLookupRepeated.put("d", "z");
     dataLookupRepeated.put("e", 0);
+
+    // --- in-set check ---
+    logicInSet = "{\"if\":[{\"in\":[{\"var\":\"customer\"},"
+        + "[\"cust1\",\"cust2\",\"cust3\",\"cust4\",\"cust5\"]]},"
+        + "\"ok\",\"not_ok\"]}";
+    dataInSetHit = new HashMap<>();
+    dataInSetHit.put("customer", "cust3");   // found at index 2 → "ok"
+    dataInSetMiss = new HashMap<>();
+    dataInSetMiss.put("customer", "unknown"); // not in list → "not_ok"
   }
 
   @Benchmark
@@ -243,9 +259,29 @@ public class JmhJsonLogicBenchmark {
     return jsonLogicCompiled.apply(logic20, data20);
   }
 
-    @Benchmark
+  @Benchmark
   public Object compiledEvaluateRepeatedLookup() throws JsonLogicException {
     return jsonLogicCompiled.apply(lookupRepeated, dataLookupRepeated);
+  }
+
+  @Benchmark
+  public Object evaluateInSetHit() throws JsonLogicException {
+    return jsonLogic.apply(logicInSet, dataInSetHit);
+  }
+
+  @Benchmark
+  public Object evaluateInSetMiss() throws JsonLogicException {
+    return jsonLogic.apply(logicInSet, dataInSetMiss);
+  }
+
+  @Benchmark
+  public Object compiledEvaluateInSetHit() throws JsonLogicException {
+    return jsonLogicCompiled.apply(logicInSet, dataInSetHit);
+  }
+
+  @Benchmark
+  public Object compiledEvaluateInSetMiss() throws JsonLogicException {
+    return jsonLogicCompiled.apply(logicInSet, dataInSetMiss);
   }
 
 }
