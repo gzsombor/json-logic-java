@@ -1,8 +1,8 @@
 package io.github.jamsesso.jsonlogic.compiler;
 
 import io.github.jamsesso.jsonlogic.ast.*;
-
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -116,45 +116,41 @@ public final class RuleSourceGenerator {
         && isControlFlow(((JsonLogicOperation) ast).getOperator())
         && ((JsonLogicOperation) ast).getArguments().isEmpty();
 
-    final String header = """
-        package %s;
-
-        import io.github.jamsesso.jsonlogic.JsonLogic;
-        import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
-        import io.github.jamsesso.jsonlogic.compiler.CompiledRule;
-        import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
-        import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
-        import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;
-        import java.util.*;
-
-        public final class %s implements CompiledRule {
-
-          private final JsonLogicEvaluator fallback;
-          private final JsonLogicNode[] fallbackNodes;
-          private final String ruleJson;
-        """.formatted(GEN_PACKAGE, className, className);
+    final String header = "package " + GEN_PACKAGE + ";\n"
+        + "\n"
+        + "import io.github.jamsesso.jsonlogic.JsonLogic;\n"
+        + "import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;\n"
+        + "import io.github.jamsesso.jsonlogic.compiler.CompiledRule;\n"
+        + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;\n"
+        + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;\n"
+        + "import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;\n"
+        + "import java.util.*;\n"
+        + "\n"
+        + "public final class " + className + " implements CompiledRule {\n"
+        + "\n"
+        + "  private final JsonLogicEvaluator fallback;\n"
+        + "  private final JsonLogicNode[] fallbackNodes;\n"
+        + "  private final String ruleJson;\n";
 
     // Static set constants (may be empty) go after the instance fields.
     final String staticFieldsStr = staticFields.length() > 0
         ? "\n" + staticFields
         : "";
 
-    final String constructor = """
-
-          public %s(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson) {
-            this.fallback = fallback;
-            this.fallbackNodes = fallbackNodes;
-            this.ruleJson = ruleJson;
-          }
-
-          @Override
-          public String toString() {
-            return "CompiledRule(" + ruleJson + ")";
-          }
-
-          @Override
-          public Object apply(Object data) throws JsonLogicEvaluationException {
-        """.formatted(className);
+    final String constructor = "\n"
+        + "  public " + className + "(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson) {\n"
+        + "    this.fallback = fallback;\n"
+        + "    this.fallbackNodes = fallbackNodes;\n"
+        + "    this.ruleJson = ruleJson;\n"
+        + "  }\n"
+        + "\n"
+        + "  @Override\n"
+        + "  public String toString() {\n"
+        + "    return \"CompiledRule(\" + ruleJson + \")\";\n"
+        + "  }\n"
+        + "\n"
+        + "  @Override\n"
+        + "  public Object apply(Object data) throws JsonLogicEvaluationException {\n";
 
     return header
         + staticFieldsStr
@@ -926,7 +922,7 @@ public final class RuleSourceGenerator {
     // Build null-check condition: leafExpr == null || !isNumeric(leafExpr) for each distinct leaf.
     // Entries sharing the same String[] instance (deduplicated vars) are emitted only once.
     final var cond = new StringBuilder();
-    final var seen = new java.util.IdentityHashMap<String[], Boolean>();
+    final var seen = new IdentityHashMap<String[], Boolean>();
     for (final String[] entry : leaves.values()) {
       if (seen.put(entry, Boolean.TRUE) != null) {
         continue; // already emitted for this shared entry
@@ -939,7 +935,7 @@ public final class RuleSourceGenerator {
 
     // Emit double local declarations (once per distinct entry)
     final var doubleDecls = new StringBuilder();
-    final var seenDecls = new java.util.IdentityHashMap<String[], Boolean>();
+    final var seenDecls = new IdentityHashMap<String[], Boolean>();
     for (final String[] entry : leaves.values()) {
       if (seenDecls.put(entry, Boolean.TRUE) != null) {
         continue;
