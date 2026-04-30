@@ -27,7 +27,6 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    // fallback var: JsonLogicArray
     Object result_0 = fallback.evaluate(fallbackNodes[0], data, "");
     return result_0;
   }

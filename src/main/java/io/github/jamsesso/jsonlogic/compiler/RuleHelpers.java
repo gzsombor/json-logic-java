@@ -112,9 +112,18 @@ public final class RuleHelpers {
     return Double.NaN;
   }
 
-  /** Returns true when {@code value} can be coerced to a finite double by {@link MathExpression}. */
+  /**
+   * Returns true when {@code value} can be coerced to a numeric double by {@link #toDouble}.
+   * Mirrors {@code toDouble}'s coercion rules: {@link Number}, numeric {@link String}, and
+   * {@link Boolean} (coerced to 1.0 / 0.0) are all accepted.
+   */
   public static boolean isNumeric(Object value) {
-    if (value instanceof Number) return true;
+    if (value instanceof Number) {
+      return true;
+    }
+    if (value instanceof Boolean) {
+      return true;
+    }
     if (value instanceof String) {
       try {
         Double.parseDouble((String) value);

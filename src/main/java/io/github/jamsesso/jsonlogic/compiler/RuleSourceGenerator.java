@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
  * Walks a {@link JsonLogicNode} AST and produces a self-contained Java source string
@@ -45,7 +45,25 @@ import java.util.concurrent.atomic.AtomicInteger;
  * {@link io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException} retains the
  * correct path prefix — matching the tree-walking interpreter's behaviour exactly.
  *
- * <h2>Generated class constructor</h2>
+   * <h2>Security</h2>
+   * <p>All user-supplied data that appears in generated Java source code (operator names,
+   * var paths, string literals from the AST) is passed through {@link #javaStringLiteral}
+   * before being embedded in string literal positions.  Operator names are only ever used
+   * as string literal values (never as raw Java identifiers), so no additional sanitisation
+   * is needed beyond the escaping already applied by {@code javaStringLiteral}.
+   *
+   * <h2>Variable hoisting</h2>
+   * <p>Simple {@code var} accesses (string key, no default) are resolved once at the top of
+   * the generated method and cached in {@code final Object} locals, regardless of which
+   * conditional branches actually use them.  This is a deliberate trade-off: it avoids
+   * re-resolving the same path on every evaluation but means the variable is always resolved
+   * even if the branch that references it is never taken.  This diverges from the
+   * tree-walking interpreter, which resolves variables lazily as execution reaches them.
+   * Rules that rely on a missing-var default (e.g. {@code {"var":"x"}}) are still correct
+   * because {@link io.github.jamsesso.jsonlogic.compiler.RuleHelpers#resolveVarChecked}
+   * returns {@code null} for absent keys rather than throwing.
+   *
+   * <h2>Generated class constructor</h2>
  * <pre>public RuleXxx(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson)</pre>
  */
 public final class RuleSourceGenerator {
@@ -70,14 +88,7 @@ public final class RuleSourceGenerator {
    */
   private final StringBuilder varPreamble = new StringBuilder();
 
-  private final AtomicInteger counter = new AtomicInteger(0);
-
-  /**
-   * Set to {@code true} when the top-level statement is an unconditional {@code throw}
-   * (e.g. {@code and []} or {@code or []}), so {@code generate()} can omit the
-   * unreachable {@code return} that would otherwise produce a javac warning.
-   */
-  private boolean bodyAlwaysThrows = false;
+  private int counter = 0;
 
   /**
    * Static {@code Set} field declarations accumulated during generation, emitted once per
@@ -101,53 +112,56 @@ public final class RuleSourceGenerator {
     final String resultVar = freshVar("result");
     // Path starts empty — JsonLogic.apply() will prepend "$" to any exception.
     emitStatement(ast, resultVar, body, "data", "");
+    final boolean omitReturn = ast instanceof JsonLogicOperation
+        && isControlFlow(((JsonLogicOperation) ast).getOperator())
+        && ((JsonLogicOperation) ast).getArguments().isEmpty();
 
-    final String header = String.format(
-        "package %s;\n"
-        + "\n"
-        + "import io.github.jamsesso.jsonlogic.JsonLogic;\n"
-        + "import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;\n"
-        + "import io.github.jamsesso.jsonlogic.compiler.CompiledRule;\n"
-        + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;\n"
-        + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;\n"
-        + "import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;\n"
-        + "import java.util.*;\n"
-        + "\n"
-        + "public final class %s implements CompiledRule {\n"
-        + "\n"
-        + "  private final JsonLogicEvaluator fallback;\n"
-        + "  private final JsonLogicNode[] fallbackNodes;\n"
-        + "  private final String ruleJson;\n",
-        GEN_PACKAGE, className, className);
+    final String header = """
+        package %s;
+
+        import io.github.jamsesso.jsonlogic.JsonLogic;
+        import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
+        import io.github.jamsesso.jsonlogic.compiler.CompiledRule;
+        import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
+        import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
+        import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;
+        import java.util.*;
+
+        public final class %s implements CompiledRule {
+
+          private final JsonLogicEvaluator fallback;
+          private final JsonLogicNode[] fallbackNodes;
+          private final String ruleJson;
+        """.formatted(GEN_PACKAGE, className, className);
 
     // Static set constants (may be empty) go after the instance fields.
     final String staticFieldsStr = staticFields.length() > 0
         ? "\n" + staticFields
         : "";
 
-    final String constructor = String.format(
-        "\n"
-        + "  public %s(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson) {\n"
-        + "    this.fallback = fallback;\n"
-        + "    this.fallbackNodes = fallbackNodes;\n"
-        + "    this.ruleJson = ruleJson;\n"
-        + "  }\n"
-        + "\n"
-        + "  @Override\n"
-        + "  public String toString() {\n"
-        + "    return \"CompiledRule(\" + ruleJson + \")\";\n"
-        + "  }\n"
-        + "\n"
-        + "  @Override\n"
-        + "  public Object apply(Object data) throws JsonLogicEvaluationException {\n",
-        className);
+    final String constructor = """
+
+          public %s(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson) {
+            this.fallback = fallback;
+            this.fallbackNodes = fallbackNodes;
+            this.ruleJson = ruleJson;
+          }
+
+          @Override
+          public String toString() {
+            return "CompiledRule(" + ruleJson + ")";
+          }
+
+          @Override
+          public Object apply(Object data) throws JsonLogicEvaluationException {
+        """.formatted(className);
 
     return header
         + staticFieldsStr
         + constructor
         + varPreamble
         + body
-        + (bodyAlwaysThrows ? "" : "    return " + resultVar + ";\n")
+        + (omitReturn ? "" : "    return " + resultVar + ";\n")
         + "  }\n"
         + "}\n";
   }
@@ -314,7 +328,6 @@ public final class RuleSourceGenerator {
     // Pass the parent path; the evaluator will prepend ".var" to exceptions itself.
     final int idx = fallbackNodes.size();
     fallbackNodes.add(node);
-    pre.append("    // fallback var: ").append(node.getKey().getClass().getSimpleName()).append("\n");
     return "fallback.evaluate(fallbackNodes[" + idx + "], " + dataExpr + ", " + javaStringLiteral(path) + ")";
   }
 
@@ -351,39 +364,66 @@ public final class RuleSourceGenerator {
     // opPath is the path of this operation node; used when passing paths to sub-expressions.
     // For fallback calls we pass `path` (parent), not `opPath`, because the fallback evaluator
     // will prepend ".<operator>" itself when it catches exceptions from the sub-expression.
+    // opPath is always passed through javaStringLiteral() before being emitted into generated
+    // source, so arbitrary operator strings cannot inject content into the generated Java.
     final String opPath = path + "." + operator;
     switch (operator) {
       // equality: require exactly 2 args, otherwise fall back so the interpreter can throw
-      case "==":  if (args.size() != 2) return emitFallback(op, pre, dataExpr, path);
-                  return "looseEq("   + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
-      case "!=":  if (args.size() != 2) return emitFallback(op, pre, dataExpr, path);
-                  return "!looseEq("  + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
-      case "===": if (args.size() != 2) return emitFallback(op, pre, dataExpr, path);
-                  return "strictEq("  + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
-      case "!==": if (args.size() != 2) return emitFallback(op, pre, dataExpr, path);
-                  return "!strictEq(" + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
+      case "==":
+        if (args.size() != 2) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return "looseEq(" + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
+      case "!=":
+        if (args.size() != 2) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return "!looseEq(" + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
+      case "===":
+        if (args.size() != 2) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return "strictEq(" + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
+      case "!==":
+        if (args.size() != 2) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return "!strictEq(" + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
       // ! and !! compiled only for exactly 1 arg; otherwise fall back
-      case "!":   if (args.size() != 1) return emitFallback(op, pre, dataExpr, path);
-                  return "!JsonLogic.truthy("  + arg(args, 0, pre, dataExpr, opPath) + ")";
-      case "!!":  if (args.size() != 1) return emitFallback(op, pre, dataExpr, path);
-                  return  "JsonLogic.truthy("  + arg(args, 0, pre, dataExpr, opPath) + ")";
+      case "!":
+        if (args.size() != 1) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return "!JsonLogic.truthy(" + arg(args, 0, pre, dataExpr, opPath) + ")";
+      case "!!":
+        if (args.size() != 1) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return "JsonLogic.truthy(" + arg(args, 0, pre, dataExpr, opPath) + ")";
       // comparisons require at least 2 and at most 3 args; fall back otherwise so the
       // interpreter evaluates all args (and throws for errors in extra args)
-      case ">":   if (args.size() < 2 || args.size() > 3) return emitFallback(op, pre, dataExpr, path);
-                  return numCmp(">",  args, pre, dataExpr, opPath);
-      case ">=":  if (args.size() < 2 || args.size() > 3) return emitFallback(op, pre, dataExpr, path);
-                  return numCmp(">=", args, pre, dataExpr, opPath);
-      case "<":   if (args.size() < 2 || args.size() > 3) return emitFallback(op, pre, dataExpr, path);
-                  return numCmp("<",  args, pre, dataExpr, opPath);
-      case "<=":  if (args.size() < 2 || args.size() > 3) return emitFallback(op, pre, dataExpr, path);
-                  return numCmp("<=", args, pre, dataExpr, opPath);
-      case "+":   return emitArith(op, pre, dataExpr, opPath);
-      case "*":   return emitArith(op, pre, dataExpr, opPath);
-      case "-":   return emitArith(op, pre, dataExpr, opPath);
-      case "/":   return emitArith(op, pre, dataExpr, opPath);
-      case "%":   return emitArith(op, pre, dataExpr, opPath);
-      case "min": return emitArith(op, pre, dataExpr, opPath);
-      case "max": return emitArith(op, pre, dataExpr, opPath);
+      case ">":
+        if (args.size() < 2 || args.size() > 3) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return numCmp(">", args, pre, dataExpr, opPath);
+      case ">=":
+        if (args.size() < 2 || args.size() > 3) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return numCmp(">=", args, pre, dataExpr, opPath);
+      case "<":
+        if (args.size() < 2 || args.size() > 3) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return numCmp("<", args, pre, dataExpr, opPath);
+      case "<=":
+        if (args.size() < 2 || args.size() > 3) {
+          return emitFallback(op, pre, dataExpr, path);
+        }
+        return numCmp("<=", args, pre, dataExpr, opPath);
+      case "+": case "*": case "-": case "/": case "%": case "min": case "max":
+        return emitArith(op, pre, dataExpr, path);
       case "cat": return emitCat(args, pre, dataExpr, opPath);
       case "in":  return emitIn(op, args, pre, dataExpr, opPath, path);
       default:    return emitFallback(op, pre, dataExpr, path);
@@ -480,7 +520,6 @@ public final class RuleSourceGenerator {
   private void emitAnd(JsonLogicArray args, String targetVar, StringBuilder out,
                        String dataExpr, String path) {
     if (args.isEmpty()) {
-      bodyAlwaysThrows = true;
       out.append("    throw new JsonLogicEvaluationException(\"and operator expects at least 1 argument\", ")
          .append(javaStringLiteral(path)).append(");\n");
       return;
@@ -516,7 +555,6 @@ public final class RuleSourceGenerator {
   private void emitOr(JsonLogicArray args, String targetVar, StringBuilder out,
                       String dataExpr, String path) {
     if (args.isEmpty()) {
-      bodyAlwaysThrows = true;
       out.append("    throw new JsonLogicEvaluationException(\"or operator expects at least 1 argument\", ")
          .append(javaStringLiteral(path)).append(");\n");
       return;
@@ -562,7 +600,10 @@ public final class RuleSourceGenerator {
       final String left  = numericArg(args, 0, pre, dataExpr, path);
       final String mid   = numericArg(args, 1, pre, dataExpr, path);
       final String right = numericArg(args, 2, pre, dataExpr, path);
-      return "(" + left + " " + op + " " + mid + " && " + mid + " " + op + " " + right + ")";
+      // Hoist mid into a local so it is evaluated only once (it may be a fallback call).
+      final String midVar = freshVar("mid");
+      pre.append("    final double ").append(midVar).append(" = ").append(mid).append(";\n");
+      return "(" + left + " " + op + " " + midVar + " && " + midVar + " " + op + " " + right + ")";
     }
     return "(" + numericArg(args, 0, pre, dataExpr, path) + " " + op + " "
                + numericArg(args, 1, pre, dataExpr, path) + ")";
@@ -589,6 +630,15 @@ public final class RuleSourceGenerator {
   // Falls back to mathReduce/scalar-helpers when the tree contains array literals or a single
   // non-literal arg for +/*.
 
+  private static boolean isArithOp(String op) {
+    switch (op) {
+      case "+": case "*": case "-": case "/": case "%": case "min": case "max":
+        return true;
+      default:
+        return false;
+    }
+  }
+
   /**
    * Returns true when the entire sub-tree rooted at {@code node} can be evaluated as pure
    * double arithmetic — no JsonLogicArray literals, no single-non-literal-arg +/* that
@@ -606,29 +656,47 @@ public final class RuleSourceGenerator {
     final JsonLogicArray args = op.getArguments();
     switch (op.getOperator()) {
       case "+": case "*":
-        if (args.isEmpty()) return true;
+        if (args.isEmpty()) {
+          return true;
+        }
         for (int i = 0; i < args.size(); i++) {
-          if (args.get(i) instanceof JsonLogicArray) return false;
+          if (args.get(i) instanceof JsonLogicArray) {
+            return false;
+          }
         }
         // Single non-literal arg could resolve to an array at runtime
-        if (args.size() == 1 && !(args.get(0) instanceof JsonLogicNumber)) return false;
+        if (args.size() == 1 && !(args.get(0) instanceof JsonLogicNumber)) {
+          return false;
+        }
         for (int i = 0; i < args.size(); i++) {
-          if (!isArithInlineable(args.get(i))) return false;
+          if (!isArithInlineable(args.get(i))) {
+            return false;
+          }
         }
         return true;
       case "-":
-        if (args.isEmpty()) return true;
+        if (args.isEmpty()) {
+          return true;
+        }
         for (int i = 0; i < Math.min(args.size(), 2); i++) {
-          if (!isArithInlineable(args.get(i))) return false;
+          if (!isArithInlineable(args.get(i))) {
+            return false;
+          }
         }
         return true;
       case "/": case "%":
-        if (args.size() < 2) return true;
+        if (args.size() < 2) {
+          return true;
+        }
         return isArithInlineable(args.get(0)) && isArithInlineable(args.get(1));
       case "min": case "max":
-        if (args.isEmpty()) return true;
+        if (args.isEmpty()) {
+          return true;
+        }
         for (int i = 0; i < args.size(); i++) {
-          if (!isArithInlineable(args.get(i))) return false;
+          if (!isArithInlineable(args.get(i))) {
+            return false;
+          }
         }
         return true;
       default:
@@ -640,16 +708,19 @@ public final class RuleSourceGenerator {
   /**
    * Collects, in evaluation order, all Object-typed leaf nodes within an inlineable arithmetic
    * sub-tree.  Number literals are excluded (they are statically known to be non-null and
-   * numeric).  Uses an insertion-ordered map keyed by the emitted variable name so the same
-   * var local is never null-checked twice.
+   * numeric).
+   *
+   * <p>Uses an {@link LinkedHashMap} keyed by AST node so that the leaf expression is
+   * emitted exactly once (in {@code collectArithLeaves}) and reused by {@link #emitDoubleExpr}
+   * — preventing fallback nodes from being registered twice with different indices.
    *
    * @param node   the AST node to walk
-   * @param leaves ordered map from "emitted expression" → "double local name" (output)
+   * @param leaves identity map from leaf node → [emittedExpr, doubleLocalName] (output)
    * @param pre    pre-statement buffer (may receive statements for sub-expressions)
    * @param dataExpr data variable expression
    * @param path   current JSON path
    */
-  private void collectArithLeaves(JsonLogicNode node, java.util.LinkedHashMap<String, String> leaves,
+  private void collectArithLeaves(JsonLogicNode node, LinkedHashMap<JsonLogicNode, String[]> leaves,
                                    StringBuilder pre, String dataExpr, String path) {
     if (node instanceof JsonLogicNumber) {
       return; // literals are always numeric — no null check needed
@@ -657,44 +728,59 @@ public final class RuleSourceGenerator {
     if (node instanceof JsonLogicOperation) {
       final JsonLogicOperation op = (JsonLogicOperation) node;
       final JsonLogicArray args = op.getArguments();
+      // path is the *positional* path of this node (e.g. "$.+[1]").
+      // opBase appends this op's own name so children get full paths (e.g. "$.+[1].-[0]").
+      final String opBase = path + "." + op.getOperator();
       switch (op.getOperator()) {
         case "+": case "*":
           for (int i = 0; i < args.size(); i++) {
-            collectArithLeaves(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]");
+            collectArithLeaves(args.get(i), leaves, pre, dataExpr, opBase + "[" + i + "]");
           }
           return;
         case "-":
           for (int i = 0; i < Math.min(args.size(), 2); i++) {
-            collectArithLeaves(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]");
+            collectArithLeaves(args.get(i), leaves, pre, dataExpr, opBase + "[" + i + "]");
           }
           return;
         case "/": case "%":
           if (args.size() >= 2) {
-            collectArithLeaves(args.get(0), leaves, pre, dataExpr, path + "[0]");
-            collectArithLeaves(args.get(1), leaves, pre, dataExpr, path + "[1]");
+            collectArithLeaves(args.get(0), leaves, pre, dataExpr, opBase + "[0]");
+            collectArithLeaves(args.get(1), leaves, pre, dataExpr, opBase + "[1]");
           }
           return;
         case "min": case "max":
           for (int i = 0; i < args.size(); i++) {
-            collectArithLeaves(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]");
+            collectArithLeaves(args.get(i), leaves, pre, dataExpr, opBase + "[" + i + "]");
           }
           return;
         default:
           break; // non-arithmetic op falls through to leaf handling below
       }
     }
-    // Leaf: emit the Object expression and register a double local for it.
-    final String expr = emitExpression(node, pre, dataExpr, path);
-    if (!leaves.containsKey(expr)) {
-      leaves.put(expr, freshVar("_d"));
+    // Leaf: emit the Object expression and register a double local. Two AST nodes whose emitted
+    // expression string is identical (e.g. two {"var":"a"} nodes) share one double local and
+    // one null-check, eliminating duplicates. We key by node identity but check the emitted
+    // expression against existing entries so repeated vars are deduplicated correctly.
+    if (leaves.containsKey(node)) {
+      return;
     }
+    final String expr = emitExpression(node, pre, dataExpr, path);
+    // Check whether a different node already produced the same expression string.
+    for (final String[] existing : leaves.values()) {
+      if (existing[0].equals(expr)) {
+        // Reuse the existing double local — don't allocate a new one.
+        leaves.put(node, existing);
+        return;
+      }
+    }
+    leaves.put(node, new String[]{expr, freshVar("_d")});
   }
 
   /**
    * Returns a pure {@code double}-valued Java expression for an inlineable arithmetic sub-tree,
    * using the pre-declared double locals from {@code leaves} for Object-typed leaf nodes.
    */
-  private String emitDoubleExpr(JsonLogicNode node, java.util.LinkedHashMap<String, String> leaves,
+  private String emitDoubleExpr(JsonLogicNode node, LinkedHashMap<JsonLogicNode, String[]> leaves,
                                  StringBuilder pre, String dataExpr, String path) {
     if (node instanceof JsonLogicNumber) {
       final double v = ((JsonLogicNumber) node).getValue();
@@ -705,49 +791,79 @@ public final class RuleSourceGenerator {
       final JsonLogicArray args = op.getArguments();
       switch (op.getOperator()) {
         case "+": {
-          if (args.size() == 1) return emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]");
+          final String opBase = path + ".+";
+          if (args.size() == 1) {
+            return emitDoubleExpr(args.get(0), leaves, pre, dataExpr, opBase + "[0]");
+          }
           final var sb = new StringBuilder("(");
           for (int i = 0; i < args.size(); i++) {
-            if (i > 0) sb.append(" + ");
-            sb.append(emitDoubleExpr(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]"));
+            if (i > 0) {
+              sb.append(" + ");
+            }
+            sb.append(emitDoubleExpr(args.get(i), leaves, pre, dataExpr, opBase + "[" + i + "]"));
           }
           return sb.append(")").toString();
         }
         case "*": {
-          if (args.size() == 1) return emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]");
+          final String opBase = path + ".*";
+          if (args.size() == 1) {
+            return emitDoubleExpr(args.get(0), leaves, pre, dataExpr, opBase + "[0]");
+          }
           final var sb = new StringBuilder("(");
           for (int i = 0; i < args.size(); i++) {
-            if (i > 0) sb.append(" * ");
-            sb.append(emitDoubleExpr(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]"));
+            if (i > 0) {
+              sb.append(" * ");
+            }
+            sb.append(emitDoubleExpr(args.get(i), leaves, pre, dataExpr, opBase + "[" + i + "]"));
           }
           return sb.append(")").toString();
         }
-        case "-":
-          if (args.isEmpty()) return "0.0";
-          if (args.size() == 1) return "(-" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]") + ")";
-          return "(" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]")
-              + " - " + emitDoubleExpr(args.get(1), leaves, pre, dataExpr, path + "[1]") + ")";
-        case "/":
-          if (args.size() < 2) return "0.0";
-          return "(" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]")
-              + " / " + emitDoubleExpr(args.get(1), leaves, pre, dataExpr, path + "[1]") + ")";
-        case "%":
-          if (args.size() < 2) return "0.0";
-          return "(" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]")
-              + " % " + emitDoubleExpr(args.get(1), leaves, pre, dataExpr, path + "[1]") + ")";
+        case "-": {
+          final String opBase = path + ".-";
+          if (args.isEmpty()) {
+            return "0.0";
+          }
+          if (args.size() == 1) {
+            return "(-" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, opBase + "[0]") + ")";
+          }
+          return "(" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, opBase + "[0]")
+              + " - " + emitDoubleExpr(args.get(1), leaves, pre, dataExpr, opBase + "[1]") + ")";
+        }
+        case "/": {
+          final String opBase = path + "./";
+          if (args.size() < 2) {
+            return "0.0";
+          }
+          return "(" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, opBase + "[0]")
+              + " / " + emitDoubleExpr(args.get(1), leaves, pre, dataExpr, opBase + "[1]") + ")";
+        }
+        case "%": {
+          final String opBase = path + ".%";
+          if (args.size() < 2) {
+            return "0.0";
+          }
+          return "(" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, opBase + "[0]")
+              + " % " + emitDoubleExpr(args.get(1), leaves, pre, dataExpr, opBase + "[1]") + ")";
+        }
         case "min": {
-          if (args.isEmpty()) return "0.0";
-          String acc = emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]");
+          final String opBase = path + ".min";
+          if (args.isEmpty()) {
+            return "0.0";
+          }
+          String acc = emitDoubleExpr(args.get(0), leaves, pre, dataExpr, opBase + "[0]");
           for (int i = 1; i < args.size(); i++) {
-            acc = "Math.min(" + acc + ", " + emitDoubleExpr(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]") + ")";
+            acc = "Math.min(" + acc + ", " + emitDoubleExpr(args.get(i), leaves, pre, dataExpr, opBase + "[" + i + "]") + ")";
           }
           return acc;
         }
         case "max": {
-          if (args.isEmpty()) return "0.0";
-          String acc = emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]");
+          final String opBase = path + ".max";
+          if (args.isEmpty()) {
+            return "0.0";
+          }
+          String acc = emitDoubleExpr(args.get(0), leaves, pre, dataExpr, opBase + "[0]");
           for (int i = 1; i < args.size(); i++) {
-            acc = "Math.max(" + acc + ", " + emitDoubleExpr(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]") + ")";
+            acc = "Math.max(" + acc + ", " + emitDoubleExpr(args.get(i), leaves, pre, dataExpr, opBase + "[" + i + "]") + ")";
           }
           return acc;
         }
@@ -755,9 +871,15 @@ public final class RuleSourceGenerator {
           break; // non-arithmetic op: look up its double local below
       }
     }
-    // Leaf: look up the double local registered by collectArithLeaves.
-    final String expr = emitExpression(node, pre, dataExpr, path);
-    return leaves.get(expr);
+    // Leaf: look up the double local registered by collectArithLeaves by node identity.
+    // Duplicate AST nodes (e.g. two {"var":"a"} nodes) share the same String[] entry,
+    // so they resolve to the same double local without re-calling emitExpression.
+    final String[] entry = leaves.get(node);
+    if (entry == null) {
+      throw new IllegalStateException(
+          "emitDoubleExpr: no double local for leaf node: " + node.getClass().getSimpleName());
+    }
+    return entry[1];
   }
 
   /**
@@ -769,23 +891,27 @@ public final class RuleSourceGenerator {
     final String operator = op.getOperator();
     final JsonLogicArray args = op.getArguments();
 
-    // Fast-path for empty / too-few args (same null returns as before)
-    if (args.isEmpty()) {
-      switch (operator) {
-        case "/": case "%": case "-": return "null";
-        case "+": case "*": return "null";
-        case "min": case "max": return "null";
-      }
+    if (!isArithOp(operator)) {
+      throw new IllegalStateException("emitArith called for non-arithmetic operator: " + operator);
     }
-    if ((operator.equals("/") || operator.equals("%")) && args.size() == 1) return "null";
+
+    // Fast-path for empty / too-few args: return null, matching MathExpression behaviour.
+    if (args.isEmpty()) {
+      return "null";
+    }
+    if ((operator.equals("/") || operator.equals("%")) && args.size() == 1) {
+      return "null";
+    }
 
     if (!isArithInlineable(op)) {
       // Cannot inline: fall back to the old paths (mathReduce / scalar helpers)
       return emitArithFallback(op, pre, dataExpr, path);
     }
 
-    // Collect all Object-typed leaf expressions and assign each a double local name.
-    final var leaves = new java.util.LinkedHashMap<String, String>();
+    // Collect all Object-typed leaf nodes and assign each a double local name. Node identity
+    // is the key; duplicate AST nodes with the same emitted expression share one String[] entry
+    // (and thus one double local and one null-check guard), eliminating redundant checks.
+    final var leaves = new LinkedHashMap<JsonLogicNode, String[]>();
     collectArithLeaves(op, leaves, pre, dataExpr, path);
 
     // If there are no Object leaves at all (all literals), emit pure double directly.
@@ -796,18 +922,29 @@ public final class RuleSourceGenerator {
     // Emit the null / isNumeric guard and double locals into pre, then the result into a fresh local.
     final String resultLocal = freshVar("arith");
 
-    // Build null-check condition: var == null || !isNumeric(var) for each distinct leaf
+    // Build null-check condition: leafExpr == null || !isNumeric(leafExpr) for each distinct leaf.
+    // Entries sharing the same String[] instance (deduplicated vars) are emitted only once.
     final var cond = new StringBuilder();
-    for (final String leafExpr : leaves.keySet()) {
-      if (cond.length() > 0) cond.append(" || ");
-      cond.append(leafExpr).append(" == null || !isNumeric(").append(leafExpr).append(")");
+    final var seen = new java.util.IdentityHashMap<String[], Boolean>();
+    for (final String[] entry : leaves.values()) {
+      if (seen.put(entry, Boolean.TRUE) != null) {
+        continue; // already emitted for this shared entry
+      }
+      if (cond.length() > 0) {
+        cond.append(" || ");
+      }
+      cond.append(entry[0]).append(" == null || !isNumeric(").append(entry[0]).append(")");
     }
 
-    // Emit double local declarations
+    // Emit double local declarations (once per distinct entry)
     final var doubleDecls = new StringBuilder();
-    for (final java.util.Map.Entry<String, String> e : leaves.entrySet()) {
-      doubleDecls.append("      double ").append(e.getValue())
-          .append(" = toDouble(").append(e.getKey()).append(");\n");
+    final var seenDecls = new java.util.IdentityHashMap<String[], Boolean>();
+    for (final String[] entry : leaves.values()) {
+      if (seenDecls.put(entry, Boolean.TRUE) != null) {
+        continue;
+      }
+      doubleDecls.append("      double ").append(entry[1])
+          .append(" = toDouble(").append(entry[0]).append(");\n");
     }
 
     final String doubleExpr = emitDoubleExpr(op, leaves, pre, dataExpr, path);
@@ -826,12 +963,12 @@ public final class RuleSourceGenerator {
   /** Fallback for non-inlineable arithmetic (array args, single-non-literal +/* arg). */
   private String emitArithFallback(JsonLogicOperation op, StringBuilder pre,
                                    String dataExpr, String path) {
-    final String operator = op.getOperator();
-    final JsonLogicArray args = op.getArguments();
-    switch (operator) {
-      case "+": return emitMathReduce("+", args, pre, dataExpr, path);
-      case "*": return emitMathReduce("*", args, pre, dataExpr, path);
-      default:  return "null"; // shouldn't be reached for the cases we handle
+    switch (op.getOperator()) {
+      case "+": return emitMathReduce("+", op.getArguments(), pre, dataExpr, path);
+      case "*": return emitMathReduce("*", op.getArguments(), pre, dataExpr, path);
+      default:
+        throw new IllegalStateException(
+            "emitArithFallback called for non-reducible operator: " + op.getOperator());
     }
   }
 
@@ -928,7 +1065,6 @@ public final class RuleSourceGenerator {
                               String dataExpr, String path) {
     final int idx = fallbackNodes.size();
     fallbackNodes.add(node);
-    pre.append("    // fallback operator: ").append(node.getOperator()).append("\n");
     return "fallback.evaluate(fallbackNodes[" + idx + "], " + dataExpr
         + ", " + javaStringLiteral(path) + ")";
   }
@@ -943,7 +1079,7 @@ public final class RuleSourceGenerator {
   }
 
   private String freshVar(String hint) {
-    return hint + "_" + counter.getAndIncrement();
+    return hint + "_" + counter++;
   }
 
   // -------------------------------------------------------------------------
