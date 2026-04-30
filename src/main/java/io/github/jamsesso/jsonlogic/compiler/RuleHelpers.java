@@ -112,6 +112,20 @@ public final class RuleHelpers {
     return Double.NaN;
   }
 
+  /** Returns true when {@code value} can be coerced to a finite double by {@link MathExpression}. */
+  public static boolean isNumeric(Object value) {
+    if (value instanceof Number) return true;
+    if (value instanceof String) {
+      try {
+        Double.parseDouble((String) value);
+        return true;
+      } catch (NumberFormatException ex) {
+        return false;
+      }
+    }
+    return false;
+  }
+
   /** Returns {@code null} for non-numeric / empty-array inputs (mirrors {@code MathExpression}). */
   public static Double toDoubleNullable(Object value) {
     if (value == null) {

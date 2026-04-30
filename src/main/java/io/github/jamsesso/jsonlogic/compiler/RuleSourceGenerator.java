@@ -377,15 +377,13 @@ public final class RuleSourceGenerator {
                   return numCmp("<",  args, pre, dataExpr, opPath);
       case "<=":  if (args.size() < 2 || args.size() > 3) return emitFallback(op, pre, dataExpr, path);
                   return numCmp("<=", args, pre, dataExpr, opPath);
-      // + and * use mathReduce to mirror MathExpression's array-unwrapping semantics
-      case "+":   return emitMathReduce("+",  args, pre, dataExpr, opPath);
-      case "*":   return emitMathReduce("*",  args, pre, dataExpr, opPath);
-      case "-":   return emitMinus(args, pre, dataExpr, opPath);
-      // / and % with < 2 args return null (matches MathExpression interpreter behaviour)
-      case "/":   return emitBinArith("/", args, pre, dataExpr, opPath);
-      case "%":   return emitBinArith("%", args, pre, dataExpr, opPath);
-      case "min": return minMax("min", args, pre, dataExpr, opPath);
-      case "max": return minMax("max", args, pre, dataExpr, opPath);
+      case "+":   return emitArith(op, pre, dataExpr, opPath);
+      case "*":   return emitArith(op, pre, dataExpr, opPath);
+      case "-":   return emitArith(op, pre, dataExpr, opPath);
+      case "/":   return emitArith(op, pre, dataExpr, opPath);
+      case "%":   return emitArith(op, pre, dataExpr, opPath);
+      case "min": return emitArith(op, pre, dataExpr, opPath);
+      case "max": return emitArith(op, pre, dataExpr, opPath);
       case "cat": return emitCat(args, pre, dataExpr, opPath);
       case "in":  return emitIn(op, args, pre, dataExpr, opPath, path);
       default:    return emitFallback(op, pre, dataExpr, path);
@@ -572,64 +570,289 @@ public final class RuleSourceGenerator {
 
   // ---- arithmetic ----
 
+  // ---- arithmetic ----
+  //
+  // Strategy: when the entire arithmetic sub-tree contains no JsonLogicArray literals and no
+  // single-non-literal-arg fallback for +/*, we can emit a null guard over all Object-typed
+  // leaves and then evaluate the expression with pure double arithmetic.
+  //
+  // Generated pattern for e.g. {"+":[{"*":[{"var":"a"},{"var":"a"}]},{"*":[{"var":"b"},{"var":"b"}]}]}:
+  //
+  //   Object result_0;
+  //   if (var_a_1 == null || !isNumeric(var_a_1) || var_b_2 == null || !isNumeric(var_b_2)) {
+  //     result_0 = null;
+  //   } else {
+  //     double _a = toDouble(var_a_1), _b = toDouble(var_b_2);
+  //     result_0 = (_a * _a) + (_b * _b);
+  //   }
+  //
+  // Falls back to mathReduce/scalar-helpers when the tree contains array literals or a single
+  // non-literal arg for +/*.
+
+  /**
+   * Returns true when the entire sub-tree rooted at {@code node} can be evaluated as pure
+   * double arithmetic — no JsonLogicArray literals, no single-non-literal-arg +/* that
+   * MathExpression might unwrap at runtime.
+   */
+  private static boolean isArithInlineable(JsonLogicNode node) {
+    if (node instanceof JsonLogicNumber) {
+      return true;
+    }
+    if (!(node instanceof JsonLogicOperation)) {
+      // var, string, boolean, null, fallback-op: all are leaf Object values — inlineable as leaves
+      return true;
+    }
+    final JsonLogicOperation op = (JsonLogicOperation) node;
+    final JsonLogicArray args = op.getArguments();
+    switch (op.getOperator()) {
+      case "+": case "*":
+        if (args.isEmpty()) return true;
+        for (int i = 0; i < args.size(); i++) {
+          if (args.get(i) instanceof JsonLogicArray) return false;
+        }
+        // Single non-literal arg could resolve to an array at runtime
+        if (args.size() == 1 && !(args.get(0) instanceof JsonLogicNumber)) return false;
+        for (int i = 0; i < args.size(); i++) {
+          if (!isArithInlineable(args.get(i))) return false;
+        }
+        return true;
+      case "-":
+        if (args.isEmpty()) return true;
+        for (int i = 0; i < Math.min(args.size(), 2); i++) {
+          if (!isArithInlineable(args.get(i))) return false;
+        }
+        return true;
+      case "/": case "%":
+        if (args.size() < 2) return true;
+        return isArithInlineable(args.get(0)) && isArithInlineable(args.get(1));
+      case "min": case "max":
+        if (args.isEmpty()) return true;
+        for (int i = 0; i < args.size(); i++) {
+          if (!isArithInlineable(args.get(i))) return false;
+        }
+        return true;
+      default:
+        // Non-arithmetic op: it's a leaf — inlineable as an Object value
+        return true;
+    }
+  }
+
+  /**
+   * Collects, in evaluation order, all Object-typed leaf nodes within an inlineable arithmetic
+   * sub-tree.  Number literals are excluded (they are statically known to be non-null and
+   * numeric).  Uses an insertion-ordered map keyed by the emitted variable name so the same
+   * var local is never null-checked twice.
+   *
+   * @param node   the AST node to walk
+   * @param leaves ordered map from "emitted expression" → "double local name" (output)
+   * @param pre    pre-statement buffer (may receive statements for sub-expressions)
+   * @param dataExpr data variable expression
+   * @param path   current JSON path
+   */
+  private void collectArithLeaves(JsonLogicNode node, java.util.LinkedHashMap<String, String> leaves,
+                                   StringBuilder pre, String dataExpr, String path) {
+    if (node instanceof JsonLogicNumber) {
+      return; // literals are always numeric — no null check needed
+    }
+    if (node instanceof JsonLogicOperation) {
+      final JsonLogicOperation op = (JsonLogicOperation) node;
+      final JsonLogicArray args = op.getArguments();
+      switch (op.getOperator()) {
+        case "+": case "*":
+          for (int i = 0; i < args.size(); i++) {
+            collectArithLeaves(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]");
+          }
+          return;
+        case "-":
+          for (int i = 0; i < Math.min(args.size(), 2); i++) {
+            collectArithLeaves(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]");
+          }
+          return;
+        case "/": case "%":
+          if (args.size() >= 2) {
+            collectArithLeaves(args.get(0), leaves, pre, dataExpr, path + "[0]");
+            collectArithLeaves(args.get(1), leaves, pre, dataExpr, path + "[1]");
+          }
+          return;
+        case "min": case "max":
+          for (int i = 0; i < args.size(); i++) {
+            collectArithLeaves(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]");
+          }
+          return;
+        default:
+          break; // non-arithmetic op falls through to leaf handling below
+      }
+    }
+    // Leaf: emit the Object expression and register a double local for it.
+    final String expr = emitExpression(node, pre, dataExpr, path);
+    if (!leaves.containsKey(expr)) {
+      leaves.put(expr, freshVar("_d"));
+    }
+  }
+
+  /**
+   * Returns a pure {@code double}-valued Java expression for an inlineable arithmetic sub-tree,
+   * using the pre-declared double locals from {@code leaves} for Object-typed leaf nodes.
+   */
+  private String emitDoubleExpr(JsonLogicNode node, java.util.LinkedHashMap<String, String> leaves,
+                                 StringBuilder pre, String dataExpr, String path) {
+    if (node instanceof JsonLogicNumber) {
+      final double v = ((JsonLogicNumber) node).getValue();
+      return Double.toString(v);
+    }
+    if (node instanceof JsonLogicOperation) {
+      final JsonLogicOperation op = (JsonLogicOperation) node;
+      final JsonLogicArray args = op.getArguments();
+      switch (op.getOperator()) {
+        case "+": {
+          if (args.size() == 1) return emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]");
+          final var sb = new StringBuilder("(");
+          for (int i = 0; i < args.size(); i++) {
+            if (i > 0) sb.append(" + ");
+            sb.append(emitDoubleExpr(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]"));
+          }
+          return sb.append(")").toString();
+        }
+        case "*": {
+          if (args.size() == 1) return emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]");
+          final var sb = new StringBuilder("(");
+          for (int i = 0; i < args.size(); i++) {
+            if (i > 0) sb.append(" * ");
+            sb.append(emitDoubleExpr(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]"));
+          }
+          return sb.append(")").toString();
+        }
+        case "-":
+          if (args.isEmpty()) return "0.0";
+          if (args.size() == 1) return "(-" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]") + ")";
+          return "(" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]")
+              + " - " + emitDoubleExpr(args.get(1), leaves, pre, dataExpr, path + "[1]") + ")";
+        case "/":
+          if (args.size() < 2) return "0.0";
+          return "(" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]")
+              + " / " + emitDoubleExpr(args.get(1), leaves, pre, dataExpr, path + "[1]") + ")";
+        case "%":
+          if (args.size() < 2) return "0.0";
+          return "(" + emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]")
+              + " % " + emitDoubleExpr(args.get(1), leaves, pre, dataExpr, path + "[1]") + ")";
+        case "min": {
+          if (args.isEmpty()) return "0.0";
+          String acc = emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]");
+          for (int i = 1; i < args.size(); i++) {
+            acc = "Math.min(" + acc + ", " + emitDoubleExpr(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]") + ")";
+          }
+          return acc;
+        }
+        case "max": {
+          if (args.isEmpty()) return "0.0";
+          String acc = emitDoubleExpr(args.get(0), leaves, pre, dataExpr, path + "[0]");
+          for (int i = 1; i < args.size(); i++) {
+            acc = "Math.max(" + acc + ", " + emitDoubleExpr(args.get(i), leaves, pre, dataExpr, path + "[" + i + "]") + ")";
+          }
+          return acc;
+        }
+        default:
+          break; // non-arithmetic op: look up its double local below
+      }
+    }
+    // Leaf: look up the double local registered by collectArithLeaves.
+    final String expr = emitExpression(node, pre, dataExpr, path);
+    return leaves.get(expr);
+  }
+
+  /**
+   * Main entry point for all arithmetic operators.  When the sub-tree is fully inlineable,
+   * emits a null-guard block with double locals and pure double arithmetic into {@code pre},
+   * then returns the result local name.  Falls back to the old helper approach otherwise.
+   */
+  private String emitArith(JsonLogicOperation op, StringBuilder pre, String dataExpr, String path) {
+    final String operator = op.getOperator();
+    final JsonLogicArray args = op.getArguments();
+
+    // Fast-path for empty / too-few args (same null returns as before)
+    if (args.isEmpty()) {
+      switch (operator) {
+        case "/": case "%": case "-": return "null";
+        case "+": case "*": return "null";
+        case "min": case "max": return "null";
+      }
+    }
+    if ((operator.equals("/") || operator.equals("%")) && args.size() == 1) return "null";
+
+    if (!isArithInlineable(op)) {
+      // Cannot inline: fall back to the old paths (mathReduce / scalar helpers)
+      return emitArithFallback(op, pre, dataExpr, path);
+    }
+
+    // Collect all Object-typed leaf expressions and assign each a double local name.
+    final var leaves = new java.util.LinkedHashMap<String, String>();
+    collectArithLeaves(op, leaves, pre, dataExpr, path);
+
+    // If there are no Object leaves at all (all literals), emit pure double directly.
+    if (leaves.isEmpty()) {
+      return emitDoubleExpr(op, leaves, pre, dataExpr, path);
+    }
+
+    // Emit the null / isNumeric guard and double locals into pre, then the result into a fresh local.
+    final String resultLocal = freshVar("arith");
+
+    // Build null-check condition: var == null || !isNumeric(var) for each distinct leaf
+    final var cond = new StringBuilder();
+    for (final String leafExpr : leaves.keySet()) {
+      if (cond.length() > 0) cond.append(" || ");
+      cond.append(leafExpr).append(" == null || !isNumeric(").append(leafExpr).append(")");
+    }
+
+    // Emit double local declarations
+    final var doubleDecls = new StringBuilder();
+    for (final java.util.Map.Entry<String, String> e : leaves.entrySet()) {
+      doubleDecls.append("      double ").append(e.getValue())
+          .append(" = toDouble(").append(e.getKey()).append(");\n");
+    }
+
+    final String doubleExpr = emitDoubleExpr(op, leaves, pre, dataExpr, path);
+
+    pre.append("    Object ").append(resultLocal).append(";\n");
+    pre.append("    if (").append(cond).append(") {\n");
+    pre.append("      ").append(resultLocal).append(" = null;\n");
+    pre.append("    } else {\n");
+    pre.append(doubleDecls);
+    pre.append("      ").append(resultLocal).append(" = ").append(doubleExpr).append(";\n");
+    pre.append("    }\n");
+
+    return resultLocal;
+  }
+
+  /** Fallback for non-inlineable arithmetic (array args, single-non-literal +/* arg). */
+  private String emitArithFallback(JsonLogicOperation op, StringBuilder pre,
+                                   String dataExpr, String path) {
+    final String operator = op.getOperator();
+    final JsonLogicArray args = op.getArguments();
+    switch (operator) {
+      case "+": return emitMathReduce("+", args, pre, dataExpr, path);
+      case "*": return emitMathReduce("*", args, pre, dataExpr, path);
+      default:  return "null"; // shouldn't be reached for the cases we handle
+    }
+  }
+
   /**
    * Emits a call to {@code mathReduce} for {@code +} and {@code *}.
-   * This mirrors MathExpression's array-unwrapping and null-propagation behaviour.
+   * Used as a fallback when any argument is a {@link JsonLogicArray} literal.
    */
   private String emitMathReduce(String op, JsonLogicArray args, StringBuilder pre,
                                 String dataExpr, String path) {
-    if (args.isEmpty()) {
-      return "null";
-    }
     final var sb = new StringBuilder("mathReduce(").append(javaStringLiteral(op))
         .append(", Arrays.<Object>asList(");
     for (int i = 0; i < args.size(); i++) {
-      if (i > 0) {
-        sb.append(", ");
-      }
+      if (i > 0) sb.append(", ");
       sb.append(arg(args, i, pre, dataExpr, path));
     }
     return sb.append("))").toString();
   }
 
-  private String emitBinArith(String op, JsonLogicArray args, StringBuilder pre,
-                              String dataExpr, String path) {
-    if (args.isEmpty() || args.size() == 1) {
-      // / and % with fewer than 2 args return null (matches MathExpression interpreter behaviour)
-      return "null";
-    }
-    return "(" + numericArg(args, 0, pre, dataExpr, path) + " "
-               + op + " "
-               + numericArg(args, 1, pre, dataExpr, path) + ")";
-  }
-
-  private String emitMinus(JsonLogicArray args, StringBuilder pre, String dataExpr, String path) {
-    if (args.isEmpty()) {
-      return "null";
-    }
-    if (args.size() == 1) {
-      return "(-" + numericArg(args, 0, pre, dataExpr, path) + ")";
-    }
-    return "(" + numericArg(args, 0, pre, dataExpr, path) + " - "
-               + numericArg(args, 1, pre, dataExpr, path) + ")";
-  }
-
-  private String minMax(String fn, JsonLogicArray args, StringBuilder pre,
-                        String dataExpr, String path) {
-    if (args.isEmpty()) {
-      return "null";
-    }
-    String acc = numericArg(args, 0, pre, dataExpr, path);
-    for (int i = 1; i < args.size(); i++) {
-      acc = "Math." + fn + "(" + acc + ", " + numericArg(args, i, pre, dataExpr, path) + ")";
-    }
-    return acc;
-  }
-
   /**
-   * Returns a Java {@code double} expression for an argument.
-   * If the argument is a number literal, emits it directly (e.g. {@code 10.0}).
-   * Otherwise wraps the Object expression in {@code toDouble(...)}.
+   * Returns a Java {@code double} expression for a number literal argument.
+   * Only used by numericArg for numeric comparisons (>, <, etc.) which don't need null-guards.
    */
   private String numericArg(JsonLogicArray args, int index, StringBuilder pre,
                             String dataExpr, String path) {

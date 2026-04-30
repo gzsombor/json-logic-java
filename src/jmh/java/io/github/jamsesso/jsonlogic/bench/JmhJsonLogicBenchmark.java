@@ -66,6 +66,10 @@ public class JmhJsonLogicBenchmark {
   private Map<String, Object> dataInSetHit;   // customer = "cust3" → "ok"
   private Map<String, Object> dataInSetMiss;  // customer = "unknown" → "not_ok"
 
+  // (a + b + 10) * 3  — two vars + two constants, exercises addScalars + mulScalars
+  private String logicArithmetic;
+  private Map<String, Object> dataArithmetic;
+
   @Setup
   public void setup() {
     jsonLogic = new JsonLogic(compiled);
@@ -166,6 +170,11 @@ public class JmhJsonLogicBenchmark {
     dataInSetHit.put("customer", "cust3");
     dataInSetMiss = new HashMap<>();
     dataInSetMiss.put("customer", "unknown");
+
+    logicArithmetic = "{\"*\":[{\"+\":[{\"var\":\"a\"},{\"var\":\"b\"},10]},3]}";
+    dataArithmetic = new HashMap<>();
+    dataArithmetic.put("a", 7);
+    dataArithmetic.put("b", 3);
   }
 
   @Benchmark
@@ -216,5 +225,10 @@ public class JmhJsonLogicBenchmark {
   @Benchmark
   public Object evaluateInSetMiss() throws JsonLogicException {
     return jsonLogic.apply(logicInSet, dataInSetMiss);
+  }
+
+  @Benchmark
+  public Object evaluateArithmetic() throws JsonLogicException {
+    return jsonLogic.apply(logicArithmetic, dataArithmetic);
   }
 }

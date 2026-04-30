@@ -27,15 +27,15 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    final Object var_x_1 = resolveVarChecked(data, "x", null);
-    final Object var_y_3 = resolveVarChecked(data, "y", null);
+    final Object var_a_1 = resolveVarChecked(data, "a", null);
+    final Object var_b_3 = resolveVarChecked(data, "b", null);
     Object arith_5;
-    if (var_x_1 == null || !isNumeric(var_x_1) || var_y_3 == null || !isNumeric(var_y_3)) {
+    if (var_a_1 == null || !isNumeric(var_a_1) || var_b_3 == null || !isNumeric(var_b_3)) {
       arith_5 = null;
     } else {
-      double _d_2 = toDouble(var_x_1);
-      double _d_4 = toDouble(var_y_3);
-      arith_5 = ((_d_2 * 2.0) + _d_4);
+      double _d_2 = toDouble(var_a_1);
+      double _d_4 = toDouble(var_b_3);
+      arith_5 = ((_d_2 + _d_4) * 3.0);
     }
     Object result_0 = arith_5;
     return result_0;
