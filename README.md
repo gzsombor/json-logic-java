@@ -17,7 +17,7 @@ JsonLogic is documented extensively at [JsonLogic.com](http://jsonlogic.com), in
 
 ## Performance
 
-By default, the forked `JsonLogic` compiles each unique rule into a native Java method at first use via `javax.tools`, then caches and reuses it - delivering a **3–18× throughput improvement** over the tree-walking interpreter depending on rule complexity (see [Benchmarks](#benchmarks) below). If no compiler is available a warning is logged and the interpreter is used as a fallback. To opt out of compilation entirely, pass `false` to the constructor:
+By default, the forked `JsonLogic` compiles each unique rule into a native Java method at first use via `javax.tools`, then caches and reuses it - delivering a **3–17× throughput improvement** over the tree-walking interpreter for fully-compiled rules (see [Benchmarks](#benchmarks) below). Rules that contain operators not yet supported by the compiler (e.g. `in`) fall back to the interpreter for that sub-expression, so compilation adds no benefit in those cases. If no compiler is available a warning is logged and the interpreter is used as a fallback. To opt out of compilation entirely, pass `false` to the constructor:
 
 ```java
 JsonLogic jsonLogic = new JsonLogic(false);
@@ -44,20 +44,23 @@ Higher is better (ops/s = rule evaluations per second).
 
 | Scenario | Interpreter (ops/s) | Compiled (ops/s) | Speedup |
 |---|--:|--:|--:|
-| Dispatch table hit (cached rule, no data) | 1,633,768 | 19,694,163 | **12.1×** |
-| Dispatch table miss (uncached rule) | 1,136,814 | 20,649,754 | **18.2×** |
-| Two string comparisons | 2,859,606 | 11,506,996 | **4.0×** |
-| Repeated var lookup (same key used 5×) | 1,334,866 | 12,962,381 | **9.7×** |
-| Three string comparisons | 2,253,688 | 8,968,601 | **4.0×** |
-| Four string comparisons | 1,595,199 | 6,733,857 | **4.2×** |
-| Five mixed operations | 1,338,222 | 5,324,886 | **4.0×** |
-| Twenty-clause AND chain | 362,342 | 1,084,053 | **3.0×** |
+| Dispatch table hit | 1,454,794 | 21,844,566 | **15.0×** |
+| Dispatch table miss | 1,304,000 | 21,777,599 | **16.7×** |
+| Two string comparisons | 2,482,600 | 10,209,258 | **4.1×** |
+| Repeated var lookup (same key used 5×) | 741,260 | 9,555,242 | **12.9×** |
+| Three string comparisons | 1,727,860 | 6,740,749 | **3.9×** |
+| Four string comparisons | 1,755,539 | 6,230,244 | **3.5×** |
+| Five mixed operations | 1,391,785 | 5,140,888 | **3.7×** |
+| Twenty-clause AND chain | 275,779 | 1,076,154 | **3.9×** |
+| In-set check, hit (`in` falls back) | 2,050,416 | 1,969,010 | **~1×** |
+| In-set check, miss (`in` falls back) | 1,794,957 | 1,588,442 | **~1×** |
 
 Key observations:
 
-- **Dispatch overhead is eliminated.** The interpreter pays a map lookup + virtual dispatch on every operator; the compiler emits a direct Java call. For rules that consist of a single cached lookup, the compiled path is ~12–18× faster.
-- **Repeated variable access scales well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals, reducing five map lookups to one. That alone accounts for the ~9.7× gain on the repeated-lookup benchmark vs ~4× for single-use vars.
-- **Complex rules still benefit.** Even a twenty-clause AND chain — the worst case for compilation overhead — sees a 3× improvement, because every intermediate truthiness check and var resolution is a direct primitive operation rather than a virtual dispatch through the evaluator tree.
+- **Dispatch overhead is eliminated.** The interpreter pays a map lookup + virtual dispatch on every operator; the compiler emits a direct Java call. For rules that consist of a single cached lookup, the compiled path is ~15–17× faster.
+- **Repeated variable access scales well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals, reducing five map lookups to one. That alone accounts for the ~13× gain on the repeated-lookup benchmark vs ~4× for single-use vars.
+- **Complex rules still benefit.** Even a twenty-clause AND chain — the worst case for compilation overhead — sees a ~4× improvement, because every intermediate truthiness check and var resolution is a direct primitive operation rather than a virtual dispatch through the evaluator tree.
+- **Fallback operators see no gain.** The `in` operator is not yet inlined by the compiler; the surrounding `if` is compiled but the membership test still calls the interpreter. Throughput is effectively unchanged, and the small regression is compilation overhead with no compensating benefit.
 
 ## Examples
 

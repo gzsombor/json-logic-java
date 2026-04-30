@@ -7,6 +7,7 @@ import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -21,62 +22,50 @@ import java.util.Map;
 @Fork(1)
 @BenchmarkMode(Mode.Throughput)
 public class JmhJsonLogicBenchmark {
-  private JsonLogic jsonLogic;
-  private JsonLogic jsonLogicCompiled;  // same rules, compiled path
 
-  // Original: 5-clause mixed numeric+string "and" chain
+  @Param({"false", "true"})
+  private boolean compiled;
+
+  private JsonLogic jsonLogic;
+
+  // 5-clause mixed numeric+string "and" chain.
   private String logic5;
   private Map<String, Object> data5;
 
-  // 2 string vars compared to fixed values; return one of two string results.
-  // Rule: if (role == "admin" && region == "us") "full-access" else "limited"
+  // if (role == "admin" && region == "us") "full-access" else "limited"
   private String logicStr2;
   private Map<String, Object> dataStr2;
 
-  // 3 string vars compared to fixed values; return one of two string results.
-  // Rule: if (role == "editor" && region == "eu" && tier == "pro") "eu-pro-editor" else "default"
+  // if (role == "editor" && region == "eu" && tier == "pro") "eu-pro-editor" else "default"
   private String logicStr3;
   private Map<String, Object> dataStr3;
 
-  // 4 string vars compared to fixed values; return one of two string results.
-  // Rule: if (role == "viewer" && region == "ap" && tier == "free" && lang == "en") "ap-free-viewer-en" else "default"
+  // if (role == "viewer" && region == "ap" && tier == "free" && lang == "en") ... else "default"
   private String logicStr4;
   private Map<String, Object> dataStr4;
 
-  // Dispatch table: 5-branch if/elseif chain matching a single string var against fixed literals.
-  // Simulates routing logic: status -> human-readable label.
-  // Rule: if status=="pending" -> "Pending Review"
-  //       elif status=="approved" -> "Approved"
-  //       elif status=="rejected" -> "Rejected"
-  //       elif status=="cancelled" -> "Cancelled"
-  //       else "Unknown"
+  // 5-branch if/elseif dispatch table: status -> human-readable label.
   private String logicDispatch;
   private Map<String, Object> dataDispatchHit;   // matches the 3rd branch ("rejected")
   private Map<String, Object> dataDispatchMiss;  // falls through to "Unknown"
 
   // 20-clause mixed numeric+string "and" chain.
-  // Exercises the interpreter's per-node dispatch and the compiler's ability to fold
-  // many comparisons into a single inlined method.
   private String logic20;
   private Map<String, Object> data20;
 
-  // Set-membership check: if customer is in {"cust1".."cust5"} → "ok" else "not_ok".
-  // Equivalent Java: if (Set.of("cust1","cust2","cust3","cust4","cust5").contains(customer))
-  // The "in" operator falls back to the interpreter; the surrounding "if" is compiled.
+  // 'a' appears 3 times, 'b' appears 3 times → exercises var deduplication.
+  private String lookupRepeated;
+  private Map<String, Object> dataLookupRepeated;
+
+  // if (Set.of("cust1".."cust5").contains(customer)) "ok" else "not_ok"
   private String logicInSet;
   private Map<String, Object> dataInSetHit;   // customer = "cust3" → "ok"
   private Map<String, Object> dataInSetMiss;  // customer = "unknown" → "not_ok"
 
-  // 'a' appears 3 times, 'b' appears 3 times → 6 map lookups without deduplication, 2 with.
-  private String lookupRepeated;
-  private Map<String, Object> dataLookupRepeated;
-
   @Setup
   public void setup() {
-    jsonLogic = new JsonLogic(false);
-    jsonLogicCompiled = new JsonLogic();
+    jsonLogic = new JsonLogic(compiled);
 
-    // --- original ---
     logic5 = "{\"and\":[{\">\":[{\"var\":\"score\"},10]},{\"<\":[{\"var\":\"count\"},100]},"
         + "{\"==\":[{\"var\":\"category\"},\"x\"]},{\"!=\":[{\"var\":\"tag\"},\"y\"]},"
         + "{\">=\":[{\"var\":\"offset\"},0]}]}";
@@ -87,7 +76,6 @@ public class JmhJsonLogicBenchmark {
     data5.put("tag", "z");
     data5.put("offset", 0);
 
-    // --- 2 string comparisons ---
     logicStr2 = "{\"if\":[{\"and\":[{\"==\":[{\"var\":\"role\"},\"admin\"]},"
         + "{\"==\":[{\"var\":\"region\"},\"us\"]}]},"
         + "\"full-access\",\"limited\"]}";
@@ -95,7 +83,6 @@ public class JmhJsonLogicBenchmark {
     dataStr2.put("role", "admin");
     dataStr2.put("region", "us");
 
-    // --- 3 string comparisons ---
     logicStr3 = "{\"if\":[{\"and\":[{\"==\":[{\"var\":\"role\"},\"editor\"]},"
         + "{\"==\":[{\"var\":\"region\"},\"eu\"]},"
         + "{\"==\":[{\"var\":\"tier\"},\"pro\"]}]},"
@@ -105,7 +92,6 @@ public class JmhJsonLogicBenchmark {
     dataStr3.put("region", "eu");
     dataStr3.put("tier", "pro");
 
-    // --- 4 string comparisons ---
     logicStr4 = "{\"if\":[{\"and\":[{\"==\":[{\"var\":\"role\"},\"viewer\"]},"
         + "{\"==\":[{\"var\":\"region\"},\"ap\"]},"
         + "{\"==\":[{\"var\":\"tier\"},\"free\"]},"
@@ -117,7 +103,6 @@ public class JmhJsonLogicBenchmark {
     dataStr4.put("tier", "free");
     dataStr4.put("lang", "en");
 
-    // --- dispatch table (5-branch if/elseif) ---
     logicDispatch = "{\"if\":["
         + "{\"==\":[{\"var\":\"status\"},\"pending\"]},\"Pending Review\","
         + "{\"==\":[{\"var\":\"status\"},\"approved\"]},\"Approved\","
@@ -125,11 +110,10 @@ public class JmhJsonLogicBenchmark {
         + "{\"==\":[{\"var\":\"status\"},\"cancelled\"]},\"Cancelled\","
         + "\"Unknown\"]}";
     dataDispatchHit = new HashMap<>();
-    dataDispatchHit.put("status", "rejected");   // matches branch 3
+    dataDispatchHit.put("status", "rejected");
     dataDispatchMiss = new HashMap<>();
-    dataDispatchMiss.put("status", "archived");  // falls through to "Unknown"
+    dataDispatchMiss.put("status", "archived");
 
-    // --- 20-clause and ---
     logic20 = "{\"and\":["
         + "{\">\":[{\"var\":\"n0\"},0]},"
         + "{\">\":[{\"var\":\"n1\"},1]},"
@@ -156,7 +140,7 @@ public class JmhJsonLogicBenchmark {
     for (int i = 0; i < 10; i++) {
       data20.put("n" + i, i + 1);
     }
-    final String[] letters = {"a","b","c","d","e","f","g","h","i","j"};
+    final String[] letters = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"};
     for (int i = 0; i < 10; i++) {
       data20.put("s" + i, letters[i]);
     }
@@ -164,7 +148,6 @@ public class JmhJsonLogicBenchmark {
     lookupRepeated = "{\"and\":[{\">\":[{\"var\":\"a\"},10]},{\"<\":[{\"var\":\"a\"},100]}"
         + ",{\">=\":[{\"var\":\"b\"},0]},{\"<=\":[{\"var\":\"b\"},50]}"
         + ",{\"!=\":[{\"var\":\"a\"},{\"var\":\"b\"}]}]}";
-
     dataLookupRepeated = new HashMap<>();
     dataLookupRepeated.put("a", 42);
     dataLookupRepeated.put("b", 30);
@@ -172,14 +155,13 @@ public class JmhJsonLogicBenchmark {
     dataLookupRepeated.put("d", "z");
     dataLookupRepeated.put("e", 0);
 
-    // --- in-set check ---
     logicInSet = "{\"if\":[{\"in\":[{\"var\":\"customer\"},"
         + "[\"cust1\",\"cust2\",\"cust3\",\"cust4\",\"cust5\"]]},"
         + "\"ok\",\"not_ok\"]}";
     dataInSetHit = new HashMap<>();
-    dataInSetHit.put("customer", "cust3");   // found at index 2 → "ok"
+    dataInSetHit.put("customer", "cust3");
     dataInSetMiss = new HashMap<>();
-    dataInSetMiss.put("customer", "unknown"); // not in list → "not_ok"
+    dataInSetMiss.put("customer", "unknown");
   }
 
   @Benchmark
@@ -213,55 +195,13 @@ public class JmhJsonLogicBenchmark {
   }
 
   @Benchmark
-  public Object evaluateRepeatedLookup() throws JsonLogicException {
-    return jsonLogic.apply(lookupRepeated, dataLookupRepeated);
-  }
-
-  // ---- compiled variants ----
-
-  @Benchmark
-  public Object compiledEvaluateFive() throws JsonLogicException {
-    return jsonLogicCompiled.apply(logic5, data5);
-  }
-
-  @Benchmark
-  public Object compiledEvaluateTwoStringComparisons() throws JsonLogicException {
-    return jsonLogicCompiled.apply(logicStr2, dataStr2);
-  }
-
-  @Benchmark
-  public Object compiledEvaluateThreeStringComparisons() throws JsonLogicException {
-    return jsonLogicCompiled.apply(logicStr3, dataStr3);
-  }
-
-  @Benchmark
-  public Object compiledEvaluateFourStringComparisons() throws JsonLogicException {
-    return jsonLogicCompiled.apply(logicStr4, dataStr4);
-  }
-
-  @Benchmark
-  public Object compiledEvaluateDispatchTableHit() throws JsonLogicException {
-    return jsonLogicCompiled.apply(logicDispatch, dataDispatchHit);
-  }
-
-  @Benchmark
-  public Object compiledEvaluateDispatchTableMiss() throws JsonLogicException {
-    return jsonLogicCompiled.apply(logicDispatch, dataDispatchMiss);
-  }
-
-  @Benchmark
   public Object evaluateTwentyClauses() throws JsonLogicException {
     return jsonLogic.apply(logic20, data20);
   }
 
   @Benchmark
-  public Object compiledEvaluateTwentyClauses() throws JsonLogicException {
-    return jsonLogicCompiled.apply(logic20, data20);
-  }
-
-  @Benchmark
-  public Object compiledEvaluateRepeatedLookup() throws JsonLogicException {
-    return jsonLogicCompiled.apply(lookupRepeated, dataLookupRepeated);
+  public Object evaluateRepeatedLookup() throws JsonLogicException {
+    return jsonLogic.apply(lookupRepeated, dataLookupRepeated);
   }
 
   @Benchmark
@@ -273,15 +213,4 @@ public class JmhJsonLogicBenchmark {
   public Object evaluateInSetMiss() throws JsonLogicException {
     return jsonLogic.apply(logicInSet, dataInSetMiss);
   }
-
-  @Benchmark
-  public Object compiledEvaluateInSetHit() throws JsonLogicException {
-    return jsonLogicCompiled.apply(logicInSet, dataInSetHit);
-  }
-
-  @Benchmark
-  public Object compiledEvaluateInSetMiss() throws JsonLogicException {
-    return jsonLogicCompiled.apply(logicInSet, dataInSetMiss);
-  }
-
 }
