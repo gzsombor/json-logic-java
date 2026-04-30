@@ -210,6 +210,36 @@ public final class RuleHelpers {
     return String.valueOf(value);
   }
 
+  public static String substr(Object strArg, Object startArg, Object lengthArg, String jsonPath)
+      throws JsonLogicEvaluationException {
+    if (!(startArg instanceof Double)) {
+      throw new JsonLogicEvaluationException("second argument to substr must be a number", jsonPath + "[1]");
+    }
+    final String value = String.valueOf(strArg == null ? "" : strArg);
+    final int len = value.length();
+    int start = ((Double) startArg).intValue();
+    if (start < 0) {
+      start = len + start;
+    }
+    if (lengthArg == null) {
+      // 2-arg form: start to end
+      return start < 0 ? "" : value.substring(Math.min(start, len));
+    }
+    if (!(lengthArg instanceof Double)) {
+      throw new JsonLogicEvaluationException("third argument to substr must be an integer", jsonPath + "[2]");
+    }
+    int end = ((Double) lengthArg).intValue();
+    if (end < 0) {
+      end = len + end;
+    } else {
+      end = start + end;
+    }
+    if (start > end || end > len || start < 0) {
+      return "";
+    }
+    return value.substring(start, end);
+  }
+
   // ---- variable resolution ----
 
   public static Object resolveVar(Object data, Object key, Object defaultValue) throws JsonLogicEvaluationException {

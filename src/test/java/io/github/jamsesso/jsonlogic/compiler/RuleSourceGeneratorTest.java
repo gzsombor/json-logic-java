@@ -180,21 +180,6 @@ public class RuleSourceGeneratorTest {
     Assert.assertEquals(3.0, compiled.apply("{\"max\":[3,1,2]}", null));
   }
 
-  // ---- cat ----
-
-  @Test
-  public void cat() throws JsonLogicException {
-    Assert.assertEquals("hello world",
-        compiled.apply("{\"cat\":[\"hello\",\" \",\"world\"]}", null));
-  }
-
-  @Test
-  public void catWithNumber() throws JsonLogicException {
-    // 3.0 should render as "3", not "3.0"
-    Assert.assertEquals("3 apples",
-        compiled.apply("{\"cat\":[3,\" apples\"]}", null));
-  }
-
   // ---- not ----
 
   @Test

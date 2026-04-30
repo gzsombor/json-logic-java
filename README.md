@@ -62,6 +62,20 @@ Key observations:
 - **Repeated variable access scales well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals, reducing five map lookups to one. That alone accounts for the ~9.5× gain on the repeated-lookup benchmark vs ~4–5× for single-use vars.
 - **Complex rules still benefit.** Even a twenty-clause AND chain — the worst case for compilation overhead — sees a ~4× improvement, because every intermediate truthiness check and var resolution is a direct primitive operation rather than a virtual dispatch through the evaluator tree.
 
+## Known incompatibilities between compiled and interpreter modes
+
+The compiled engine is designed to be a drop-in replacement for the interpreter, but one known behavioural difference exists:
+
+### `cat` with a `null` argument
+
+The interpreter's `cat` implementation calls `Object.toString()` on each argument without a null guard, so passing a `null` value (e.g. from a missing `var`) throws a `NullPointerException` at runtime. The compiled engine routes every runtime-typed argument through `catStr()`, which maps `null` to an empty string `""`.
+
+| Rule | Data | Interpreter | Compiled |
+|---|---|---|---|
+| `{"cat": ["a", {"var": "x"}, "b"]}` | `{}` (x is missing) | `NullPointerException` | `"ab"` |
+
+If you rely on the interpreter's NPE as an implicit signal that a required variable is absent, switch to an explicit guard (e.g. `{"if": [{"var": "x"}, {"cat": [...]}, null]}`) which behaves identically in both modes.
+
 ## Examples
 
 The public API for json-logic-java attempts to mimic the public API of the original Javascript implementation as close as possible.

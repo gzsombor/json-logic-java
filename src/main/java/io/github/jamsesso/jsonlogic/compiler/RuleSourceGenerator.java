@@ -425,6 +425,7 @@ public final class RuleSourceGenerator {
       case "+": case "*": case "-": case "/": case "%": case "min": case "max":
         return emitArith(op, pre, dataExpr, path);
       case "cat": return emitCat(args, pre, dataExpr, opPath);
+      case "substr": return emitSubstr(op, args, pre, dataExpr, opPath, path);
       case "in":  return emitIn(op, args, pre, dataExpr, opPath, path);
       default:    return emitFallback(op, pre, dataExpr, path);
     }
@@ -1013,13 +1014,57 @@ public final class RuleSourceGenerator {
       return "\"\"";
     }
     if (args.size() == 1) {
-      return "catStr(" + arg(args, 0, pre, dataExpr, path) + ")";
+      return emitCatArg(args.get(0), pre, dataExpr, path + "[0]");
     }
-    final var sb = new StringBuilder("(catStr(").append(arg(args, 0, pre, dataExpr, path)).append(")");
-    for (int i = 1; i < args.size(); i++) {
-      sb.append(" + catStr(").append(arg(args, i, pre, dataExpr, path)).append(")");
+    final var sb = new StringBuilder("(");
+    for (int i = 0; i < args.size(); i++) {
+      if (i > 0) {
+        sb.append(" + ");
+      }
+      sb.append(emitCatArg(args.get(i), pre, dataExpr, path + "[" + i + "]"));
     }
     return sb.append(")").toString();
+  }
+
+  /**
+   * Emits a {@code String}-typed expression for a single {@code cat} argument.
+   * String and number literals are converted at code-generation time so the generated
+   * code contains plain string literals rather than {@code catStr(...)} calls.
+   * Runtime-typed values (variables, nested operations) are wrapped with {@code catStr}.
+   */
+  private String emitCatArg(JsonLogicNode node, StringBuilder pre, String dataExpr, String path) {
+    if (node instanceof JsonLogicString) {
+      return javaStringLiteral(((JsonLogicString) node).getValue());
+    }
+    if (node instanceof JsonLogicNumber) {
+      final double v = ((JsonLogicNumber) node).getValue();
+      if (v == Math.floor(v) && !Double.isInfinite(v) && !Double.isNaN(v)) {
+        return javaStringLiteral(String.valueOf((long) v));
+      }
+      return javaStringLiteral(Double.toString(v));
+    }
+    if (node instanceof JsonLogicNull) {
+      return "\"\"";
+    }
+    if (node instanceof JsonLogicBoolean) {
+      return ((JsonLogicBoolean) node).getValue() ? "\"true\"" : "\"false\"";
+    }
+    // Variable, nested operation, or array — value is only known at runtime.
+    return "catStr(" + emitExpression(node, pre, dataExpr, path) + ")";
+  }
+
+  // ---- substr ----
+
+  private String emitSubstr(JsonLogicOperation op, JsonLogicArray args,
+                             StringBuilder pre, String dataExpr, String opPath, String path) {
+    if (args.size() < 2 || args.size() > 3) {
+      return emitFallback(op, pre, dataExpr, path);
+    }
+    final String strExpr   = arg(args, 0, pre, dataExpr, opPath);
+    final String startExpr = arg(args, 1, pre, dataExpr, opPath);
+    final String lenExpr   = args.size() == 3 ? arg(args, 2, pre, dataExpr, opPath) : "null";
+    return "substr(" + strExpr + ", " + startExpr + ", " + lenExpr
+        + ", " + javaStringLiteral(opPath) + ")";
   }
 
   // ---- in ----
