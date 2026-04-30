@@ -79,6 +79,19 @@ public final class RuleSourceGenerator {
    */
   private boolean bodyAlwaysThrows = false;
 
+  /**
+   * Static {@code Set} field declarations accumulated during generation, emitted once per
+   * class between the instance fields and the constructor.  Each entry is a complete field
+   * declaration line, e.g. {@code "  private static final Set<Object> SET_1 = Set.of(...);\n"}.
+   */
+  private final StringBuilder staticFields = new StringBuilder();
+
+  /**
+   * Cache from a canonical set-element string (e.g. {@code "\"a\",\"b\""}) to the already-
+   * declared field name, so identical haystacks share a single {@code Set} constant.
+   */
+  private final Map<String, String> setCache = new LinkedHashMap<>();
+
   // -------------------------------------------------------------------------
   // Public API
   // -------------------------------------------------------------------------
@@ -89,8 +102,6 @@ public final class RuleSourceGenerator {
     // Path starts empty — JsonLogic.apply() will prepend "$" to any exception.
     emitStatement(ast, resultVar, body, "data", "");
 
-    // Use String.format() only for the static header - body is NOT passed through it,
-    // so any % characters in rule expressions are safe.
     final String header = String.format(
         "package %s;\n"
         + "\n"
@@ -106,8 +117,16 @@ public final class RuleSourceGenerator {
         + "\n"
         + "  private final JsonLogicEvaluator fallback;\n"
         + "  private final JsonLogicNode[] fallbackNodes;\n"
-        + "  private final String ruleJson;\n"
-        + "\n"
+        + "  private final String ruleJson;\n",
+        GEN_PACKAGE, className, className);
+
+    // Static set constants (may be empty) go after the instance fields.
+    final String staticFieldsStr = staticFields.length() > 0
+        ? "\n" + staticFields
+        : "";
+
+    final String constructor = String.format(
+        "\n"
         + "  public %s(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson) {\n"
         + "    this.fallback = fallback;\n"
         + "    this.fallbackNodes = fallbackNodes;\n"
@@ -121,9 +140,11 @@ public final class RuleSourceGenerator {
         + "\n"
         + "  @Override\n"
         + "  public Object apply(Object data) throws JsonLogicEvaluationException {\n",
-        GEN_PACKAGE, className, className);
+        className);
 
     return header
+        + staticFieldsStr
+        + constructor
         + varPreamble
         + body
         + (bodyAlwaysThrows ? "" : "    return " + resultVar + ";\n")
@@ -248,9 +269,24 @@ public final class RuleSourceGenerator {
       // they will actually be compiled inline.
       case "==": case "!=": case "===": case "!==":
         return argc == 2;
+      case "in":
+        return argc == 2 && isAllPrimitiveLiteralArray(op.getArguments().get(1));
       default:
         return false;
     }
+  }
+
+  /** Returns true when the node is a {@link JsonLogicArray} whose every element is a primitive literal. */
+  private static boolean isAllPrimitiveLiteralArray(JsonLogicNode node) {
+    if (!(node instanceof JsonLogicArray)) {
+      return false;
+    }
+    for (JsonLogicNode element : (JsonLogicArray) node) {
+      if (!(element instanceof JsonLogicPrimitive)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   // ---- variable ----
@@ -351,6 +387,7 @@ public final class RuleSourceGenerator {
       case "min": return minMax("min", args, pre, dataExpr, opPath);
       case "max": return minMax("max", args, pre, dataExpr, opPath);
       case "cat": return emitCat(args, pre, dataExpr, opPath);
+      case "in":  return emitIn(op, args, pre, dataExpr, opPath, path);
       default:    return emitFallback(op, pre, dataExpr, path);
     }
   }
@@ -590,6 +627,43 @@ public final class RuleSourceGenerator {
       sb.append(" + catStr(").append(arg(args, i, pre, dataExpr, path)).append(")");
     }
     return sb.append(")").toString();
+  }
+
+  // ---- in ----
+  //
+  // Compiled only when the haystack (arg[1]) is a literal array of primitive values.
+  // The haystack is emitted as a private static final Set<Object> field so it is
+  // allocated once per class, not on every invocation.  Identical haystacks reuse
+  // the same field via setCache.
+
+  private String emitIn(JsonLogicOperation op, JsonLogicArray args, StringBuilder pre,
+                        String dataExpr, String opPath, String parentPath) {
+    // Require exactly 2 args and a primitive-only literal array as haystack.
+    if (args.size() != 2 || !isAllPrimitiveLiteralArray(args.get(1))) {
+      return emitFallback(op, pre, dataExpr, parentPath);
+    }
+
+    final JsonLogicArray haystack = (JsonLogicArray) args.get(1);
+
+    // Build the canonical key and the Set.of(...) element list in one pass.
+    final StringBuilder elements = new StringBuilder();
+    for (int i = 0; i < haystack.size(); i++) {
+      if (i > 0) elements.append(", ");
+      elements.append(emitExpression(haystack.get(i), pre, dataExpr, opPath + "[1][" + i + "]"));
+    }
+    final String elementsKey = elements.toString();
+
+    // Reuse an existing field if we have already seen this exact haystack.
+    String fieldName = setCache.get(elementsKey);
+    if (fieldName == null) {
+      fieldName = freshVar("SET");
+      setCache.put(elementsKey, fieldName);
+      staticFields.append("  private static final Set<Object> ").append(fieldName)
+          .append(" = new HashSet<>(Arrays.asList(").append(elementsKey).append("));\n");
+    }
+
+    final String needle = emitExpression(args.get(0), pre, dataExpr, opPath + "[0]");
+    return fieldName + ".contains(" + needle + ")";
   }
 
   // ---- fallback to interpreter ----

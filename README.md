@@ -17,7 +17,7 @@ JsonLogic is documented extensively at [JsonLogic.com](http://jsonlogic.com), in
 
 ## Performance
 
-By default, the forked `JsonLogic` compiles each unique rule into a native Java method at first use via `javax.tools`, then caches and reuses it - delivering a **3–17× throughput improvement** over the tree-walking interpreter for fully-compiled rules (see [Benchmarks](#benchmarks) below). Rules that contain operators not yet supported by the compiler (e.g. `in`) fall back to the interpreter for that sub-expression, so compilation adds no benefit in those cases. If no compiler is available a warning is logged and the interpreter is used as a fallback. To opt out of compilation entirely, pass `false` to the constructor:
+By default, the forked `JsonLogic` compiles each unique rule into a native Java method at first use via `javax.tools`, then caches and reuses it - delivering a **4–22× throughput improvement** over the tree-walking interpreter for fully-compiled rules (see [Benchmarks](#benchmarks) below). Rules that contain operators not yet supported by the compiler fall back to the interpreter for that sub-expression, so compilation adds no benefit in those cases. If no compiler is available a warning is logged and the interpreter is used as a fallback. To opt out of compilation entirely, pass `false` to the constructor:
 
 ```java
 JsonLogic jsonLogic = new JsonLogic(false);
@@ -44,23 +44,23 @@ Higher is better (ops/s = rule evaluations per second).
 
 | Scenario | Interpreter (ops/s) | Compiled (ops/s) | Speedup |
 |---|--:|--:|--:|
-| Dispatch table hit | 1,454,794 | 21,844,566 | **15.0×** |
-| Dispatch table miss | 1,304,000 | 21,777,599 | **16.7×** |
-| Two string comparisons | 2,482,600 | 10,209,258 | **4.1×** |
-| Repeated var lookup (same key used 5×) | 741,260 | 9,555,242 | **12.9×** |
-| Three string comparisons | 1,727,860 | 6,740,749 | **3.9×** |
-| Four string comparisons | 1,755,539 | 6,230,244 | **3.5×** |
-| Five mixed operations | 1,391,785 | 5,140,888 | **3.7×** |
-| Twenty-clause AND chain | 275,779 | 1,076,154 | **3.9×** |
-| In-set check, hit (`in` falls back) | 2,050,416 | 1,969,010 | **~1×** |
-| In-set check, miss (`in` falls back) | 1,794,957 | 1,588,442 | **~1×** |
+| Dispatch table miss | 764,520 | 17,012,825 | **22.2×** |
+| Dispatch table hit | 1,856,461 | 22,125,525 | **11.9×** |
+| In-set check, hit | 2,142,007 | 20,220,420 | **9.4×** |
+| In-set check, miss | 1,950,122 | 20,755,424 | **10.6×** |
+| Repeated var lookup (same key used 5×) | 1,371,671 | 12,990,380 | **9.5×** |
+| Two string comparisons | 2,873,332 | 13,030,453 | **4.5×** |
+| Three string comparisons | 1,780,765 | 9,084,658 | **5.1×** |
+| Four string comparisons | 1,696,041 | 6,894,653 | **4.1×** |
+| Five mixed operations | 1,294,813 | 5,551,687 | **4.3×** |
+| Twenty-clause AND chain | 290,905 | 1,210,222 | **4.2×** |
 
 Key observations:
 
-- **Dispatch overhead is eliminated.** The interpreter pays a map lookup + virtual dispatch on every operator; the compiler emits a direct Java call. For rules that consist of a single cached lookup, the compiled path is ~15–17× faster.
-- **Repeated variable access scales well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals, reducing five map lookups to one. That alone accounts for the ~13× gain on the repeated-lookup benchmark vs ~4× for single-use vars.
+- **Dispatch overhead is eliminated.** The interpreter pays a map lookup + virtual dispatch on every operator; the compiler emits a direct Java call. For rules that consist of a single cached lookup, the compiled path is up to ~22× faster.
+- **`in` against a literal set is now compiled.** The haystack is emitted as a `private static final HashSet<Object>` field, allocated once at class-load time; each evaluation is a single `HashSet.contains` call. This lifts `in`-set throughput from ~2M to ~20M ops/s (~10×).
+- **Repeated variable access scales well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals, reducing five map lookups to one. That alone accounts for the ~9.5× gain on the repeated-lookup benchmark vs ~4–5× for single-use vars.
 - **Complex rules still benefit.** Even a twenty-clause AND chain — the worst case for compilation overhead — sees a ~4× improvement, because every intermediate truthiness check and var resolution is a direct primitive operation rather than a virtual dispatch through the evaluator tree.
-- **Fallback operators see no gain.** The `in` operator is not yet inlined by the compiler; the surrounding `if` is compiled but the membership test still calls the interpreter. Throughput is effectively unchanged, and the small regression is compilation overhead with no compensating benefit.
 
 ## Examples
 
