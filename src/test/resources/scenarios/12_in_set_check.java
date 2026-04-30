@@ -14,7 +14,7 @@ public final class TestRule implements CompiledRule {
   private final JsonLogicNode[] fallbackNodes;
   private final String ruleJson;
 
-  private static final Set<Object> SET_2 = new HashSet<>(Arrays.asList("cust1", "cust2"));
+  private static final Set<Object> SET_1 = new HashSet<>(Arrays.asList("cust1", "cust2"));
 
   public TestRule(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson) {
     this.fallback = fallback;
@@ -29,15 +29,14 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    final Object var_customer_3 = resolveVarChecked(data, "customer", null);
+    final Object var_customer_2 = resolveVarChecked(data, "customer", null);
     Object result_0;
-    boolean ifCond_1 = SET_2.contains(var_customer_3);
-    if (JsonLogic.truthy(ifCond_1)) {
-    Object ifCons_4 = "ok";
-      result_0 = ifCons_4;
+    if (SET_1.contains(var_customer_2)) {
+    Object ifCons_3 = "ok";
+      result_0 = ifCons_3;
     } else {
-    Object ifElse_5 = "not_ok";
-    result_0 = ifElse_5;
+    Object ifElse_4 = "not_ok";
+    result_0 = ifElse_4;
     }
     return result_0;
   }

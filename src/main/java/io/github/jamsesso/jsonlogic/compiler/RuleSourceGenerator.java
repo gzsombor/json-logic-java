@@ -431,10 +431,31 @@ public final class RuleSourceGenerator {
       return;
     }
 
-    // Emit condition variable at the current scope level, then open an if block
-    final String condVar = freshVar("ifCond");
-    emitStatement(args.get(index), condVar, out, dataExpr, path + "[" + index + "]");
-    out.append("    if (JsonLogic.truthy(").append(condVar).append(")) {\n");
+    // Emit condition.  When the condition expression is provably boolean we can inline it
+    // directly into the `if` test without an intermediate local or a truthy() call.
+    // When it requires statements (control-flow sub-expression) or is non-boolean, we
+    // still materialise a local so the pre-statements land before the if line.
+    final JsonLogicNode condNode = args.get(index);
+    final String condPath = path + "[" + index + "]";
+    final String ifTest;
+    final boolean condIsBoolean = isBooleanExpression(condNode);
+    final boolean condIsControlFlow = condNode instanceof JsonLogicOperation
+        && isControlFlow(((JsonLogicOperation) condNode).getOperator());
+    if (condIsBoolean && !condIsControlFlow) {
+      // Pure boolean expression: inline directly — no local, no truthy()
+      final var pre = new StringBuilder();
+      final String expr = emitExpression(condNode, pre, dataExpr, condPath);
+      out.append(pre);
+      ifTest = expr;
+    } else {
+      // Non-boolean or control-flow: materialise a local
+      final String condVar = freshVar("ifCond");
+      emitStatement(condNode, condVar, out, dataExpr, condPath);
+      ifTest = isBooleanExpression(condNode)
+          ? condVar
+          : "JsonLogic.truthy(" + condVar + ")";
+    }
+    out.append("    if (").append(ifTest).append(") {\n");
 
     final String consVar = freshVar("ifCons");
     emitStatement(args.get(index + 1), consVar, out, dataExpr, path + "[" + (index + 1) + "]");
@@ -472,11 +493,17 @@ public final class RuleSourceGenerator {
 
   private void emitAndChain(JsonLogicArray args, int idx, String targetVar, StringBuilder out,
                             String dataExpr, String path) {
+    final JsonLogicNode argNode = args.get(idx);
     final String andVar = freshVar("andV");
-    emitStatement(args.get(idx), andVar, out, dataExpr, path + "[" + idx + "]");
+    emitStatement(argNode, andVar, out, dataExpr, path + "[" + idx + "]");
     out.append("    ").append(targetVar).append(" = ").append(andVar).append(";\n");
     if (idx + 1 < args.size()) {
-      out.append("    if (JsonLogic.truthy(").append(targetVar).append(")) {\n");
+      // When andVar is a primitive boolean we can use it directly in the if test;
+      // otherwise fall back to JsonLogic.truthy() on the Object targetVar.
+      final String test = isBooleanExpression(argNode)
+          ? andVar
+          : "JsonLogic.truthy(" + targetVar + ")";
+      out.append("    if (").append(test).append(") {\n");
       final var inner = new StringBuilder();
       emitAndChain(args, idx + 1, targetVar, inner, dataExpr, path);
       indentBlock(inner, out);
@@ -502,11 +529,17 @@ public final class RuleSourceGenerator {
 
   private void emitOrChain(JsonLogicArray args, int idx, String targetVar, StringBuilder out,
                            String dataExpr, String path) {
+    final JsonLogicNode argNode = args.get(idx);
     final String orVar = freshVar("orV");
-    emitStatement(args.get(idx), orVar, out, dataExpr, path + "[" + idx + "]");
+    emitStatement(argNode, orVar, out, dataExpr, path + "[" + idx + "]");
     out.append("    ").append(targetVar).append(" = ").append(orVar).append(";\n");
     if (idx + 1 < args.size()) {
-      out.append("    if (!JsonLogic.truthy(").append(targetVar).append(")) {\n");
+      // When orVar is a primitive boolean we can negate it directly;
+      // otherwise fall back to !JsonLogic.truthy() on the Object targetVar.
+      final String test = isBooleanExpression(argNode)
+          ? "!" + orVar
+          : "!JsonLogic.truthy(" + targetVar + ")";
+      out.append("    if (").append(test).append(") {\n");
       final var inner = new StringBuilder();
       emitOrChain(args, idx + 1, targetVar, inner, dataExpr, path);
       indentBlock(inner, out);

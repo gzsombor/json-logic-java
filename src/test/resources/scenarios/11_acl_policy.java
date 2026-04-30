@@ -33,7 +33,7 @@ public final class TestRule implements CompiledRule {
     Object ifCond_1 = null;
     boolean andV_2 = strictEq(var_customer_3, "cus1");
     ifCond_1 = andV_2;
-    if (JsonLogic.truthy(ifCond_1)) {
+    if (andV_2) {
       boolean andV_4 = strictEq(var_action_5, "login");
       ifCond_1 = andV_4;
     }
@@ -45,7 +45,7 @@ public final class TestRule implements CompiledRule {
     Object ifCond_8 = null;
     boolean andV_9 = strictEq(var_customer_3, "cus2");
     ifCond_8 = andV_9;
-    if (JsonLogic.truthy(ifCond_8)) {
+    if (andV_9) {
       boolean andV_10 = strictEq(var_action_5, "delete");
       ifCond_8 = andV_10;
     }

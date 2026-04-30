@@ -32,7 +32,7 @@ public final class TestRule implements CompiledRule {
     Object result_0 = null;
     boolean andV_1 = (toDouble(var_a_2) > 10.0);
     result_0 = andV_1;
-    if (JsonLogic.truthy(result_0)) {
+    if (andV_1) {
       boolean andV_3 = (toDouble(var_b_4) < 100.0);
       result_0 = andV_3;
     }
