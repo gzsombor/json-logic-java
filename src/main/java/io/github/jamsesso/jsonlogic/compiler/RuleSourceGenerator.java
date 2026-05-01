@@ -114,7 +114,12 @@ public final class RuleSourceGenerator {
     emitStatement(ast, resultVar, body, "data", "");
     final boolean omitReturn = ast instanceof JsonLogicOperation
         && isControlFlow(((JsonLogicOperation) ast).getOperator())
-        && ((JsonLogicOperation) ast).getArguments().isEmpty();
+        && ((JsonLogicOperation) ast).getArguments().isEmpty()
+        && throwsOnEmptyArgs(((JsonLogicOperation) ast).getOperator());
+
+    // Helper to determine if an operator throws when given empty arguments.
+    // "and"/"or" throw; "if" sets result to null (doesn't throw).
+    // So we only omit the return for and/or (which throw), not for if (which doesn't throw).
 
     final String header = "package " + GEN_PACKAGE + ";\n"
         + "\n"
@@ -258,6 +263,11 @@ public final class RuleSourceGenerator {
 
   private static boolean isControlFlow(String op) {
     return op.equals("if") || op.equals("?:") || op.equals("and") || op.equals("or");
+  }
+
+  /** Returns true if the operator throws an exception when given empty arguments. */
+  private static boolean throwsOnEmptyArgs(String op) {
+    return op.equals("and") || op.equals("or");
   }
 
   /** Returns true when a node is guaranteed to produce a primitive {@code boolean}. */
