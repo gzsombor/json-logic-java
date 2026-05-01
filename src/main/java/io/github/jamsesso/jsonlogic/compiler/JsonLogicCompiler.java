@@ -1,12 +1,5 @@
 package io.github.jamsesso.jsonlogic.compiler;
 
-import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
-import io.github.jamsesso.jsonlogic.compiler.internal.ByteArrayClassLoader;
-import io.github.jamsesso.jsonlogic.compiler.internal.InMemoryClassFileManager;
-import io.github.jamsesso.jsonlogic.compiler.internal.InMemoryJavaFileObject;
-import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
-
-import javax.tools.*;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.nio.charset.StandardCharsets;
@@ -17,6 +10,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
+
+import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
+import io.github.jamsesso.jsonlogic.compiler.internal.ByteArrayClassLoader;
+import io.github.jamsesso.jsonlogic.compiler.internal.InMemoryClassFileManager;
+import io.github.jamsesso.jsonlogic.compiler.internal.InMemoryJavaFileObject;
+import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 
 /**
  * Compiles JSON Logic rule ASTs to Java bytecode via {@link JavaCompiler} and caches the
@@ -98,7 +104,7 @@ public final class JsonLogicCompiler {
     // 2. Compile in memory
     Map<String, byte[]> classBytes;
     try {
-      classBytes = compileSource(qualifiedName, source);
+      classBytes = compileSource(qualifiedName, source, ruleJson);
     } catch (Exception e) {
       LOG.log(Level.WARNING,
           "Compilation failed for rule, falling back to interpreter.\nRule: " + ruleJson
@@ -132,14 +138,14 @@ public final class JsonLogicCompiler {
    * reported diagnostic errors. On failure a WARNING is logged that includes both the Javac
    * error messages and the full generated source, so failures are self-contained in the log.
    */
-  private Map<String, byte[]> compileSource(String qualifiedName, String source) {
+  private Map<String, byte[]> compileSource(String className, String source, String ruleJson) {
     var diagnostics = new DiagnosticCollector<JavaFileObject>();
 
     try (StandardJavaFileManager stdFileManager = javac.getStandardFileManager(
         diagnostics, null, StandardCharsets.UTF_8);
          InMemoryClassFileManager fileManager = new InMemoryClassFileManager(stdFileManager)) {
 
-      final var sourceFile = new InMemoryJavaFileObject(qualifiedName, source);
+      final var sourceFile = new InMemoryJavaFileObject(className, source);
 
       // Use the same source/target version as the running JVM
       final String release = String.valueOf(Runtime.version().feature());
@@ -157,7 +163,7 @@ public final class JsonLogicCompiler {
 
       if (!success) {
         final var sb = new StringBuilder(
-            "Javac reported errors compiling rule class " + qualifiedName + ":\n");
+            "Javac reported errors compiling rule for '" + ruleJson + "':\n");
         for (Diagnostic<? extends JavaFileObject> d : diagnostics.getDiagnostics()) {
           if (d.getKind() == Diagnostic.Kind.ERROR) {
             sb.append("  line ").append(d.getLineNumber())
