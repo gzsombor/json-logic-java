@@ -4,17 +4,36 @@ import com.google.gson.*;
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
 import java.util.function.Function;
 
+@RunWith(Parameterized.class)
 public class FixtureTests {
   private static final List<Fixture> FIXTURES = readFixtures("fixtures.json", Fixture::fromArray);
 
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Object[]> engines() {
+    return Arrays.asList(new Object[][]{
+        {"interpreter", new JsonLogic(false)},
+        {"compiled",    new JsonLogic(true)},
+    });
+  }
+
+  private final String label;
+  private final JsonLogic jsonLogic;
+
+  public FixtureTests(String label, JsonLogic jsonLogic) {
+    this.label = label;
+    this.jsonLogic = jsonLogic;
+  }
+
   public static <F> List<F> readFixtures(String fileName, Function<JsonArray, F> makeFixture) {
-    InputStream inputStream = ErrorFixtureTests.class.getClassLoader().getResourceAsStream(fileName);
+    InputStream inputStream = FixtureTests.class.getClassLoader().getResourceAsStream(fileName);
     JsonParser parser = new JsonParser();
     JsonArray json = parser.parse(new InputStreamReader(inputStream)).getAsJsonArray();
 
@@ -33,7 +52,6 @@ public class FixtureTests {
 
   @Test
   public void testAllFixtures() {
-    JsonLogic jsonLogic = new JsonLogic();
     List<TestResult> failures = new ArrayList<>();
 
     for (Fixture fixture : FIXTURES) {
@@ -53,11 +71,12 @@ public class FixtureTests {
       Object actual = testResult.getResult();
       Fixture fixture = testResult.getFixture();
 
-      System.out.println(String.format("FAIL: %s\n\t%s\n\tExpected: %s Got: %s\n", fixture.getJson(), fixture.getData(),
+      System.out.println(String.format("FAIL [%s]: %s\n\t%s\n\tExpected: %s Got: %s\n",
+        label, fixture.getJson(), fixture.getData(),
         fixture.getExpectedValue(), actual instanceof Exception ? ((Exception) actual).getMessage() : actual));
     }
 
-    Assert.assertEquals(String.format("%d/%d test failures!", failures.size(), FIXTURES.size()), 0, failures.size());
+    Assert.assertEquals(String.format("[%s] %d/%d test failures!", label, failures.size(), FIXTURES.size()), 0, failures.size());
   }
 
   private static class Fixture {
