@@ -262,12 +262,12 @@ public final class RuleSourceGenerator {
   }
 
   private static boolean isControlFlow(String op) {
-    return op.equals("if") || op.equals("?:") || op.equals("and") || op.equals("or");
+    return "if".equals(op) || "?:".equals(op) || "and".equals(op) || "or".equals(op);
   }
 
   /** Returns true if the operator throws an exception when given empty arguments. */
   private static boolean throwsOnEmptyArgs(String op) {
-    return op.equals("and") || op.equals("or");
+    return "and".equals(op) || "or".equals(op);
   }
 
   /** Returns true when a node is guaranteed to produce a primitive {@code boolean}. */
@@ -906,7 +906,7 @@ public final class RuleSourceGenerator {
     if (args.isEmpty()) {
       return "null";
     }
-    if ((operator.equals("/") || operator.equals("%")) && args.size() == 1) {
+    if (("/".equals(operator) || "%".equals(operator)) && args.size() == 1) {
       return "null";
     }
 

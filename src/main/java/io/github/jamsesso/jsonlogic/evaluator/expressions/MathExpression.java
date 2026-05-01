@@ -46,7 +46,7 @@ public class MathExpression implements PreEvaluatedArgumentsExpression {
     for (int i = 0; i < arguments.size(); i++) {
       Object value = arguments.get(i);
 
-      if (key.equals("*") || key.equals("+")) {
+      if ("*".equals(key) || "+".equals(key)) {
         while (ArrayLike.isEligible(value)) {
           ArrayLike array = new ArrayLike(value);
           if (array.isEmpty()) {
@@ -72,11 +72,11 @@ public class MathExpression implements PreEvaluatedArgumentsExpression {
     }
 
     if (values.length == 1) {
-      if (key.equals("-")) {
+      if ("-".equals(key)) {
         return -values[0];
       }
 
-      if (key.equals("/")) {
+      if ("/".equals(key)) {
         return null;
       }
     }

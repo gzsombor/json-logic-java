@@ -186,7 +186,7 @@ public final class RuleHelpers {
         acc = num;
         continue;
       }
-      if (op.equals("+")) {
+      if ("+".equals(op)) {
         acc = acc + num;
       } else {
         acc = acc * num;
