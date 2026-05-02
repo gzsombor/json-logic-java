@@ -18,7 +18,7 @@ public class IfExpressionTests {
   public static Collection<Object[]> engines() {
     return Arrays.asList(new Object[][]{
         {"interpreter", new JsonLogic(false)},
-        {"compiled",    new JsonLogic(true)},
+        {"compiled",    new JsonLogic(true).setStrictCompilation(true)},
     });
   }
 

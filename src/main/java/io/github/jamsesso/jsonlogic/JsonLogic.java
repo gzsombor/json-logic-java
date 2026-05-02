@@ -78,6 +78,23 @@ public final class JsonLogic {
     }
   }
 
+  /**
+   * Enables or disables strict compilation mode.
+   * When enabled, compilation failures throw {@link JsonLogicCompilationException} instead of
+   * falling back to the interpreter. Useful for testing that all rules are compilable.
+   */
+  public JsonLogic setStrictCompilation(boolean strict) {
+    if (compiler != null) {
+      compiler.setStrictMode(strict);
+    }
+    return this;
+  }
+
+  /** Returns {@code true} if strict compilation mode is enabled. */
+  public boolean isStrictCompilation() {
+    return compiler != null ? compiler.isStrictMode() : false;
+  }
+
   public static boolean truthy(Object value) {
     if (value == null) {
       return false;

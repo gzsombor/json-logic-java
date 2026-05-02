@@ -49,6 +49,7 @@ public final class JsonLogicCompiler {
   private final JsonLogicEvaluator fallbackEvaluator;
   private final JavaCompiler javac;
   private final Map<String, CompiledRule> cache = new ConcurrentHashMap<>();
+  private boolean strictMode = false;
 
   /**
    * Creates a compiler backed by the given fallback evaluator.
@@ -63,11 +64,26 @@ public final class JsonLogicCompiler {
     if (compiler == null) {
       throw new IllegalStateException(
           "javax.tools.JavaCompiler is not available. "
-          + "Compilation requires a JDK -"
-          + "To run without compilation, use new JsonLogic(false) or check "
-          + "JsonLogic.isCompilationEnabled().");
+              + "Compilation requires a JDK -"
+              + "To run without compilation, use new JsonLogic(false) or check "
+              + "JsonLogic.isCompilationEnabled().");
     }
     this.javac = compiler;
+  }
+
+  /**
+   * Enables or disables strict compilation mode.
+   * When enabled, compilation failures throw {@link JsonLogicCompilationException} instead of
+   * falling back to the interpreter.
+   */
+  public JsonLogicCompiler setStrictMode(boolean strict) {
+    this.strictMode = strict;
+    return this;
+  }
+
+  /** Returns {@code true} if strict compilation mode is enabled. */
+  public boolean isStrictMode() {
+    return strictMode;
   }
 
   /**
@@ -77,8 +93,9 @@ public final class JsonLogicCompiler {
    * @param ruleJson the original JSON string (used as cache key)
    * @param ast      the parsed AST
    * @return a compiled rule, or an interpreter-backed rule if compilation fails
+   * @throws JsonLogicCompilationException if strict mode is enabled and compilation fails
    */
-  public CompiledRule compile(String ruleJson, JsonLogicNode ast) {
+  public CompiledRule compile(String ruleJson, JsonLogicNode ast) throws JsonLogicCompilationException {
     return cache.computeIfAbsent(ruleJson, key -> compileInternal(ruleJson, ast));
   }
 
@@ -106,6 +123,10 @@ public final class JsonLogicCompiler {
     try {
       classBytes = compileSource(qualifiedName, source, ruleJson);
     } catch (Exception e) {
+      if (strictMode) {
+        throw new JsonLogicCompilationException(
+            "Compilation failed for rule: " + ruleJson + "\nSource:\n" + source, e);
+      }
       LOG.log(Level.WARNING,
           "Compilation failed for rule, falling back to interpreter.\nRule: " + ruleJson
               + "\nSource:\n" + source,
@@ -115,6 +136,10 @@ public final class JsonLogicCompiler {
 
     if (classBytes == null) {
       // compileSource returned null - Javac errors were already logged with the generated source
+      if (strictMode) {
+        throw new JsonLogicCompilationException(
+            "Javac errors during compilation for rule: " + ruleJson + "\nSource:\n" + source);
+      }
       return interpreterFallback(ast);
     }
 
@@ -127,6 +152,10 @@ public final class JsonLogicCompiler {
       final JsonLogicNode[] nodesArray = fallbackNodes.toArray(new JsonLogicNode[0]);
       return (CompiledRule) ctor.newInstance(fallbackEvaluator, nodesArray, ruleJson);
     } catch (Exception e) {
+      if (strictMode) {
+        throw new JsonLogicCompilationException(
+            "Failed to instantiate compiled rule class for rule: " + ruleJson + "\nSource:\n" + source, e);
+      }
       LOG.log(Level.WARNING,
           "Failed to instantiate compiled rule class, falling back to interpreter. Rule: " + ruleJson, e);
       return interpreterFallback(ast);
