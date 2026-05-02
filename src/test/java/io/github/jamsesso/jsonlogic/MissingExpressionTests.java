@@ -1,15 +1,35 @@
 package io.github.jamsesso.jsonlogic;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
+@RunWith(Parameterized.class)
 public class MissingExpressionTests {
-  private static final JsonLogic jsonLogic = new JsonLogic();
+
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Object[]> engines() {
+    return Arrays.asList(new Object[][]{
+        {"interpreter", new JsonLogic(false)},
+        {"compiled",    new JsonLogic(true)},
+    });
+  }
+
+  private final String label;
+  private final JsonLogic jsonLogic;
+
+  public MissingExpressionTests(String label, JsonLogic jsonLogic) {
+    this.label = label;
+    this.jsonLogic = jsonLogic;
+  }
 
   @Test
   public void testMissing() throws JsonLogicException {
@@ -52,10 +72,11 @@ public class MissingExpressionTests {
       put("first_name", "Bruce");
       put("last_name", "Wayne");
     }};
+    // JSON: {"if":[{"merge": [{"missing":["first_name", "last_name"]}, {"missing_some": [1, ["cell_phone", "home_phone"]]}]}, "We require...", "OK to proceed"]}
     String json = "{\"if\" :[\n" +
                   "  {\"merge\": [\n" +
                   "    {\"missing\":[\"first_name\", \"last_name\"]},\n" +
-                  "    {\"missing_some\":[1, [\"cell_phone\", \"home_phone\"] ]}\n" +
+                  "    {\"missing_some\": [1, [\"cell_phone\", \"home_phone\"]]}\n" +
                   "  ]},\n" +
                   "  \"We require first name, last name, and one phone number.\",\n" +
                   "  \"OK to proceed\"\n" +

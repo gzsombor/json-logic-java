@@ -197,6 +197,10 @@ public final class RuleSourceGenerator {
         case "or":
           emitOr(op.getArguments(), targetVar, out, dataExpr, path + ".or");
           return;
+        case "missing":
+        case "missing_some":
+          emitMissing(op, targetVar, out, dataExpr, path);
+          return;
         default:
           break;
       }
@@ -1108,6 +1112,21 @@ public final class RuleSourceGenerator {
 
     final String needle = emitExpression(args.get(0), pre, dataExpr, opPath + "[0]");
     return fieldName + ".contains(" + needle + ")";
+  }
+
+  // ---- missing / missing_some ----
+  //
+  // missing:  returns keys from arguments that are missing from data.
+  // missing_some: returns empty list if enough keys are present, otherwise missing keys.
+  // Fall back to interpreter for both (complex logic, Set operations).
+  private void emitMissing(JsonLogicOperation op, String targetVar, StringBuilder out,
+                             String dataExpr, String path) {
+    out.append("    // missing/missing_some: fall back to interpreter\n");
+    final int idx = fallbackNodes.size();
+    fallbackNodes.add(op);
+    out.append("    Object ").append(targetVar).append(" = fallback.evaluate(fallbackNodes[")
+        .append(idx).append("], ").append(dataExpr).append(", ")
+        .append(javaStringLiteral(path)).append(");\n");
   }
 
   // ---- fallback to interpreter ----
