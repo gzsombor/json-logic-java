@@ -116,6 +116,16 @@ public final class RuleHelpers {
     return Double.NaN;
   }
 
+  public static double toComparableDouble(Object value) {
+    if (value == null) {
+      return 0.0;
+    }
+    if (value instanceof Boolean) {
+      return (Boolean) value ? 1.0 : 0.0;
+    }
+    return toDouble(value);
+  }
+
   /**
    * Returns true when {@code value} can be coerced to a numeric double by {@link #toDouble}.
    * Mirrors {@code toDouble}'s coercion rules: {@link Number}, numeric {@link String}, and

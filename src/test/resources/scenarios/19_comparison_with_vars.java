@@ -29,7 +29,7 @@ public final class TestRule implements CompiledRule {
   public Object apply(Object data) throws JsonLogicEvaluationException {
     final Object var_score_1 = resolveVarChecked(data, "score", null);
     final Object var_passing_2 = resolveVarChecked(data, "passing", null);
-    boolean result_0 = (toDouble(var_score_1) > toDouble(var_passing_2));
+    boolean result_0 = (toComparableDouble(var_score_1) > toComparableDouble(var_passing_2));
     return result_0;
   }
 }

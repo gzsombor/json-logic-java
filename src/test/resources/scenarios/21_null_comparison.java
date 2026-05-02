@@ -27,7 +27,7 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    boolean result_0 = (toDouble(null) > 1.0);
+    boolean result_0 = (0.0 > 1.0);
     return result_0;
   }
 }

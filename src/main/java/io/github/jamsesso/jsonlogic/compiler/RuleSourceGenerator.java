@@ -1003,23 +1003,33 @@ public final class RuleSourceGenerator {
     return sb.append("))").toString();
   }
 
-  /**
-   * Returns a Java {@code double} expression for a number literal argument.
-   * Only used by numericArg for numeric comparisons (>, <, etc.) which don't need null-guards.
-   */
+  /** Returns a Java {@code double} expression for numeric comparisons (>, <, etc.). */
   private String numericArg(JsonLogicArray args, int index, StringBuilder pre,
                             String dataExpr, String path) {
     if (index >= args.size()) {
-      return "toDouble(null)";
+      return "0.0";
     }
     final JsonLogicNode node = args.get(index);
+    if (node instanceof JsonLogicNull) {
+      return "0.0";
+    }
+    if (node instanceof JsonLogicBoolean) {
+      return ((JsonLogicBoolean) node).getValue() ? "1.0" : "0.0";
+    }
     if (node instanceof JsonLogicNumber) {
       final double v = ((JsonLogicNumber) node).getValue();
       if (!Double.isNaN(v) && !Double.isInfinite(v)) {
         return Double.toString(v);
       }
     }
-    return "toDouble(" + emitExpression(node, pre, dataExpr, path + "[" + index + "]") + ")";
+    if (node instanceof JsonLogicString) {
+      try {
+        return Double.toString(Double.parseDouble(((JsonLogicString) node).getValue()));
+      } catch (NumberFormatException ignored) {
+        return "Double.NaN";
+      }
+    }
+    return "toComparableDouble(" + emitExpression(node, pre, dataExpr, path + "[" + index + "]") + ")";
   }
 
   // ---- cat ----

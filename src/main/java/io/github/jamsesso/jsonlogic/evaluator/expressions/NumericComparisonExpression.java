@@ -2,6 +2,8 @@ package io.github.jamsesso.jsonlogic.evaluator.expressions;
 
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 
+import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.toComparableDouble;
+
 import java.util.List;
 
 public class NumericComparisonExpression implements PreEvaluatedArgumentsExpression {
@@ -33,21 +35,9 @@ public class NumericComparisonExpression implements PreEvaluatedArgumentsExpress
     double[] values = new double[n];
 
     for (int i = 0; i < n; i++) {
-      Object value = arguments.get(i);
-
-      if (value instanceof String) {
-        try {
-          values[i] = Double.parseDouble((String) value);
-        }
-        catch (NumberFormatException e) {
-          return false;
-        }
-      }
-      else if (!(value instanceof Number)) {
+      values[i] = toComparableDouble(arguments.get(i));
+      if (Double.isNaN(values[i])) {
         return false;
-      }
-      else {
-        values[i] = ((Number) value).doubleValue();
       }
     }
 

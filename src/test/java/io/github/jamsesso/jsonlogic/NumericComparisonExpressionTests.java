@@ -154,18 +154,20 @@ public class NumericComparisonExpressionTests {
   // ==================== NULL HANDLING ====================
 
   @Test
-  public void testNullReturnsFalse() throws JsonLogicException {
+  public void testNullUsesJavascriptNumericCoercion() throws JsonLogicException {
     assertFalse((Boolean) jsonLogic.apply("{\">\" : [null, 1]}", null));
-    assertFalse((Boolean) jsonLogic.apply("{\">\" : [1, null]}", null));
+    assertTrue((Boolean) jsonLogic.apply("{\">\" : [1, null]}", null));
+    assertTrue((Boolean) jsonLogic.apply("{\">=\" : [null, null]}", null));
+    assertTrue((Boolean) jsonLogic.apply("{\"<=\" : [null, null]}", null));
     assertFalse((Boolean) jsonLogic.apply("{\"<\" : [null, null]}", null));
   }
 
   @Test
-  public void testNullVariableReturnsFalse() throws JsonLogicException {
+  public void testNullVariableUsesJavascriptNumericCoercion() throws JsonLogicException {
     Map<String, Object> data = new HashMap<>();
     data.put("missing", null);
     assertFalse((Boolean) jsonLogic.apply("{\">\" : [{\"var\":\"missing\"}, 5]}", data));
-    assertFalse((Boolean) jsonLogic.apply("{\">\" : [5, {\"var\":\"missing\"}]}", data));
+    assertTrue((Boolean) jsonLogic.apply("{\">\" : [5, {\"var\":\"missing\"}]}", data));
   }
 
   @Test
@@ -175,8 +177,8 @@ public class NumericComparisonExpressionTests {
   }
 
   @Test
-  public void testNullInBetweenReturnsFalse() throws JsonLogicException {
-    assertFalse((Boolean) jsonLogic.apply("{\"<\" : [null, 5, 10]}", null));
+  public void testNullInBetweenUsesJavascriptNumericCoercion() throws JsonLogicException {
+    assertTrue((Boolean) jsonLogic.apply("{\"<\" : [null, 5, 10]}", null));
     assertFalse((Boolean) jsonLogic.apply("{\"<\" : [1, null, 10]}", null));
     assertFalse((Boolean) jsonLogic.apply("{\"<\" : [1, 5, null]}", null));
   }
@@ -209,6 +211,13 @@ public class NumericComparisonExpressionTests {
     assertFalse((Boolean) jsonLogic.apply("{\">\" : [5, \"abc\"]}", null));
     assertFalse((Boolean) jsonLogic.apply("{\"<\" : [\"notanumber\", \"10\"]}", null));
     assertFalse((Boolean) jsonLogic.apply("{\">=\" : [\"\", 5]}", null));
+  }
+
+  @Test
+  public void testBooleanUsesJavascriptNumericCoercion() throws JsonLogicException {
+    assertTrue((Boolean) jsonLogic.apply("{\">\" : [true, false]}", null));
+    assertFalse((Boolean) jsonLogic.apply("{\"<\" : [false, false]}", null));
+    assertTrue((Boolean) jsonLogic.apply("{\"<=\" : [false, null]}", null));
   }
 
   @Test

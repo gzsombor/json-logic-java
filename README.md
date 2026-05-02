@@ -62,6 +62,21 @@ Key observations:
 - **Repeated variable access scales well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals, reducing five map lookups to one. That alone accounts for the ~9.5× gain on the repeated-lookup benchmark vs ~4–5× for single-use vars.
 - **Complex rules still benefit.** Even a twenty-clause AND chain — the worst case for compilation overhead — sees a ~4× improvement, because every intermediate truthiness check and var resolution is a direct primitive operation rather than a virtual dispatch through the evaluator tree.
 
+## Comparison operator compatibility
+
+The numeric comparison operators (`>`, `>=`, `<`, `<=`) follow the official JavaScript JsonLogic implementation more closely for type coercion. In particular, `null` is coerced to `0` for comparisons, and booleans are coerced to `1` or `0`.
+
+Examples:
+
+| Rule | Result |
+|---|---:|
+| `{">": [1, null]}` | `true` |
+| `{">": [null, 1]}` | `false` |
+| `{">=": [null, null]}` | `true` |
+| `{">": [true, false]}` | `true` |
+
+This is a behavioural change from older json-logic-java releases that treated `null` as non-numeric and returned `false` for comparisons such as `{">": [1, null]}`.
+
 ## Known incompatibilities between compiled and interpreter modes
 
 The compiled engine is designed to be a drop-in replacement for the interpreter, but one known behavioural difference exists:
