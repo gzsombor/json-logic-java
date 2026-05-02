@@ -89,7 +89,6 @@ public final class RuleSourceGenerator {
   private final StringBuilder varPreamble = new StringBuilder();
 
   private int counter = 0;
-
   /**
    * Static {@code Set} field declarations accumulated during generation, emitted once per
    * class between the instance fields and the constructor.  Each entry is a complete field
@@ -283,14 +282,13 @@ public final class RuleSourceGenerator {
     final int argc = op.getArguments().size();
     switch (op.getOperator()) {
       case "!":  case "!!":
-        // Only emit as boolean when exactly 1 arg; otherwise falls back to interpreter
+        // Only emit as boolean when exactly 1 arg; otherwise generated code throws directly.
         return argc == 1;
       case ">":  case ">=": case "<":  case "<=":
-        // Only emit as boolean when 2 or 3 args; <2 or >3 falls back to interpreter
+        // Only emit as boolean when 2 or 3 args; otherwise generated code throws directly.
         return argc >= 2 && argc <= 3;
-      // == != === !== require exactly 2 args; with wrong arg count they fall back to
-      // the interpreter (which returns Object), so only treat them as boolean when
-      // they will actually be compiled inline.
+      // == != === !== require exactly 2 args; only treat them as boolean when they
+      // will actually be compiled inline.
       case "==": case "!=": case "===": case "!==":
         return argc == 2;
       case "in":
@@ -378,28 +376,28 @@ public final class RuleSourceGenerator {
     // source, so arbitrary operator strings cannot inject content into the generated Java.
     final String opPath = path + "." + operator;
     switch (operator) {
-      // equality: require exactly 2 args, otherwise fall back so the interpreter can throw
+      // equality: require exactly 2 args, otherwise emit the exception directly.
       case "==":
         if (args.size() != 2) {
-          return emitFallback(op, pre, dataExpr, path);
+          return emitFailure("equality expressions expect exactly 2 arguments", opPath);
         }
         return "looseEq(" + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
       case "!=":
         if (args.size() != 2) {
-          return emitFallback(op, pre, dataExpr, path);
+          return emitFailure("equality expressions expect exactly 2 arguments", opPath);
         }
         return "!looseEq(" + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
       case "===":
         if (args.size() != 2) {
-          return emitFallback(op, pre, dataExpr, path);
+          return emitFailure("equality expressions expect exactly 2 arguments", opPath);
         }
         return "strictEq(" + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
       case "!==":
         if (args.size() != 2) {
-          return emitFallback(op, pre, dataExpr, path);
+          return emitFailure("equality expressions expect exactly 2 arguments", opPath);
         }
         return "!strictEq(" + arg(args, 0, pre, dataExpr, opPath) + ", " + arg(args, 1, pre, dataExpr, opPath) + ")";
-      // ! and !! compiled only for exactly 1 arg; otherwise fall back
+      // ! and !! compiled only for exactly 1 arg; otherwise emit the exception directly.
       case "!":
         if (args.size() != 1) {
           return emitFallback(op, pre, dataExpr, path);
@@ -410,25 +408,32 @@ public final class RuleSourceGenerator {
           return emitFallback(op, pre, dataExpr, path);
         }
         return "JsonLogic.truthy(" + arg(args, 0, pre, dataExpr, opPath) + ")";
-      // comparisons require at least 2 and at most 3 args; fall back otherwise so the
-      // interpreter evaluates all args (and throws for errors in extra args)
+      // comparisons require at least 2 and at most 3 args; otherwise emit the exception directly.
       case ">":
-        if (args.size() < 2 || args.size() > 3) {
+        if (args.size() < 2) {
+          return emitFailure("'>' requires at least 2 arguments", opPath);
+        } else if (args.size() > 3) {
           return emitFallback(op, pre, dataExpr, path);
         }
         return numCmp(">", args, pre, dataExpr, opPath);
       case ">=":
-        if (args.size() < 2 || args.size() > 3) {
+        if (args.size() < 2) {
+          return emitFailure("'>=' requires at least 2 arguments", opPath);
+        } else if (args.size() > 3) {
           return emitFallback(op, pre, dataExpr, path);
         }
         return numCmp(">=", args, pre, dataExpr, opPath);
       case "<":
-        if (args.size() < 2 || args.size() > 3) {
+        if (args.size() < 2) {
+          return emitFailure("'<' requires at least 2 arguments", opPath);
+        } else if (args.size() > 3) {
           return emitFallback(op, pre, dataExpr, path);
         }
         return numCmp("<", args, pre, dataExpr, opPath);
       case "<=":
-        if (args.size() < 2 || args.size() > 3) {
+        if (args.size() < 2) {
+          return emitFailure("'<=' requires at least 2 arguments", opPath);
+        } else if (args.size() > 3) {
           return emitFallback(op, pre, dataExpr, path);
         }
         return numCmp("<=", args, pre, dataExpr, opPath);
@@ -1068,7 +1073,7 @@ public final class RuleSourceGenerator {
   private String emitSubstr(JsonLogicOperation op, JsonLogicArray args,
                              StringBuilder pre, String dataExpr, String opPath, String path) {
     if (args.size() < 2 || args.size() > 3) {
-      return emitFallback(op, pre, dataExpr, path);
+      return emitFailure("substr expects 2 or 3 arguments", opPath);
     }
     final String strExpr   = arg(args, 0, pre, dataExpr, opPath);
     final String startExpr = arg(args, 1, pre, dataExpr, opPath);
@@ -1087,7 +1092,10 @@ public final class RuleSourceGenerator {
   private String emitIn(JsonLogicOperation op, JsonLogicArray args, StringBuilder pre,
                         String dataExpr, String opPath, String parentPath) {
     // Require exactly 2 args and a primitive-only literal array as haystack.
-    if (args.size() != 2 || !isAllPrimitiveLiteralArray(args.get(1))) {
+    if (args.size() != 2) {
+      return emitFallback(op, pre, dataExpr, parentPath);
+    }
+    if (!isAllPrimitiveLiteralArray(args.get(1))) {
       return emitFallback(op, pre, dataExpr, parentPath);
     }
 
@@ -1137,6 +1145,10 @@ public final class RuleSourceGenerator {
     fallbackNodes.add(node);
     return "fallback.evaluate(fallbackNodes[" + idx + "], " + dataExpr
         + ", " + javaStringLiteral(path) + ")";
+  }
+
+  private String emitFailure(String message, String path) {
+    return "fail(" + javaStringLiteral(message) + ", " + javaStringLiteral(path) + ")";
   }
 
   // ---- utilities ----

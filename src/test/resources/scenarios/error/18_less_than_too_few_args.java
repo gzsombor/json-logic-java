@@ -27,8 +27,7 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object result_0 = fallback.evaluate(fallbackNodes[0], data, "");
+    Object result_0 = fail("'<' requires at least 2 arguments", ".<");
     return result_0;
   }
 }
-

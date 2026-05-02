@@ -31,4 +31,3 @@ public final class TestRule implements CompiledRule {
     return result_0;
   }
 }
-

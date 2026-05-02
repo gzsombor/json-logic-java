@@ -24,6 +24,10 @@ public final class RuleHelpers {
 
   private RuleHelpers() {}
 
+  public static <T> T fail(String message, String path) throws JsonLogicEvaluationException {
+    throw new JsonLogicEvaluationException(message, path);
+  }
+
   // ---- equality ----
 
   public static boolean looseEq(Object left, Object right) {
