@@ -183,7 +183,7 @@ public class RuleHelpersTest {
 
   @Test
   public void catStr_null() {
-    assertEquals("", catStr(null));
+    assertEquals("null", catStr(null));
   }
 
   @Test

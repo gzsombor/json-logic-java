@@ -1,6 +1,7 @@
 package io.github.jamsesso.jsonlogic.evaluator.expressions;
 
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
+import io.github.jamsesso.jsonlogic.compiler.RuleHelpers;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,14 +21,7 @@ public class ConcatenateExpression implements PreEvaluatedArgumentsExpression {
   @Override
   public Object evaluate(List arguments, Object data, String jsonPath) throws JsonLogicEvaluationException {
     return arguments.stream()
-      .map(obj -> {
-        if (obj instanceof Double && obj.toString().endsWith(".0")) {
-          return ((Double) obj).intValue();
-        }
-
-        return obj;
-      })
-      .map(Object::toString)
+      .map(RuleHelpers::catStr)
       .collect(Collectors.joining());
   }
 }

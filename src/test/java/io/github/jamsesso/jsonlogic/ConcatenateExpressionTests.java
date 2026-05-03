@@ -54,10 +54,13 @@ public class ConcatenateExpressionTests {
   }
 
   @Test
-  public void shouldCoerceNullToEmptyString() throws JsonLogicException {
-    // Only compiled engine supports null-to-empty coercion via catStr; interpreter NPEs on null.
-    // Test with the compiled engine directly via the JsonLogic(true) instance.
-    assertEquals("ab", new JsonLogic(true).apply("{\"cat\": [\"a\", null, \"b\"]}", null));
+  public void shouldCoerceNullToString() throws JsonLogicException {
+    assertEquals("anullb", jsonLogic.apply("{\"cat\": [\"a\", null, \"b\"]}", null));
+  }
+
+  @Test
+  public void shouldConcatenatePrimitiveValues() throws JsonLogicException {
+    assertEquals("1truenull", jsonLogic.apply("{\"cat\": [1, true, null]}", null));
   }
 
   @Test

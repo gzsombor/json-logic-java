@@ -213,7 +213,7 @@ public final class RuleHelpers {
 
   public static String catStr(Object value) {
     if (value == null) {
-      return "";
+      return "null";
     }
     if (value instanceof Double) {
       final Double dbl = (Double) value;

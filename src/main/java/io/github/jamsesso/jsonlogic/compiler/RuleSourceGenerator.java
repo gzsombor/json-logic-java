@@ -1069,7 +1069,7 @@ public final class RuleSourceGenerator {
       return javaStringLiteral(Double.toString(v));
     }
     if (node instanceof JsonLogicNull) {
-      return "\"\"";
+      return "\"null\"";
     }
     if (node instanceof JsonLogicBoolean) {
       return ((JsonLogicBoolean) node).getValue() ? "\"true\"" : "\"false\"";

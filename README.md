@@ -77,20 +77,6 @@ Examples:
 
 This is a behavioural change from older json-logic-java releases that treated `null` as non-numeric and returned `false` for comparisons such as `{">": [1, null]}`.
 
-## Known incompatibilities between compiled and interpreter modes
-
-The compiled engine is designed to be a drop-in replacement for the interpreter, but one known behavioural difference exists:
-
-### `cat` with a `null` argument
-
-The interpreter's `cat` implementation calls `Object.toString()` on each argument without a null guard, so passing a `null` value (e.g. from a missing `var`) throws a `NullPointerException` at runtime. The compiled engine routes every runtime-typed argument through `catStr()`, which maps `null` to an empty string `""`.
-
-| Rule | Data | Interpreter | Compiled |
-|---|---|---|---|
-| `{"cat": ["a", {"var": "x"}, "b"]}` | `{}` (x is missing) | `NullPointerException` | `"ab"` |
-
-If you rely on the interpreter's NPE as an implicit signal that a required variable is absent, switch to an explicit guard (e.g. `{"if": [{"var": "x"}, {"cat": [...]}, null]}`) which behaves identically in both modes.
-
 ## Examples
 
 The public API for json-logic-java attempts to mimic the public API of the original Javascript implementation as close as possible.
