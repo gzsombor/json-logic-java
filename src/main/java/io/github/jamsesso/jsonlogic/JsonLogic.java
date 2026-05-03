@@ -3,6 +3,7 @@ package io.github.jamsesso.jsonlogic;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
 import io.github.jamsesso.jsonlogic.compiler.CompiledRule;
+import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompilationException;
 import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompiler;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicExpression;
