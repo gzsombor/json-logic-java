@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
 
 import static io.github.jamsesso.jsonlogic.FixtureTests.readFixtures;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ErrorFixtureTests {
   private static final List<ErrorFixture> FIXTURES = readFixtures("error-fixtures.json", ErrorFixture::fromArray);
@@ -39,7 +39,7 @@ public class ErrorFixtureTests {
         exception.getMessage(), exception.getJsonPath());
     }
 
-    Assert.assertEquals(String.format("%d/%d test failures!", failures.size(), FIXTURES.size()), 0, failures.size());
+    assertEquals(0, failures.size(), String.format("%d/%d test failures!", failures.size(), FIXTURES.size()));
   }
 
   private static class ErrorFixture {

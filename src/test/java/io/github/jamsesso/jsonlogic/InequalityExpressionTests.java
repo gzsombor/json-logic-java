@@ -1,9 +1,9 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static io.github.jamsesso.jsonlogic.JsonLogicExceptionTestUtility.testErrorJsonPath;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class InequalityExpressionTests {
   private static final JsonLogic jsonLogic = new JsonLogic();
@@ -21,18 +21,14 @@ public class InequalityExpressionTests {
   @Test
   public void testInvalidArgumentCountInequality() {
     String json = "{\"!=\": [1]}";
-    // ---------------------  ^  -
     String expectedErrorJsonPath = "$.!=";
-
     testErrorJsonPath(jsonLogic, json, expectedErrorJsonPath);
   }
 
   @Test
   public void testInvalidInequality() {
     String json = "{\"!=\": [{}, true]}";
-    // ---------------------  ^  --------
     String expectedErrorJsonPath = "$.!=[0]";
-
     testErrorJsonPath(jsonLogic, json, expectedErrorJsonPath);
   }
 }

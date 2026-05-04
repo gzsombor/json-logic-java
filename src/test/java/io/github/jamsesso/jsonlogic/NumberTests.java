@@ -1,10 +1,11 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class NumberTests {
   @Test
@@ -18,10 +19,10 @@ public class NumberTests {
       put("long", 1L);
     }};
 
-    Assert.assertEquals(1D, jsonLogic.apply("{\"var\": \"double\"}", numbers));
-    Assert.assertEquals(1D, jsonLogic.apply("{\"var\": \"float\"}", numbers));
-    Assert.assertEquals(1D, jsonLogic.apply("{\"var\": \"int\"}", numbers));
-    Assert.assertEquals(1D, jsonLogic.apply("{\"var\": \"short\"}", numbers));
-    Assert.assertEquals(1D, jsonLogic.apply("{\"var\": \"long\"}", numbers));
+    assertEquals(1D, jsonLogic.apply("{\"var\": \"double\"}", numbers));
+    assertEquals(1D, jsonLogic.apply("{\"var\": \"float\"}", numbers));
+    assertEquals(1D, jsonLogic.apply("{\"var\": \"int\"}", numbers));
+    assertEquals(1D, jsonLogic.apply("{\"var\": \"short\"}", numbers));
+    assertEquals(1D, jsonLogic.apply("{\"var\": \"long\"}", numbers));
   }
 }

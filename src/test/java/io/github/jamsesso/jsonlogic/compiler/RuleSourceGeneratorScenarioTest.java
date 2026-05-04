@@ -2,10 +2,8 @@ package io.github.jamsesso.jsonlogic.compiler;
 
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.net.URL;
@@ -14,23 +12,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Parametrized golden-file test: for every *.json scenario under
  * src/test/resources/scenarios/ (and its error/ subdirectory) the generator
  * output must exactly match the sibling *.java file.
  */
-@RunWith(Parameterized.class)
 public class RuleSourceGeneratorScenarioTest {
 
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> scenarios() throws IOException {
+  static Stream<Object[]> scenarios() throws IOException {
     List<Object[]> params = new ArrayList<>();
     addScenariosFrom("scenarios", params);
     addScenariosFrom("scenarios/error", params);
-    return params;
+    return params.stream();
   }
 
   private static void addScenariosFrom(String resource, List<Object[]> params) throws IOException {
@@ -47,21 +45,12 @@ public class RuleSourceGeneratorScenarioTest {
         });
   }
 
-  private final String scenarioName;
-  private final Path jsonPath;
-  private final Path javaPath;
-
-  public RuleSourceGeneratorScenarioTest(String scenarioName, Path jsonPath, Path javaPath) {
-    this.scenarioName = scenarioName;
-    this.jsonPath = jsonPath;
-    this.javaPath = javaPath;
-  }
-
-  @Test
-  public void generatedSourceMatchesFixture() throws Exception {
-    Assert.assertTrue(
-        "Missing .java fixture for scenario: " + scenarioName,
-        Files.exists(javaPath));
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("scenarios")
+  public void generatedSourceMatchesFixture(String scenarioName, Path jsonPath, Path javaPath) throws Exception {
+    assertTrue(
+        Files.exists(javaPath),
+        "Missing .java fixture for scenario: " + scenarioName);
 
     String json = new String(Files.readAllBytes(jsonPath), StandardCharsets.UTF_8).trim();
     String expectedSource = new String(Files.readAllBytes(javaPath), StandardCharsets.UTF_8);
@@ -70,9 +59,9 @@ public class RuleSourceGeneratorScenarioTest {
     RuleSourceGenerator generator = new RuleSourceGenerator();
     String actualSource = generator.generate(node, "TestRule");
 
-    Assert.assertEquals(
-        "Generated source mismatch for scenario: " + scenarioName,
+    assertEquals(
         expectedSource.stripTrailing(),
-        actualSource.stripTrailing());
+        actualSource.stripTrailing(),
+        "Generated source mismatch for scenario: " + scenarioName);
   }
 }

@@ -1,38 +1,17 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import static org.junit.Assert.assertEquals;
-
-@RunWith(Parameterized.class)
 public class MissingExpressionTests {
-
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> engines() {
-    return Arrays.asList(new Object[][]{
-        {"interpreter", new JsonLogic(false)},
-        {"compiled",    new JsonLogic(true)},
-    });
-  }
-
-  private final String label;
-  private final JsonLogic jsonLogic;
-
-  public MissingExpressionTests(String label, JsonLogic jsonLogic) {
-    this.label = label;
-    this.jsonLogic = jsonLogic;
-  }
-
-  @Test
-  public void testMissing() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testMissing(String label, JsonLogic jsonLogic) throws JsonLogicException {
     Map<String, Object> data = new HashMap<String, Object>() {{
       put("a", "apple");
       put("c", "carrot");
@@ -43,8 +22,9 @@ public class MissingExpressionTests {
     assertEquals("b", ((List) result).get(0));
   }
 
-  @Test
-  public void testMissingSomeUnderThreshold() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testMissingSomeUnderThreshold(String label, JsonLogic jsonLogic) throws JsonLogicException {
     Map<String, Object> data = new HashMap<String, Object>() {{
       put("a", "apple");
       put("c", "carrot");
@@ -54,8 +34,9 @@ public class MissingExpressionTests {
     assertEquals(0, ((List) result).size());
   }
 
-  @Test
-  public void testMissingSomeOverThreshold() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testMissingSomeOverThreshold(String label, JsonLogic jsonLogic) throws JsonLogicException {
     Map<String, Object> data = new HashMap<String, Object>() {{
       put("a", "apple");
     }};
@@ -66,13 +47,13 @@ public class MissingExpressionTests {
     assertEquals("c", ((List) result).get(1));
   }
 
-  @Test
-  public void testMissingSomeComplexExpression() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testMissingSomeComplexExpression(String label, JsonLogic jsonLogic) throws JsonLogicException {
     Map<String, Object> data = new HashMap<String, Object>() {{
       put("first_name", "Bruce");
       put("last_name", "Wayne");
     }};
-    // JSON: {"if":[{"merge": [{"missing":["first_name", "last_name"]}, {"missing_some": [1, ["cell_phone", "home_phone"]]}]}, "We require...", "OK to proceed"]}
     String json = "{\"if\" :[\n" +
                   "  {\"merge\": [\n" +
                   "    {\"missing\":[\"first_name\", \"last_name\"]},\n" +
@@ -86,8 +67,9 @@ public class MissingExpressionTests {
     assertEquals("We require first name, last name, and one phone number.", result);
   }
 
-  @Test
-  public void testMissingSomeWithNullData() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testMissingSomeWithNullData(String label, JsonLogic jsonLogic) throws JsonLogicException {
     Object result = jsonLogic.apply("{\"missing_some\": [2, [\"a\", \"b\", \"c\"]]}", null);
 
     assertEquals(3, ((List) result).size());
@@ -96,8 +78,9 @@ public class MissingExpressionTests {
     assertEquals("c", ((List) result).get(2));
   }
 
-  @Test
-  public void testMissingSomeWithZeroThreshold() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testMissingSomeWithZeroThreshold(String label, JsonLogic jsonLogic) throws JsonLogicException {
     Object result = jsonLogic.apply("{\"missing_some\": [0, [\"a\", \"b\", \"c\"]]}", null);
 
     assertEquals(0, ((List) result).size());

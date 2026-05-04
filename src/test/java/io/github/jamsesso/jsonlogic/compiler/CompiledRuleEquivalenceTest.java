@@ -4,9 +4,8 @@ import com.google.gson.*;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -14,17 +13,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 /**
  * Verifies that every fixture in {@code fixtures.json} produces the same result when
  * evaluated via the compiler as when evaluated via the tree-walking interpreter.
- *
- * <p>This gives ~400 data-driven cases for free without writing individual tests.
  */
 public class CompiledRuleEquivalenceTest {
 
   private static List<Fixture> FIXTURES;
 
-  @BeforeClass
+  @BeforeAll
   public static void loadFixtures() {
     FIXTURES = readFixtures("fixtures.json");
   }
@@ -41,7 +40,6 @@ public class CompiledRuleEquivalenceTest {
       try {
         expected = interpreter.apply(f.json, f.data);
       } catch (JsonLogicException e) {
-        // Interpreter threw - compiler must throw too (we just skip value comparison)
         try {
           compiled.apply(f.json, f.data);
           failures.add("Interpreter threw but compiled succeeded.\n  Rule: " + f.json
@@ -76,7 +74,7 @@ public class CompiledRuleEquivalenceTest {
       for (String failure : failures) {
         sb.append(failure).append("\n\n");
       }
-      Assert.fail(sb.toString());
+      fail(sb.toString());
     }
   }
 

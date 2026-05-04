@@ -1,11 +1,11 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static io.github.jamsesso.jsonlogic.JsonLogicExceptionTestUtility.testErrorJsonPath;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MapExpressionTests {
   private static final JsonLogic jsonLogic = new JsonLogic();

@@ -3,15 +3,10 @@ package io.github.jamsesso.jsonlogic;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -19,26 +14,10 @@ import com.google.gson.JsonParser;
 
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
 
-@RunWith(Parameterized.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class JsonLogicConformanceTests {
   private static final List<ConformanceFixture> FIXTURES = readConformanceFixtures("jsonlogic-tests.json");
-
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> engines() {
-    return Arrays.asList(new Object[][]{
-        {"interpreter", new JsonLogic(false)},
-        {"compiled",    new JsonLogic(true)},
-    });
-  }
-
-  private final String label;
-  private final JsonLogic jsonLogic;
-
-  public JsonLogicConformanceTests(String label, JsonLogic jsonLogic) {
-    this.label = label;
-    this.jsonLogic = jsonLogic;
-  }
-
   public static List<ConformanceFixture> readConformanceFixtures(String fileName) {
     InputStream inputStream = JsonLogicConformanceTests.class.getClassLoader().getResourceAsStream(fileName);
     JsonParser parser = new JsonParser();
@@ -46,7 +25,6 @@ public class JsonLogicConformanceTests {
 
     List<ConformanceFixture> fixtures = new ArrayList<>();
     for (JsonElement element : json) {
-      // Skip comments (strings starting with "#")
       if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
         continue;
       }
@@ -63,8 +41,9 @@ public class JsonLogicConformanceTests {
     return fixtures;
   }
 
-  @Test
-  public void testAllConformanceFixtures() {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testAllConformanceFixtures(String label, JsonLogic jsonLogic) {
     List<ConformanceTestResult> failures = new ArrayList<>();
 
     for (ConformanceFixture fixture : FIXTURES) {
@@ -89,7 +68,8 @@ public class JsonLogicConformanceTests {
         fixture.getExpectedValue(), actual instanceof Exception ? ((Exception) actual).getMessage() : actual));
     }
 
-    Assert.assertEquals(String.format("[%s] %d/%d conformance test failures!", label, failures.size(), FIXTURES.size()), 0, failures.size());
+    assertEquals(0, failures.size(),
+        String.format("[%s] %d/%d conformance test failures!", label, failures.size(), FIXTURES.size()));
   }
 
   private static class ConformanceFixture {

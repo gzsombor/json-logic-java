@@ -1,6 +1,6 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,10 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class VariableTests {
   private static final JsonLogic jsonLogic = new JsonLogic();
@@ -105,7 +102,6 @@ public class VariableTests {
 
   @Test
   public void missingNestedMapKey_returnsDefault() throws JsonLogicException {
-    // data.a.b is missing -> should use default
     String rule = "{\"var\": [\"a.b.c\", \"fallback\"]}";
     Map<String, Object> data = map("a", map("b", new HashMap<>()));
 
@@ -116,7 +112,6 @@ public class VariableTests {
 
   @Test
   public void presentNullLeaf_returnsNull_notDefault() throws JsonLogicException {
-    // data.user.age present with value null -> should return null (no default)
     String rule = "{\"var\": [\"user.age\", 42]}";
     Map<String, Object> user = new HashMap<>();
     user.put("age", null);
@@ -129,7 +124,6 @@ public class VariableTests {
 
   @Test
   public void intermediateNull_returnsNull_notDefault() throws JsonLogicException {
-    // data.a.b is null before finishing path -> should return null (no default)
     String rule = "{\"var\": [\"a.b.c\", \"fallback\"]}";
     Map<String, Object> data = map("a", map("b", null));
 
@@ -140,7 +134,6 @@ public class VariableTests {
 
   @Test
   public void nonTraversableIntermediate_returnsNull_notDefault() throws JsonLogicException {
-    // data.a is a number; trying to access a.b -> should return null (no default)
     String rule = "{\"var\": [\"a.b\", \"fallback\"]}";
     Map<String, Object> data = map("a", 5);
 
@@ -151,19 +144,17 @@ public class VariableTests {
 
   @Test
   public void arrayIndexWithinBounds_returnsElement_asDoubleForNumbers() throws JsonLogicException {
-    // items.1 exists -> should return 20 (as a double per evaluator.transform)
     String rule = "{\"var\": [\"items.1\", 999]}";
     Map<String, Object> data = map("items", Arrays.asList(10, 20));
 
     Object result = jsonLogic.apply(rule, data);
 
-    assertTrue(result instanceof Number);
+    assertInstanceOf(Number.class, result);
     assertEquals(20.0, ((Number) result).doubleValue(), 0.0);
   }
 
   @Test
   public void arrayIndexOutOfBounds_returnsDefault() throws JsonLogicException {
-    // items.2 missing -> use default
     String rule = "{\"var\": [\"items.2\", \"missing\"]}";
     Map<String, Object> data = map("items", Arrays.asList(10, 20));
 
@@ -174,7 +165,6 @@ public class VariableTests {
 
   @Test
   public void arrayElementPresentButNull_returnsNull_notDefault() throws JsonLogicException {
-    // items.0 exists and is null -> should return null (no default)
     String rule = "{\"var\": [\"items.0\", \"missing\"]}";
     Map<String, Object> data = map("items", Collections.singletonList(null));
 
@@ -185,7 +175,6 @@ public class VariableTests {
 
   @Test
   public void topLevelNumericIndex_overList_works() throws JsonLogicException {
-    // {"var": [1, "missing"]} over a top-level list -> "banana"
     String rule = "{\"var\": [1, \"missing\"]}";
     List<String> data = Arrays.asList("apple", "banana", "carrot");
 
@@ -196,16 +185,14 @@ public class VariableTests {
 
   @Test
   public void emptyVarKey_returnsWholeDataObject() throws JsonLogicException {
-    // {"var": ""} should return the entire data object (same instance)
     String rule = "{\"var\": \"\"}";
     Map<String, Object> data = map("x", 1);
 
     Object result = jsonLogic.apply(rule, data);
 
-    assertSame("Should return the same data instance", data, result);
+    assertSame(data, result, "Should return the same data instance");
   }
 
-  /** Helper to make small maps concisely. */
   private static Map<String, Object> map(Object... kv) {
     Map<String, Object> m = new HashMap<>();
     for (int i = 0; i < kv.length; i += 2) {

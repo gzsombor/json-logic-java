@@ -1,9 +1,9 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static io.github.jamsesso.jsonlogic.JsonLogicExceptionTestUtility.testErrorJsonPath;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class AllExpressionTests {
   private static final JsonLogic jsonLogic = new JsonLogic();

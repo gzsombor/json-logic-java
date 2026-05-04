@@ -1,9 +1,8 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.Test;
-import org.junit.Assert;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class JsonLogicExceptionTests {
 
@@ -100,8 +99,7 @@ public class JsonLogicExceptionTests {
   @Test
   public void testEmptyJsonPathInitially() {
     JsonLogicException exception = new JsonLogicException("Test message");
-    assertNotNull("JsonPath should not be null", exception.getJsonPath());
-    assertEquals("JsonPath should be empty initially", "", exception.getJsonPath());
+    assertNotNull(exception.getJsonPath(), "JsonPath should not be null");
+    assertEquals("", exception.getJsonPath(), "JsonPath should be empty initially");
   }
 }
-

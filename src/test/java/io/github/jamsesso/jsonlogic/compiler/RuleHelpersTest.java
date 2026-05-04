@@ -1,6 +1,6 @@
 package io.github.jamsesso.jsonlogic.compiler;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RuleHelpersTest {
 
@@ -36,7 +36,7 @@ public class RuleHelpersTest {
     assertTrue(looseEq(1.0, "1"));
     assertTrue(looseEq("0", 0.0));
     assertFalse(looseEq(1.0, "2"));
-    assertTrue(looseEq(0.0, ""));   // empty string coerces to 0
+    assertTrue(looseEq(0.0, ""));
   }
 
   @Test
@@ -169,7 +169,6 @@ public class RuleHelpersTest {
 
   @Test
   public void mathReduce_singleArrayArgIsUnwrapped() {
-    // Single arg that is itself a list → use the list elements
     final List<Object> inner = Arrays.asList(10.0, 5.0);
     assertEquals(15.0, ((Number) mathReduce("+", Collections.singletonList(inner))).doubleValue(), 0);
   }

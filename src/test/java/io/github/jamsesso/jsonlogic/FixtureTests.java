@@ -2,43 +2,24 @@ package io.github.jamsesso.jsonlogic;
 
 import com.google.gson.*;
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
 import java.util.function.Function;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@RunWith(Parameterized.class)
 public class FixtureTests {
   private static final List<Fixture> FIXTURES = readFixtures("fixtures.json", Fixture::fromArray);
-
-  @Parameterized.Parameters(name = "{0}")
-  public static Collection<Object[]> engines() {
-    return Arrays.asList(new Object[][]{
-        {"interpreter", new JsonLogic(false)},
-        {"compiled",    new JsonLogic(true)},
-    });
-  }
-
-  private final String label;
-  private final JsonLogic jsonLogic;
-
-  public FixtureTests(String label, JsonLogic jsonLogic) {
-    this.label = label;
-    this.jsonLogic = jsonLogic;
-  }
-
   public static <F> List<F> readFixtures(String fileName, Function<JsonArray, F> makeFixture) {
     InputStream inputStream = FixtureTests.class.getClassLoader().getResourceAsStream(fileName);
     JsonParser parser = new JsonParser();
     JsonArray json = parser.parse(new InputStreamReader(inputStream)).getAsJsonArray();
 
     List<F> fixtures = new ArrayList<>();
-    // Pull out each fixture from the array.
     for (JsonElement element : json) {
       if (!element.isJsonArray()) {
         continue;
@@ -50,8 +31,9 @@ public class FixtureTests {
     return fixtures;
   }
 
-  @Test
-  public void testAllFixtures() {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testAllFixtures(String label, JsonLogic jsonLogic) {
     List<TestResult> failures = new ArrayList<>();
 
     for (Fixture fixture : FIXTURES) {
@@ -76,7 +58,8 @@ public class FixtureTests {
         fixture.getExpectedValue(), actual instanceof Exception ? ((Exception) actual).getMessage() : actual));
     }
 
-    Assert.assertEquals(String.format("[%s] %d/%d test failures!", label, failures.size(), FIXTURES.size()), 0, failures.size());
+    assertEquals(0, failures.size(),
+        String.format("[%s] %d/%d test failures!", label, failures.size(), FIXTURES.size()));
   }
 
   private static class Fixture {
