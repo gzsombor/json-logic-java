@@ -1,5 +1,7 @@
 package io.github.jamsesso.jsonlogic;
 
+import com.google.gson.JsonObject;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -84,5 +86,47 @@ public class MissingExpressionTests {
     Object result = jsonLogic.apply("{\"missing_some\": [0, [\"a\", \"b\", \"c\"]]}", null);
 
     assertEquals(0, ((List) result).size());
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldEvaluateMissingSomeWithDynamicArguments(String label, JsonLogic jsonLogic) throws JsonLogicException {
+    Map<String, Object> data = new HashMap<String, Object>() {{
+      put("required", 1);
+      put("fields", List.of("a", "b"));
+      put("a", "apple");
+    }};
+
+    Object result = jsonLogic.apply("{\"missing_some\": [{\"var\":\"required\"}, {\"var\":\"fields\"}]}", data);
+
+    assertEquals(0, ((List) result).size());
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldEvaluateMissingWithJsonObjectData(String label, JsonLogic jsonLogic) throws JsonLogicException {
+    JsonObject data = new JsonObject();
+    data.addProperty("a", "apple");
+
+    Object result = jsonLogic.apply("{\"missing\": [\"a\", \"b\"]}", data);
+
+    assertEquals(1, ((List) result).size());
+    assertEquals("b", ((List) result).get(0));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldEvaluateMissingWithNestedJsonObjectData(String label, JsonLogic jsonLogic)
+      throws JsonLogicException {
+    JsonObject profile = new JsonObject();
+    profile.addProperty("name", "Bruce");
+
+    Map<String, Object> data = new HashMap<>();
+    data.put("profile", profile);
+
+    Object result = jsonLogic.apply("{\"missing\": [\"profile.name\", \"profile.phone\"]}", data);
+
+    assertEquals(1, ((List) result).size());
+    assertEquals("profile.phone", ((List) result).get(0));
   }
 }

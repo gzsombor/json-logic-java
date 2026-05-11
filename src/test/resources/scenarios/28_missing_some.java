@@ -27,8 +27,7 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    // missing/missing_some: fall back to interpreter
-    Object result_0 = fallback.evaluate(fallbackNodes[0], data, "");
+    Object result_0 = missingSome(1.0, Arrays.<Object>asList("a", "b"), data);
     return result_0;
   }
 }

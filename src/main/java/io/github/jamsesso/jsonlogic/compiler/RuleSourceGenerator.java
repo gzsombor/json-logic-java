@@ -198,7 +198,7 @@ public final class RuleSourceGenerator {
           return;
         case "missing":
         case "missing_some":
-          emitMissing(op, targetVar, out, dataExpr, path);
+          emitMissing(op, targetVar, out, dataExpr, path + "." + op.getOperator());
           return;
         default:
           break;
@@ -442,6 +442,8 @@ public final class RuleSourceGenerator {
       case "cat": return emitCat(args, pre, dataExpr, opPath);
       case "substr": return emitSubstr(op, args, pre, dataExpr, opPath, path);
       case "in":  return emitIn(op, args, pre, dataExpr, opPath, path);
+      case "missing": return emitMissing(args, pre, dataExpr, opPath);
+      case "missing_some": return emitMissingSome(op, pre, dataExpr, opPath, path);
       default:    return emitFallback(op, pre, dataExpr, path);
     }
   }
@@ -1132,19 +1134,50 @@ public final class RuleSourceGenerator {
     return fieldName + ".contains(" + needle + ")";
   }
 
-  // ---- missing / missing_some ----
-  //
-  // missing:  returns keys from arguments that are missing from data.
-  // missing_some: returns empty list if enough keys are present, otherwise missing keys.
-  // Fall back to interpreter for both (complex logic, Set operations).
   private void emitMissing(JsonLogicOperation op, String targetVar, StringBuilder out,
-                             String dataExpr, String path) {
-    out.append("    // missing/missing_some: fall back to interpreter\n");
-    final int idx = fallbackNodes.size();
-    fallbackNodes.add(op);
-    out.append("    Object ").append(targetVar).append(" = fallback.evaluate(fallbackNodes[")
-        .append(idx).append("], ").append(dataExpr).append(", ")
-        .append(javaStringLiteral(path)).append(");\n");
+                           String dataExpr, String opPath) {
+    final var pre = new StringBuilder();
+    final String expression = emitMissing(op, pre, dataExpr, opPath, parentPath(opPath, op.getOperator()));
+
+    out.append(pre);
+    out.append("    Object ").append(targetVar).append(" = ").append(expression).append(";\n");
+  }
+
+  private String emitMissing(JsonLogicOperation op, StringBuilder pre, String dataExpr, String opPath,
+                             String path) {
+    if ("missing_some".equals(op.getOperator())) {
+      return emitMissingSome(op, pre, dataExpr, opPath, path);
+    }
+
+    return emitMissing(op.getArguments(), pre, dataExpr, opPath);
+  }
+
+  private String emitMissing(JsonLogicArray args, StringBuilder pre, String dataExpr, String opPath) {
+    return "missing(" + emitArrayLiteral(args, pre, dataExpr, opPath) + ", " + dataExpr + ")";
+  }
+
+  private String emitMissingSome(JsonLogicOperation op, StringBuilder pre, String dataExpr, String opPath,
+                                 String path) {
+    JsonLogicArray args = op.getArguments();
+    if (args.size() < 2
+        || !(args.get(0) instanceof JsonLogicNumber)
+        || !(args.get(1) instanceof JsonLogicArray)) {
+      return emitFallback(op, pre, dataExpr, path);
+    }
+
+    double requiredCount = ((JsonLogicNumber) args.get(0)).getValue();
+    return "missingSome("
+        + Double.toString(requiredCount)
+        + ", "
+        + emitArrayLiteral((JsonLogicArray) args.get(1), pre, dataExpr, opPath + "[1]")
+        + ", "
+        + dataExpr
+        + ")";
+  }
+
+  private static String parentPath(String opPath, String operator) {
+    String suffix = "." + operator;
+    return opPath.endsWith(suffix) ? opPath.substring(0, opPath.length() - suffix.length()) : opPath;
   }
 
   // ---- fallback to interpreter ----

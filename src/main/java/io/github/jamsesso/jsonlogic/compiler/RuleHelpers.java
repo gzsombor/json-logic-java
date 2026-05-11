@@ -3,7 +3,9 @@ package io.github.jamsesso.jsonlogic.compiler;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.utils.ArrayLike;
+import io.github.jamsesso.jsonlogic.utils.MapHelpers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -252,6 +254,42 @@ public final class RuleHelpers {
       return "";
     }
     return value.substring(start, end);
+  }
+
+  // ---- missing ----
+
+  public static List<Object> missing(List<?> keys, Object data) {
+    if (keys.size() == 1 && ArrayLike.isEligible(keys.get(0))) {
+      keys = new ArrayLike(keys.get(0));
+    }
+
+    Map<?, ?> map = MapHelpers.toMap(data);
+
+    if (map == null) {
+      return new ArrayList<>(keys);
+    }
+
+    return MapHelpers.missingKeys(keys, map);
+  }
+
+  public static List<?> missingSome(double requiredCount, List<?> keys, Object data) {
+    Map<?, ?> map = MapHelpers.toMap(data);
+
+    if (map == null) {
+      if ((int) requiredCount <= 0) {
+        return List.of();
+      }
+
+      return keys;
+    }
+
+    List<Object> missingKeys = MapHelpers.missingKeys(keys, map);
+
+    if (keys.size() - missingKeys.size() >= (int) requiredCount) {
+      return List.of();
+    }
+
+    return missingKeys;
   }
 
   // ---- variable resolution ----
