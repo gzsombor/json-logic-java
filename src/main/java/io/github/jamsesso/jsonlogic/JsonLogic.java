@@ -73,7 +73,7 @@ public final class JsonLogic {
       } catch (IllegalStateException e) {
         LOG.warning("Compilation is unavailable. "
             + "Rules will be evaluated by the interpreter. "
-            + "To suppress this warning, use new JsonLogic(false).");
+            + "To suppress this warning, use new JsonLogic(false) (" + e.getMessage() + ')');
         this.compiler = null;
       }
     }

@@ -64,9 +64,7 @@ public final class JsonLogicCompiler {
     if (compiler == null) {
       throw new IllegalStateException(
           "javax.tools.JavaCompiler is not available. "
-              + "Compilation requires a JDK -"
-              + "To run without compilation, use new JsonLogic(false) or check "
-              + "JsonLogic.isCompilationEnabled().");
+              + "Compilation requires the 'jdk.compiler' module to provide a compiler.");
     }
     this.javac = compiler;
   }
