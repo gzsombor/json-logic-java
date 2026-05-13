@@ -1,0 +1,1 @@
+{"reduce":[{"var":"data"}, {"*":[{"var":"multiplicator"}, {"+":[{"var":"current"}, {"var":"accumulator"}]}]}, 0]}

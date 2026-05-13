@@ -215,6 +215,17 @@ public class RuleSourceGeneratorTest {
     assertEquals(10.0, withCustom.apply("{\"double\":[5]}", null));
   }
 
+  @Test
+  public void reduceIsCompiledNatively() throws Exception {
+    final String ruleJson = "{\"reduce\":[{\"var\":\"items\"},{\"+\":[{\"var\":\"current\"},{\"var\":\"accumulator\"}]},0]}";
+    final var generator = new RuleSourceGenerator();
+    final String source = generator.generate(JsonLogicParser.parse(ruleJson), "TestRule");
+
+    assertTrue(source.contains("for (Object reduceItem_"));
+    assertTrue(source.contains("reduceContext("));
+    assertFalse(source.contains("fallback.evaluate"));
+  }
+
   // ---- var deduplication ----
 
   @Test

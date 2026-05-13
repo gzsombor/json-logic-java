@@ -5,8 +5,8 @@ import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicExpression;
 import io.github.jamsesso.jsonlogic.utils.ArrayLike;
+import io.github.jamsesso.jsonlogic.utils.MapHelpers;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class ReduceExpression extends JsonPathHandlerJsonLogicExpression implements JsonLogicExpression {
@@ -49,8 +49,7 @@ public class ReduceExpression extends JsonPathHandlerJsonLogicExpression impleme
       return accumulator;
     }
 
-    Map<String, Object> context = new HashMap<>();
-    context.put("accumulator", accumulator);
+    Map<String, Object> context = MapHelpers.reduceContext(data, accumulator);
 
     for (Object item : new ArrayLike(maybeArray)) {
       context.put("current", item);

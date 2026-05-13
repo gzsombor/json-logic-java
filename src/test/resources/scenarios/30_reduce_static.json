@@ -1,0 +1,1 @@
+{"reduce":[[1,2,3], {"+":[{"var":"current"}, {"var":"accumulator"}]}, 0]}

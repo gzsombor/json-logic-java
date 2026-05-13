@@ -81,6 +81,7 @@ public final class RuleSourceGenerator {
    * Variables are emitted as {@code final Object} declarations before the first use.
    */
   private final Map<String, String> varCache = new LinkedHashMap<>();
+  private final List<VarScope> varScopes = new ArrayList<>();
 
   /**
    * Statements declaring the cached var locals, accumulated during generation and
@@ -101,6 +102,7 @@ public final class RuleSourceGenerator {
    * declared field name, so identical haystacks share a single {@code Set} constant.
    */
   private final Map<String, String> setCache = new LinkedHashMap<>();
+  private boolean needsReduceHelpers = false;
 
   // -------------------------------------------------------------------------
   // Public API
@@ -127,7 +129,9 @@ public final class RuleSourceGenerator {
         + "import io.github.jamsesso.jsonlogic.compiler.CompiledRule;\n"
         + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;\n"
         + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;\n"
+        + (needsReduceHelpers ? "import io.github.jamsesso.jsonlogic.utils.ArrayLike;\n" : "")
         + "import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;\n"
+        + (needsReduceHelpers ? "import static io.github.jamsesso.jsonlogic.utils.MapHelpers.reduceContext;\n" : "")
         + "import java.util.*;\n"
         + "\n"
         + "public final class " + className + " implements CompiledRule {\n"
@@ -199,6 +203,9 @@ public final class RuleSourceGenerator {
         case "missing":
         case "missing_some":
           emitMissing(op, targetVar, out, dataExpr, path + "." + op.getOperator());
+          return;
+        case "reduce":
+          emitReduce(op, targetVar, out, dataExpr, path + ".reduce");
           return;
         default:
           break;
@@ -318,6 +325,19 @@ public final class RuleSourceGenerator {
     // resolve the variable once into a final local and reuse it on subsequent references.
     if (node.getKey() instanceof JsonLogicString && node.getDefaultValue() instanceof JsonLogicNull) {
       final String varName = ((JsonLogicString) node.getKey()).getValue();
+      if (!varScopes.isEmpty()) {
+        final VarScope varScope = varScopes.get(varScopes.size() - 1);
+        final String cached = varScope.cache.get(varName);
+        if (cached != null) {
+          return cached;
+        }
+        final String localName = freshVar("var_" + sanitize(varName));
+        varScope.cache.put(varName, localName);
+        varScope.preamble.append("    final Object ").append(localName)
+            .append(" = resolveVarChecked(").append(dataExpr).append(", ")
+            .append(javaStringLiteral(varName)).append(", null);\n");
+        return localName;
+      }
       final String cached = varCache.get(varName);
       if (cached != null) {
         return cached;
@@ -444,6 +464,7 @@ public final class RuleSourceGenerator {
       case "in":  return emitIn(op, args, pre, dataExpr, opPath, path);
       case "missing": return emitMissing(args, pre, dataExpr, opPath);
       case "missing_some": return emitMissingSome(op, pre, dataExpr, opPath, path);
+      case "reduce": return emitReduceExpression(op, pre, dataExpr, opPath);
       default:    return emitFallback(op, pre, dataExpr, path);
     }
   }
@@ -603,11 +624,71 @@ public final class RuleSourceGenerator {
 
   /** Appends each non-empty line from {@code inner} to {@code out} with 2 extra spaces. */
   private static void indentBlock(StringBuilder inner, StringBuilder out) {
+    indentBlock(inner, out, "  ");
+  }
+
+  private static void indentBlock(StringBuilder inner, StringBuilder out, String indentation) {
     for (final String line : inner.toString().split("\n", -1)) {
       if (!line.isEmpty()) {
-        out.append("  ").append(line).append("\n");
+        out.append(indentation).append(line).append("\n");
       }
     }
+  }
+
+  // ---- reduce ----
+
+  private void emitReduce(JsonLogicOperation op, String targetVar, StringBuilder out,
+                          String dataExpr, String path) {
+    needsReduceHelpers = true;
+    final JsonLogicArray args = op.getArguments();
+    if (args.size() != 3) {
+      out.append("    Object ").append(targetVar).append(" = ")
+          .append(emitFailure("reduce expects exactly 3 arguments", path)).append(";\n");
+      return;
+    }
+
+    final String arrayVar = freshVar("reduceArray");
+    final String accumulatorVar = freshVar("reduceAccumulator");
+    final String contextVar = freshVar("reduceContext");
+    final String itemVar = freshVar("reduceItem");
+    final String bodyVar = freshVar("reduceBody");
+
+    emitStatement(args.get(0), arrayVar, out, dataExpr, path + "[0]");
+    emitStatement(args.get(2), accumulatorVar, out, dataExpr, path + "[2]");
+    out.append("    Object ").append(targetVar).append(" = ").append(accumulatorVar).append(";\n");
+    out.append("    if (ArrayLike.isEligible(")
+        .append(arrayVar).append(")) {\n");
+    out.append("      Map<String, Object> ").append(contextVar)
+        .append(" = reduceContext(").append(dataExpr).append(", ").append(accumulatorVar).append(");\n");
+    out.append("      for (Object ").append(itemVar)
+        .append(" : new ArrayLike(").append(arrayVar).append(")) {\n");
+    out.append("        ").append(contextVar).append(".put(\"current\", ").append(itemVar).append(");\n");
+
+    final var body = new StringBuilder();
+    final VarScope varScope = new VarScope();
+    varScopes.add(varScope);
+    emitStatement(args.get(1), bodyVar, body, contextVar, path + "[1]");
+    varScopes.remove(varScopes.size() - 1);
+    indentBlock(varScope.preamble, out, "    ");
+    indentBlock(body, out, "    ");
+
+    out.append("        ").append(contextVar).append(".put(\"accumulator\", ")
+        .append(bodyVar).append(");\n");
+    out.append("      }\n");
+    out.append("      ").append(targetVar).append(" = ").append(contextVar).append(".get(\"accumulator\");\n");
+    out.append("    }\n");
+  }
+
+  private String emitReduceExpression(JsonLogicOperation op, StringBuilder pre,
+                                      String dataExpr, String path) {
+    final String resultVar = freshVar("reduceResult");
+    emitReduce(op, resultVar, pre, dataExpr, path);
+    return resultVar;
+  }
+
+  private static final class VarScope {
+    private final Map<String, String> cache = new LinkedHashMap<>();
+    private final StringBuilder preamble = new StringBuilder();
   }
 
   // ---- numeric comparisons ----

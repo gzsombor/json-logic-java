@@ -3,6 +3,7 @@ package io.github.jamsesso.jsonlogic.utils;
 import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,20 @@ public final class MapHelpers {
     }
 
     return null;
+  }
+
+  public static Map<String, Object> reduceContext(Object data, Object accumulator) {
+    Map<String, Object> context = new HashMap<>();
+    Map<?, ?> dataMap = toMap(data);
+    if (dataMap != null) {
+      for (Map.Entry<?, ?> entry : dataMap.entrySet()) {
+        if (entry.getKey() instanceof String) {
+          context.put((String) entry.getKey(), entry.getValue());
+        }
+      }
+    }
+    context.put("accumulator", accumulator);
+    return context;
   }
 
   public static List<Object> missingKeys(List<?> keys, Map<?, ?> data) {
