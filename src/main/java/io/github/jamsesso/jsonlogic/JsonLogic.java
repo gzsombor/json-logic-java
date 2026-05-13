@@ -7,10 +7,12 @@ import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompilationException;
 import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompiler;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicExpression;
-import io.github.jamsesso.jsonlogic.evaluator.expressions.*;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
 
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.logging.Logger;
@@ -19,8 +21,7 @@ public final class JsonLogic {
   private static final Logger LOG = Logger.getLogger(JsonLogic.class.getName());
 
   private final Map<String, JsonLogicNode> parseCache = new ConcurrentHashMap<>();
-  private final Map<String, JsonLogicExpression> expressions = new ConcurrentHashMap<>();
-  private JsonLogicEvaluator evaluator;
+  private final JsonLogicEvaluator evaluator = new JsonLogicEvaluator();
 
   /** Non-null when compilation is enabled (default). Pass {@code false} to {@link #JsonLogic(boolean)} to disable. */
   private JsonLogicCompiler compiler;
@@ -30,46 +31,11 @@ public final class JsonLogic {
   }
 
   public JsonLogic(boolean enableCompilation) {
-    // Add default operations
-    addOperation(MathExpression.ADD);
-    addOperation(MathExpression.SUBTRACT);
-    addOperation(MathExpression.MULTIPLY);
-    addOperation(MathExpression.DIVIDE);
-    addOperation(MathExpression.MODULO);
-    addOperation(MathExpression.MIN);
-    addOperation(MathExpression.MAX);
-    addOperation(NumericComparisonExpression.GT);
-    addOperation(NumericComparisonExpression.GTE);
-    addOperation(NumericComparisonExpression.LT);
-    addOperation(NumericComparisonExpression.LTE);
-    addOperation(IfExpression.IF);
-    addOperation(IfExpression.TERNARY);
-    addOperation(EqualityExpression.INSTANCE);
-    addOperation(InequalityExpression.INSTANCE);
-    addOperation(StrictEqualityExpression.INSTANCE);
-    addOperation(StrictInequalityExpression.INSTANCE);
-    addOperation(NotExpression.SINGLE);
-    addOperation(NotExpression.DOUBLE);
-    addOperation(LogicExpression.AND);
-    addOperation(LogicExpression.OR);
-    addOperation(LogExpression.STDOUT);
-    addOperation(MapExpression.INSTANCE);
-    addOperation(FilterExpression.INSTANCE);
-    addOperation(ReduceExpression.INSTANCE);
-    addOperation(AllExpression.INSTANCE);
-    addOperation(ArrayHasExpression.SOME);
-    addOperation(ArrayHasExpression.NONE);
-    addOperation(MergeExpression.INSTANCE);
-    addOperation(InExpression.INSTANCE);
-    addOperation(ConcatenateExpression.INSTANCE);
-    addOperation(SubstringExpression.INSTANCE);
-    addOperation(MissingExpression.ALL);
-    addOperation(MissingExpression.SOME);
 
     // Enable compilation by default; fall back gracefully if no JDK compiler is present.
     if (enableCompilation) {
       try {
-        this.compiler = new JsonLogicCompiler(getOrBuildEvaluator());
+        this.compiler = new JsonLogicCompiler(evaluator);
       } catch (IllegalStateException e) {
         LOG.warning("Compilation is unavailable. "
             + "Rules will be evaluated by the interpreter. "
@@ -134,7 +100,7 @@ public final class JsonLogic {
     }
 
     if (value instanceof Collection) {
-      return !((Collection) value).isEmpty();
+      return !((Collection<?>) value).isEmpty();
     }
 
     if (value.getClass().isArray()) {
@@ -159,8 +125,7 @@ public final class JsonLogic {
   }
 
   public JsonLogic addOperation(JsonLogicExpression expression) {
-    expressions.put(expression.key(), expression);
-    evaluator = null;
+    evaluator.addOperation(expression);
     if (compiler != null) {
       compiler.invalidate();
     }
@@ -197,22 +162,11 @@ public final class JsonLogic {
       }
     }
 
-    if (evaluator == null) {
-      evaluator = new JsonLogicEvaluator(expressions);
-    }
-
     try {
       return evaluator.evaluate(ast, data);
     } catch (JsonLogicException e) {
       e.prependPartialJsonPath("$");
       throw e;
     }
-  }
-
-  private JsonLogicEvaluator getOrBuildEvaluator() {
-    if (evaluator == null) {
-      evaluator = new JsonLogicEvaluator(expressions);
-    }
-    return evaluator;
   }
 }

@@ -1,10 +1,41 @@
 package io.github.jamsesso.jsonlogic.evaluator;
 
 import io.github.jamsesso.jsonlogic.JsonLogicException;
-import io.github.jamsesso.jsonlogic.ast.*;
+import io.github.jamsesso.jsonlogic.ast.JsonLogicArray;
+import io.github.jamsesso.jsonlogic.ast.JsonLogicBoolean;
+import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
+import io.github.jamsesso.jsonlogic.ast.JsonLogicNumber;
+import io.github.jamsesso.jsonlogic.ast.JsonLogicOperation;
+import io.github.jamsesso.jsonlogic.ast.JsonLogicPrimitive;
+import io.github.jamsesso.jsonlogic.ast.JsonLogicVariable;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.AllExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.ArrayHasExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.ConcatenateExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.EqualityExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.FilterExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.IfExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.InExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.InequalityExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.LogExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.LogicExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.MapExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.MathExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.MergeExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.MissingExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.NotExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.NumericComparisonExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.ReduceExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.StrictEqualityExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.StrictInequalityExpression;
+import io.github.jamsesso.jsonlogic.evaluator.expressions.SubstringExpression;
 import io.github.jamsesso.jsonlogic.utils.ArrayLike;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class JsonLogicEvaluator {
 
@@ -15,16 +46,62 @@ public class JsonLogicEvaluator {
 
   private final Map<String, JsonLogicExpression> expressions;
 
+  public JsonLogicEvaluator() {
+    this(defaultExpressions());
+  }
+
   public JsonLogicEvaluator(Collection<JsonLogicExpression> expressions) {
-    this.expressions = new HashMap<>();
+    this.expressions = new ConcurrentHashMap<>();
 
     for (JsonLogicExpression expression : expressions) {
-      this.expressions.put(expression.key(), expression);
+      addOperation(expression);
     }
   }
 
   public JsonLogicEvaluator(Map<String, JsonLogicExpression> expressions) {
-    this.expressions = Collections.unmodifiableMap(expressions);
+    this.expressions = new ConcurrentHashMap<>(expressions);
+  }
+
+  public void addOperation(JsonLogicExpression expression) {
+    expressions.put(expression.key(), expression);
+  }
+
+  private static List<JsonLogicExpression> defaultExpressions() {
+    return Arrays.asList(
+        MathExpression.ADD,
+        MathExpression.SUBTRACT,
+        MathExpression.MULTIPLY,
+        MathExpression.DIVIDE,
+        MathExpression.MODULO,
+        MathExpression.MIN,
+        MathExpression.MAX,
+        NumericComparisonExpression.GT,
+        NumericComparisonExpression.GTE,
+        NumericComparisonExpression.LT,
+        NumericComparisonExpression.LTE,
+        IfExpression.IF,
+        IfExpression.TERNARY,
+        EqualityExpression.INSTANCE,
+        InequalityExpression.INSTANCE,
+        StrictEqualityExpression.INSTANCE,
+        StrictInequalityExpression.INSTANCE,
+        NotExpression.SINGLE,
+        NotExpression.DOUBLE,
+        LogicExpression.AND,
+        LogicExpression.OR,
+        LogExpression.STDOUT,
+        MapExpression.INSTANCE,
+        FilterExpression.INSTANCE,
+        ReduceExpression.INSTANCE,
+        AllExpression.INSTANCE,
+        ArrayHasExpression.SOME,
+        ArrayHasExpression.NONE,
+        MergeExpression.INSTANCE,
+        InExpression.INSTANCE,
+        ConcatenateExpression.INSTANCE,
+        SubstringExpression.INSTANCE,
+        MissingExpression.ALL,
+        MissingExpression.SOME);
   }
 
   public static Object transform(Object value) {

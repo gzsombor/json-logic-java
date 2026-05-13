@@ -88,4 +88,14 @@ public class CustomOperationTests {
     jsonLogic.addOperation("double", args -> ((Number) args[0]).doubleValue() * 2);
     assertEquals(10.0, jsonLogic.apply("{\"double\":[5]}", null));
   }
+
+  @Test
+  public void shouldPickUpOperationRegisteredAfterEvaluation() throws JsonLogicException {
+    final var jsonLogic = new JsonLogic(false);
+    assertEquals(3.0, jsonLogic.apply("{\"+\":[1,2]}", null));
+
+    jsonLogic.addOperation("double", args -> ((Number) args[0]).doubleValue() * 2);
+
+    assertEquals(10.0, jsonLogic.apply("{\"double\":[5]}", null));
+  }
 }
