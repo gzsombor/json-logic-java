@@ -37,6 +37,12 @@ To run a specific benchmark, pass its name (or a substring) via `jmhArgs`:
 gradle jmh -PjmhArgs="TwentyClauses"
 ```
 
+To measure compilation cost and break-even iteration counts, run:
+
+```bash
+gradle jmh -PjmhArgs="CompilationBreakEven"
+```
+
 ### Results
 
 Throughput on an Intel i9-12950HX, JDK 17, 3 forks × 5 s warmup + 5 s measurement.
@@ -61,6 +67,20 @@ Key observations:
 - **`in` against a literal set is now compiled.** The haystack is emitted as a `private static final HashSet<Object>` field, allocated once at class-load time; each evaluation is a single `HashSet.contains` call. This lifts `in`-set throughput from ~2M to ~20M ops/s (~10×).
 - **Repeated variable access scales well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals, reducing five map lookups to one. That alone accounts for the ~9.5× gain on the repeated-lookup benchmark vs ~4–5× for single-use vars.
 - **Complex rules still benefit.** Even a twenty-clause AND chain — the worst case for compilation overhead — sees a ~4× improvement, because every intermediate truthiness check and var resolution is a direct primitive operation rather than a virtual dispatch through the evaluator tree.
+
+### Compilation break-even
+
+Compilation is a one-time cost paid on first use of a unique rule, then the compiled function is cached. The break-even estimate is `compile time / (interpreter eval time - compiled eval time)`.
+
+Measured with JMH average-time mode on JDK 11:
+
+| Scenario | Compile time | Interpreter eval | Compiled eval | Break-even |
+|---|--:|--:|--:|--:|
+| Five mixed operations | 11,804 us | 0.947 us | 0.215 us | ~16,100 evals |
+| Twenty-clause AND chain | 10,010 us | 3.609 us | 0.876 us | ~3,700 evals |
+| Dispatch table miss | 9,588 us | 1.019 us | 0.075 us | ~10,200 evals |
+
+As a rule of thumb, compilation pays off for rules evaluated thousands to tens of thousands of times. For one-off or rarely executed rules, use `new JsonLogic(false)` to avoid the cold compilation cost.
 
 ## Comparison operator compatibility
 
