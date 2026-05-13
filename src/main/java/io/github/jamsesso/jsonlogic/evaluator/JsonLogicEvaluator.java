@@ -166,7 +166,7 @@ public class JsonLogicEvaluator {
     Object defaultValue;
 
     try {
-      defaultValue = evaluate(variable.getDefaultValue(), null);
+      defaultValue = evaluate(variable.getDefaultValue(), data);
     } catch (JsonLogicEvaluationException e) {
       e.prependPartialJsonPath("[1]");
       throw e;
@@ -188,7 +188,7 @@ public class JsonLogicEvaluator {
     if (key == null) {
       Object varValue;
       try {
-        varValue = evaluate(variable.getDefaultValue(), null);
+        varValue = evaluate(variable.getDefaultValue(), data);
       } catch (JsonLogicEvaluationException e) {
         e.prependPartialJsonPath("[0]");
         throw e;

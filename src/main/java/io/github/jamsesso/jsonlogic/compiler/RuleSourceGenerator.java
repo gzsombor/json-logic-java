@@ -53,7 +53,7 @@ import java.util.Map;
    * is needed beyond the escaping already applied by {@code javaStringLiteral}.
    *
    * <h2>Variable hoisting</h2>
-   * <p>Simple {@code var} accesses (string key, no default) are resolved once at the top of
+   * <p>Simple {@code var} accesses (string key, null default) are resolved once at the top of
    * the generated method and cached in {@code final Object} locals, regardless of which
    * conditional branches actually use them.  This is a deliberate trade-off: it avoids
    * re-resolving the same path on every evaluation but means the variable is always resolved
@@ -61,7 +61,9 @@ import java.util.Map;
    * tree-walking interpreter, which resolves variables lazily as execution reaches them.
    * Rules that rely on a missing-var default (e.g. {@code {"var":"x"}}) are still correct
    * because {@link io.github.jamsesso.jsonlogic.compiler.RuleHelpers#resolveVarChecked}
-   * returns {@code null} for absent keys rather than throwing.
+   * returns {@code null} for absent keys rather than throwing. String-key vars with non-null
+   * defaults are emitted inline, not hoisted, so the default expression is evaluated only when
+   * the {@code var} expression itself is reached.
    *
    * <h2>Generated class constructor</h2>
  * <pre>public RuleXxx(JsonLogicEvaluator fallback, JsonLogicNode[] fallbackNodes, String ruleJson)</pre>
@@ -321,10 +323,14 @@ public final class RuleSourceGenerator {
   // ---- variable ----
 
   private String emitVariable(JsonLogicVariable node, StringBuilder pre, String dataExpr, String path) {
-    // Optimisation: if the key is a plain string literal and the default is null,
-    // resolve the variable once into a final local and reuse it on subsequent references.
-    if (node.getKey() instanceof JsonLogicString && node.getDefaultValue() instanceof JsonLogicNull) {
+    if (node.getKey() instanceof JsonLogicString) {
       final String varName = ((JsonLogicString) node.getKey()).getValue();
+      // Optimisation: if the key is a plain string literal and the default is null,
+      // resolve the variable once into a final local and reuse it on subsequent references.
+      if (!(node.getDefaultValue() instanceof JsonLogicNull)) {
+        return "resolveVarChecked(" + dataExpr + ", " + javaStringLiteral(varName) + ", "
+            + emitExpression(node.getDefaultValue(), pre, dataExpr, path + "[1]") + ")";
+      }
       if (!varScopes.isEmpty()) {
         final VarScope varScope = varScopes.get(varScopes.size() - 1);
         final String cached = varScope.cache.get(varName);
@@ -351,7 +357,7 @@ public final class RuleSourceGenerator {
           .append(" = resolveVarChecked(data, ").append(javaStringLiteral(varName)).append(", null);\n");
       return localName;
     }
-    // General case: key is dynamic or a non-null default is present.
+    // General case: key is dynamic.
     // Use the fallback evaluator so that invalid key types throw with the right path.
     // Pass the parent path; the evaluator will prepend ".var" to exceptions itself.
     final int idx = fallbackNodes.size();
