@@ -1,5 +1,7 @@
 package io.github.jamsesso.jsonlogic;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -92,6 +94,38 @@ public class IfExpressionTests {
                                  "]");
     Object result = jsonLogic.apply(json, null);
     assertEquals("liquid", result);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("enginesAndOperators")
+  public void shouldReturnObjectLiteralFromSelectedBranch(
+      String label, JsonLogic jsonLogic, String operator) throws JsonLogicException {
+    String json = rule(operator,
+        "[{\"==\": [2, 2]}, {\"key_1\": 0, \"key_2\": 0}, "
+            + "{\"key_1\": null, \"key_2\": null}]");
+
+    Object result = jsonLogic.apply(json, null);
+
+    Map<String, Object> expected = new HashMap<>();
+    expected.put("key_1", 0.0);
+    expected.put("key_2", 0.0);
+    assertEquals(expected, result);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("enginesAndOperators")
+  public void shouldReturnObjectLiteralFromElse(
+      String label, JsonLogic jsonLogic, String operator) throws JsonLogicException {
+    String json = rule(operator,
+        "[{\"==\": [2, 3]}, {\"key_1\": 0, \"key_2\": 0}, "
+            + "{\"key_1\": null, \"key_2\": null}]");
+
+    Object result = jsonLogic.apply(json, null);
+
+    Map<String, Object> expected = new HashMap<>();
+    expected.put("key_1", null);
+    expected.put("key_2", null);
+    assertEquals(expected, result);
   }
 
   @ParameterizedTest(name = "{0}")

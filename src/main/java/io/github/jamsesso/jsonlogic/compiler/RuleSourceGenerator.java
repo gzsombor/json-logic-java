@@ -258,6 +258,9 @@ public final class RuleSourceGenerator {
     if (node instanceof JsonLogicArray) {
       return emitArrayLiteral((JsonLogicArray) node, pre, dataExpr, path);
     }
+    if (node instanceof JsonLogicObject) {
+      return emitObjectLiteral((JsonLogicObject) node, pre, dataExpr, path);
+    }
     if (node instanceof JsonLogicVariable) {
       return emitVariable((JsonLogicVariable) node, pre, dataExpr, path);
     }
@@ -388,6 +391,21 @@ public final class RuleSourceGenerator {
       sb.append(emitExpression(node.get(i), pre, dataExpr, path + "[" + i + "]"));
     }
     return sb.append(")").toString();
+  }
+
+  private String emitObjectLiteral(JsonLogicObject node, StringBuilder pre, String dataExpr, String path) {
+    final String mapVar = freshVar("object");
+    pre.append("    final Map<String, Object> ").append(mapVar).append(" = new LinkedHashMap<>();\n");
+    for (Map.Entry<String, JsonLogicNode> entry : node.getEntries().entrySet()) {
+      final String value = emitExpression(entry.getValue(), pre, dataExpr, path + "." + entry.getKey());
+      pre.append("    ").append(mapVar).append(".put(")
+          .append(javaStringLiteral(entry.getKey()))
+          .append(", ")
+          .append(value)
+          .append(");\n");
+    }
+
+    return mapVar;
   }
 
   // ---- operations ----

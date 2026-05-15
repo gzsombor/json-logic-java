@@ -5,6 +5,7 @@ import io.github.jamsesso.jsonlogic.ast.JsonLogicArray;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicBoolean;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNumber;
+import io.github.jamsesso.jsonlogic.ast.JsonLogicObject;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicOperation;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicPrimitive;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicVariable;
@@ -32,6 +33,7 @@ import io.github.jamsesso.jsonlogic.utils.ArrayLike;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -135,6 +137,8 @@ public class JsonLogicEvaluator {
         }
       case ARRAY:
         return evaluate((JsonLogicArray) node, data);
+      case OBJECT:
+        return evaluate((JsonLogicObject) node, data);
       default:
         return evaluate((JsonLogicOperation) node, data);
     }
@@ -294,6 +298,21 @@ public class JsonLogicEvaluator {
         values.add(evaluate(element, data));
       } catch (JsonLogicEvaluationException e) {
         e.prependPartialJsonPath("[" + index + "]");
+        throw e;
+      }
+    }
+
+    return values;
+  }
+
+  public Map<String, Object> evaluate(JsonLogicObject object, Object data) throws JsonLogicEvaluationException {
+    Map<String, Object> values = new LinkedHashMap<>();
+
+    for (Map.Entry<String, JsonLogicNode> entry : object.getEntries().entrySet()) {
+      try {
+        values.put(entry.getKey(), evaluate(entry.getValue(), data));
+      } catch (JsonLogicEvaluationException e) {
+        e.prependPartialJsonPath("." + entry.getKey());
         throw e;
       }
     }

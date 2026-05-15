@@ -4,7 +4,9 @@ import com.google.gson.*;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class JsonLogicParser {
   private static final JsonParser PARSER = new JsonParser();
@@ -15,7 +17,7 @@ public final class JsonLogicParser {
 
   public static JsonLogicNode parse(String json) throws JsonLogicParseException {
     try {
-      return parse(PARSER.parse(json));
+      return parse(PARSER.parse(json), false);
     } catch (JsonLogicParseException e) {
       e.prependPartialJsonPath("$");
       throw e;
@@ -24,7 +26,7 @@ public final class JsonLogicParser {
     }
   }
 
-  private static JsonLogicNode parse(JsonElement root) throws JsonLogicParseException {
+  private static JsonLogicNode parse(JsonElement root, boolean allowObjectLiteral) throws JsonLogicParseException {
     // Handle null
     if (root.isJsonNull()) {
       return JsonLogicNull.NULL;
@@ -58,7 +60,7 @@ public final class JsonLogicParser {
         JsonElement element = array.get(index);
         JsonLogicNode arrayNode;
         try {
-          arrayNode = parse(element);
+          arrayNode = parse(element, false);
         } catch (JsonLogicParseException e) {
           e.prependPartialJsonPath("[" + (index) + "]");
           throw e;
@@ -73,6 +75,10 @@ public final class JsonLogicParser {
     JsonObject object = root.getAsJsonObject();
 
     if (object.keySet().size() != 1) {
+      if (allowObjectLiteral && object.keySet().size() > 1) {
+        return parseObjectLiteral(object);
+      }
+
       throw new JsonLogicParseException("objects must have exactly 1 key defined, found " + object.keySet().size());
     }
 
@@ -81,17 +87,21 @@ public final class JsonLogicParser {
     JsonLogicArray arguments;
 
     try {
-      argumentNode = parse(object.get(key));
+      JsonElement argumentElement = object.get(key);
+      if (("if".equals(key) || "?:".equals(key)) && argumentElement.isJsonArray()) {
+        arguments = parseIfArguments(argumentElement.getAsJsonArray());
+      } else {
+        argumentNode = parse(argumentElement, false);
+        // Always coerce single-argument operations into a JsonLogicArray with a single element.
+        if (argumentNode instanceof JsonLogicArray) {
+          arguments = (JsonLogicArray) argumentNode;
+        } else {
+          arguments = new JsonLogicArray(Collections.singletonList(argumentNode));
+        }
+      }
     } catch (JsonLogicParseException e) {
       e.prependPartialJsonPath("." + key);
       throw e;
-    }
-
-    // Always coerce single-argument operations into a JsonLogicArray with a single element.
-    if (argumentNode instanceof JsonLogicArray) {
-      arguments = (JsonLogicArray) argumentNode;
-    } else {
-      arguments = new JsonLogicArray(Collections.singletonList(argumentNode));
     }
 
     // Special case for variable handling
@@ -102,5 +112,36 @@ public final class JsonLogicParser {
 
     // Handle regular operations
     return new JsonLogicOperation(key, arguments);
+  }
+
+  private static JsonLogicObject parseObjectLiteral(JsonObject object) throws JsonLogicParseException {
+    Map<String, JsonLogicNode> entries = new LinkedHashMap<>();
+    for (String objectKey : object.keySet()) {
+      try {
+        entries.put(objectKey, parse(object.get(objectKey), true));
+      } catch (JsonLogicParseException e) {
+        e.prependPartialJsonPath("." + objectKey);
+        throw e;
+      }
+    }
+
+    return new JsonLogicObject(entries);
+  }
+
+  private static JsonLogicArray parseIfArguments(JsonArray array) throws JsonLogicParseException {
+    List<JsonLogicNode> elements = new ArrayList<>(array.size());
+
+    for (int index = 0; index < array.size(); index++) {
+      try {
+        boolean isResultPosition = index % 2 == 1;
+        boolean isTrailingElse = index > 0 && index == array.size() - 1 && array.size() % 2 == 1;
+        elements.add(parse(array.get(index), isResultPosition || isTrailingElse));
+      } catch (JsonLogicParseException e) {
+        e.prependPartialJsonPath("[" + index + "]");
+        throw e;
+      }
+    }
+
+    return new JsonLogicArray(elements);
   }
 }
