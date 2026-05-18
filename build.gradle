@@ -1,6 +1,6 @@
 plugins {
   id "java-library"
-  id "com.vanniktech.maven.publish" version "0.34.0"
+  alias(libs.plugins.maven.publish)
 }
 
 group "io.github.gzsombor"
@@ -56,8 +56,8 @@ configurations {
 
 dependencies {
   jmhImplementation project(":")
-  jmhImplementation "org.openjdk.jmh:jmh-core:1.37"
-  jmhAnnotationProcessor "org.openjdk.jmh:jmh-generator-annprocess:1.37"
+  jmhImplementation libs.jmh.core
+  jmhAnnotationProcessor libs.jmh.generator.annprocess
 }
 
 compileJmhJava.options.annotationProcessorPath = configurations.jmhAnnotationProcessor
