@@ -1,0 +1,70 @@
+package io.github.jamsesso.jsonlogic.compiler;
+
+import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
+import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
+import java.util.Comparator;
+import java.util.ServiceLoader;
+
+/** Discovers and delegates to the best available JSON Logic compiler implementation. */
+public final class JsonLogicCompiler {
+
+  private final JsonLogicCompilerImplementation implementation;
+
+  /**
+   * Creates a compiler backed by the highest priority implementation available on the classpath.
+   *
+   * @param fallbackEvaluator used as the fallback for operators that are not natively compiled
+   * @throws IllegalStateException if no compiler implementation is available
+   */
+  public JsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator) {
+    this(loadProvider(fallbackEvaluator));
+  }
+
+  public JsonLogicCompiler(JsonLogicCompilerImplementation implementation) {
+    this.implementation = implementation;
+  }
+
+  private static JsonLogicCompilerImplementation loadProvider(JsonLogicEvaluator fallbackEvaluator) {
+    return ServiceLoader.load(JsonLogicCompilerProvider.class)
+        .stream()
+        .map(ServiceLoader.Provider::get)
+        .filter(JsonLogicCompilerProvider::isAvailable)
+        .max(Comparator.comparingInt(JsonLogicCompilerProvider::priority))
+        .map(provider -> provider.create(fallbackEvaluator))
+        .orElseThrow(() -> new IllegalStateException(
+            "No JSON Logic compiler implementation is available on the classpath."));
+  }
+
+  /**
+   * Enables or disables strict compilation mode.
+   * When enabled, compilation failures throw {@link JsonLogicCompilationException} instead of
+   * falling back to the interpreter.
+   */
+  public JsonLogicCompiler setStrictMode(boolean strict) {
+    implementation.setStrictMode(strict);
+    return this;
+  }
+
+  /** Returns {@code true} if strict compilation mode is enabled. */
+  public boolean isStrictMode() {
+    return implementation.isStrictMode();
+  }
+
+  /**
+   * Returns a {@link CompiledRule} for {@code ast}, compiling it on first call and returning
+   * the cached instance on subsequent calls.
+   *
+   * @param ruleJson the original JSON string (used as cache key)
+   * @param ast      the parsed AST
+   * @return a compiled rule, or an interpreter-backed rule if compilation fails
+   * @throws JsonLogicCompilationException if strict mode is enabled and compilation fails
+   */
+  public CompiledRule compile(String ruleJson, JsonLogicNode ast) throws JsonLogicCompilationException {
+    return implementation.compile(ruleJson, ast);
+  }
+
+  /** Evicts all cached compiled rules (e.g. after {@code addOperation} is called). */
+  public void invalidate() {
+    implementation.invalidate();
+  }
+}
