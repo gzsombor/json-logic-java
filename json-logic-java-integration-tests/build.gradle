@@ -5,7 +5,7 @@ plugins {
 dependencies {
   testImplementation project(":json-logic-java-core")
   testRuntimeOnly project(":json-logic-java-compiler-javac")
-  testImplementation "com.google.code.gson:gson:2.14.0"
-  testImplementation "org.junit.jupiter:junit-jupiter:5.14.4"
-  testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+  testImplementation libs.gson
+  testImplementation libs.junit.jupiter
+  testRuntimeOnly libs.junit.platform.launcher
 }
