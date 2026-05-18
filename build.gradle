@@ -1,26 +1,42 @@
 plugins {
-  id "java"
+  id "java-library"
   id "com.vanniktech.maven.publish" version "0.34.0"
 }
 
 group "io.github.gzsombor"
 version "1.1.6"
 
-java {
-  toolchain {
-    languageVersion = JavaLanguageVersion.of(11)
+allprojects {
+  group = rootProject.group
+  version = rootProject.version
+
+  repositories {
+    mavenCentral()
   }
 }
 
-repositories {
-  mavenCentral()
+subprojects {
+  plugins.withType(JavaPlugin).configureEach {
+    java {
+      toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+      }
+    }
+
+    tasks.withType(Test).configureEach {
+      useJUnitPlatform()
+      testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showStandardStreams = true
+      }
+    }
+  }
 }
 
 dependencies {
-  implementation "com.google.code.gson:gson:2.14.0"
-  testImplementation "org.junit.jupiter:junit-jupiter:5.14.4"
-  testImplementation "org.junit.jupiter:junit-jupiter-params:5.14.4"
-  testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+  api project(":json-logic-java-core")
+  api project(":json-logic-java-compiler-javac")
 }
 
 sourceSets {
@@ -32,41 +48,31 @@ sourceSets {
 }
 
 configurations {
-  jmhImplementation.extendsFrom implementation
+  jmhImplementation
   jmhAnnotationProcessor
   jmhCompileClasspath.extendsFrom jmhImplementation
   jmhRuntimeClasspath.extendsFrom jmhImplementation
 }
 
 dependencies {
+  jmhImplementation project(":")
   jmhImplementation "org.openjdk.jmh:jmh-core:1.37"
   jmhAnnotationProcessor "org.openjdk.jmh:jmh-generator-annprocess:1.37"
 }
 
-// Wire the annotation processor for the jmh source set
 compileJmhJava.options.annotationProcessorPath = configurations.jmhAnnotationProcessor
 
-// Simple task to run JMH benchmarks
-task jmh(type: JavaExec, dependsOn: compileJmhJava) {
+tasks.register('jmh', JavaExec) {
+  dependsOn compileJmhJava
   group = 'benchmark'
   description = 'Run JMH benchmarks (org.openjdk.jmh.Main)'
   mainClass = 'org.openjdk.jmh.Main'
   classpath = sourceSets.jmh.runtimeClasspath
-  // pass any args through via -PjmhArgs='"-i 3 -wi 3 -f 1"' or configure here
   doFirst {
     if (project.hasProperty('jmhArgs')) {
       def parts = project.property('jmhArgs').toString().split('\\s+') as List
       setArgs(parts)
     }
-  }
-}
-
-test {
-  useJUnitPlatform()
-  testLogging {
-    events "passed", "skipped", "failed"
-    exceptionFormat "full"
-    showStandardStreams = true
   }
 }
 

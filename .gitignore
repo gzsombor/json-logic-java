@@ -2,6 +2,7 @@
 .idea/
 out/
 build/
+**/build/
 .DS_Store
 secring.gpg
 .vscode

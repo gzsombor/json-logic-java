@@ -1,0 +1,11 @@
+plugins {
+  id "java-library"
+  id "com.vanniktech.maven.publish"
+}
+
+dependencies {
+  api project(":json-logic-java-core")
+  testImplementation "org.junit.jupiter:junit-jupiter:5.14.4"
+  testImplementation "org.junit.jupiter:junit-jupiter-params:5.14.4"
+  testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}

@@ -1,0 +1,14 @@
+plugins {
+  id "java-library"
+  id "com.vanniktech.maven.publish"
+}
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(23)
+  }
+}
+
+dependencies {
+  api project(":json-logic-java-core")
+}
