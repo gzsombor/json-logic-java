@@ -7,5 +7,5 @@ public interface JsonLogicCompilerProvider {
 
   boolean isAvailable();
 
-  JsonLogicCompilerImplementation create(JsonLogicEvaluator fallbackEvaluator);
+  JsonLogicCompilerImplementation create(JsonLogicEvaluator fallbackEvaluator, boolean strictMode);
 }

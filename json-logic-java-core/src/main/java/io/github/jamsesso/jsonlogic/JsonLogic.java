@@ -3,7 +3,6 @@ package io.github.jamsesso.jsonlogic;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
 import io.github.jamsesso.jsonlogic.compiler.CompiledRule;
-import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompilationException;
 import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompiler;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicExpression;
@@ -33,9 +32,13 @@ public final class JsonLogic {
   }
 
   public JsonLogic(boolean enableCompilation) {
+    this(enableCompilation, false);
+  }
+
+  public JsonLogic(boolean enableCompilation, boolean strictCompilation) {
     if (enableCompilation) {
       try {
-        this.compiler = new JsonLogicCompiler(evaluator);
+        this.compiler = new JsonLogicCompiler(evaluator, strictCompilation);
       } catch (IllegalStateException e) {
         LOG.warning("Compilation is unavailable. "
             + "Rules will be evaluated by the interpreter. "
@@ -43,18 +46,6 @@ public final class JsonLogic {
         this.compiler = null;
       }
     }
-  }
-
-  /**
-   * Enables or disables strict compilation mode.
-   * When enabled, compilation failures throw {@link JsonLogicCompilationException} instead of
-   * falling back to the interpreter. Useful for testing that all rules are compilable.
-   */
-  public JsonLogic setStrictCompilation(boolean strict) {
-    if (compiler != null) {
-      compiler.setStrictMode(strict);
-    }
-    return this;
   }
 
   /** Returns {@code true} if strict compilation mode is enabled. */
