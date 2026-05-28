@@ -1,6 +1,5 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -82,16 +81,18 @@ public class CustomOperationTests {
 
   // ---- cache invalidation ----
 
-  @Test
-  public void operationRegisteredAfterConstruction_isPickedUp() throws JsonLogicException {
-    final var jsonLogic = new JsonLogic(false);
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void operationRegisteredAfterConstruction_isPickedUp(String name, JsonLogic jsonLogic)
+      throws JsonLogicException {
     jsonLogic.addOperation("double", args -> ((Number) args[0]).doubleValue() * 2);
     assertEquals(10.0, jsonLogic.apply("{\"double\":[5]}", null));
   }
 
-  @Test
-  public void shouldPickUpOperationRegisteredAfterEvaluation() throws JsonLogicException {
-    final var jsonLogic = new JsonLogic(false);
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldPickUpOperationRegisteredAfterEvaluation(String name, JsonLogic jsonLogic)
+      throws JsonLogicException {
     assertEquals(3.0, jsonLogic.apply("{\"+\":[1,2]}", null));
 
     jsonLogic.addOperation("double", args -> ((Number) args[0]).doubleValue() * 2);

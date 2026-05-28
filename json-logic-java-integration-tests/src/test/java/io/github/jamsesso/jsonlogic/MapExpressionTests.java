@@ -12,7 +12,6 @@ import static io.github.jamsesso.jsonlogic.JsonLogicExceptionTestUtility.testErr
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MapExpressionTests {
-
   @ParameterizedTest(name = "{0}")
   @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
   public void testMap(String name, JsonLogic jsonLogic) throws JsonLogicException {

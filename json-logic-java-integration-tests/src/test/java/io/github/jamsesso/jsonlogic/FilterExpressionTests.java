@@ -1,6 +1,7 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 
@@ -8,10 +9,9 @@ import static io.github.jamsesso.jsonlogic.JsonLogicExceptionTestUtility.testErr
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FilterExpressionTests {
-  private static final JsonLogic jsonLogic = new JsonLogic(false);
-
-  @Test
-  public void testFilter() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testFilter(String name, JsonLogic jsonLogic) throws JsonLogicException {
     String json = "{\"filter\": [\n" +
                   "  {\"var\": \"\"},\n" +
                   "  {\"==\": [{\"%\": [{\"var\": \"\"}, 2]}, 0]}\n" +
@@ -25,8 +25,9 @@ public class FilterExpressionTests {
     assertEquals(6.0, ((List) result).get(2));
   }
 
-  @Test
-  public void testInvalidFilter() {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testInvalidFilter(String name, JsonLogic jsonLogic) {
     String json =  "{\"filter\": [\n" +
         "  {\"var\": {}},\n" +
         // --------  ^  ------
