@@ -4,8 +4,15 @@ plugins {
 
 dependencies {
   testImplementation project(":json-logic-core")
-  testRuntimeOnly project(":json-logic-java-compiler-javac")
+  testImplementation project(":json-logic-java-compiler-javac")
+  testImplementation project(":json-logic-jep484")
   testImplementation libs.gson
   testImplementation libs.junit.jupiter
   testRuntimeOnly libs.junit.platform.launcher
+}
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(24)
+  }
 }

@@ -1,5 +1,7 @@
 package io.github.jamsesso.jsonlogic;
 
+import io.github.jamsesso.jsonlogic.compiler.JavacJsonLogicCompiler;
+import io.github.jamsesso.jsonlogic.compiler.classfile.ClassFileJsonLogicCompiler;
 import java.util.stream.Stream;
 
 public final class JsonLogicTestEngines {
@@ -8,7 +10,8 @@ public final class JsonLogicTestEngines {
   public static Stream<Object[]> engines() {
     return Stream.of(
         new Object[]{"interpreter", interpreter()},
-        new Object[]{"compiled", compiled()});
+        new Object[]{"javac", javac()},
+        new Object[]{"jep484", jep484()});
   }
 
   public static JsonLogic interpreter() {
@@ -16,6 +19,14 @@ public final class JsonLogicTestEngines {
   }
 
   public static JsonLogic compiled() {
-    return new JsonLogic(true, true);
+    return javac();
+  }
+
+  public static JsonLogic javac() {
+    return new JsonLogic(evaluator -> new JavacJsonLogicCompiler(evaluator, true));
+  }
+
+  public static JsonLogic jep484() {
+    return new JsonLogic(evaluator -> new ClassFileJsonLogicCompiler(evaluator, true));
   }
 }

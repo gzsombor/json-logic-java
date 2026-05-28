@@ -4,6 +4,7 @@ import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
 import io.github.jamsesso.jsonlogic.compiler.CompiledRule;
 import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompiler;
+import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompilerImplementation;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicExpression;
 import io.github.jamsesso.jsonlogic.evaluator.expressions.PreEvaluatedArgumentsExpression;
@@ -46,6 +47,10 @@ public final class JsonLogic {
         this.compiler = null;
       }
     }
+  }
+
+  JsonLogic(Function<JsonLogicEvaluator, JsonLogicCompilerImplementation> compilerFactory) {
+    this.compiler = new JsonLogicCompiler(compilerFactory.apply(evaluator));
   }
 
   /** Returns {@code true} if strict compilation mode is enabled. */
