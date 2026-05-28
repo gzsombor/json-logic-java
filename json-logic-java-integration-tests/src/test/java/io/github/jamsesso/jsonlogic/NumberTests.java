@@ -1,16 +1,16 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.jupiter.api.Test;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class NumberTests {
-  @Test
-  public void testConvertAllNumericInputToDouble() throws JsonLogicException {
-    JsonLogic jsonLogic = new JsonLogic(false);
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testConvertAllNumericInputToDouble(String name, JsonLogic jsonLogic) throws JsonLogicException {
     Map<String, Number> numbers = new HashMap<String, Number>() {{
       put("double", 1D);
       put("float", 1F);

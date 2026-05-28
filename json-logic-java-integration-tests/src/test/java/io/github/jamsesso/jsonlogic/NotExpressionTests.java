@@ -1,49 +1,56 @@
 package io.github.jamsesso.jsonlogic;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class NotExpressionTests {
-  private static final JsonLogic jsonLogic = new JsonLogic(false);
-
-  @Test
-  public void testSingleBoolean() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testSingleBoolean(String name, JsonLogic jsonLogic) throws JsonLogicException {
     assertEquals(true, jsonLogic.apply("{\"!\": false}", null));
   }
 
-  @Test
-  public void testSingleNumber() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testSingleNumber(String name, JsonLogic jsonLogic) throws JsonLogicException {
     assertEquals(true, jsonLogic.apply("{\"!\": 0}", null));
   }
 
-  @Test
-  public void testSingleString() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testSingleString(String name, JsonLogic jsonLogic) throws JsonLogicException {
     assertEquals(true, jsonLogic.apply("{\"!\": \"\"}", null));
   }
 
-  @Test
-  public void testSingleArray() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testSingleArray(String name, JsonLogic jsonLogic) throws JsonLogicException {
     assertEquals(true, jsonLogic.apply("{\"!\": []}", null));
   }
 
-  @Test
-  public void testDoubleBoolean() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testDoubleBoolean(String name, JsonLogic jsonLogic) throws JsonLogicException {
     assertEquals(false, jsonLogic.apply("{\"!!\": false}", null));
   }
 
-  @Test
-  public void testDoubleNumber() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testDoubleNumber(String name, JsonLogic jsonLogic) throws JsonLogicException {
     assertEquals(false, jsonLogic.apply("{\"!!\": 0}", null));
   }
 
-  @Test
-  public void testDoubleString() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testDoubleString(String name, JsonLogic jsonLogic) throws JsonLogicException {
     assertEquals(false, jsonLogic.apply("{\"!!\": \"\"}", null));
   }
 
-  @Test
-  public void testDoubleArray() throws JsonLogicException {
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testDoubleArray(String name, JsonLogic jsonLogic) throws JsonLogicException {
     assertEquals(false, jsonLogic.apply("{\"!!\": [[]]}", null));
   }
 }

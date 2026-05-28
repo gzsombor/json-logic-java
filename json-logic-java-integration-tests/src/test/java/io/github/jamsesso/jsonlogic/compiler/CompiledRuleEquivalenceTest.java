@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
+import io.github.jamsesso.jsonlogic.JsonLogicTestEngines;
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -32,8 +33,8 @@ public class CompiledRuleEquivalenceTest {
 
   @Test
   public void shouldMatchInterpreterWithDefaultCompiler() {
-    JsonLogic interpreter = new JsonLogic(false);
-    JsonLogic compiled = new JsonLogic(true, true);
+    JsonLogic interpreter = JsonLogicTestEngines.interpreter();
+    JsonLogic compiled = JsonLogicTestEngines.compiled();
 
     List<String> failures = new ArrayList<>();
 
