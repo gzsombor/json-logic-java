@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-  testImplementation project(":json-logic-java-core")
+  testImplementation project(":json-logic-core")
   testRuntimeOnly project(":json-logic-java-compiler-javac")
   testImplementation libs.gson
   testImplementation libs.junit.jupiter

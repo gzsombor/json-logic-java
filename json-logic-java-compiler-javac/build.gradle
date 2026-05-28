@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-  api project(":json-logic-java-core")
+  api project(":json-logic-core")
   testImplementation libs.junit.jupiter
   testImplementation libs.junit.jupiter.params
   testRuntimeOnly libs.junit.platform.launcher
