@@ -17,32 +17,27 @@ public final class JsonLogicCompiler {
    * @throws IllegalStateException if no compiler implementation is available
    */
   public JsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator) {
-    this(loadProvider(fallbackEvaluator));
+    this(fallbackEvaluator, false);
+  }
+
+  public JsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
+    this(loadProvider(fallbackEvaluator, strictMode));
   }
 
   public JsonLogicCompiler(JsonLogicCompilerImplementation implementation) {
     this.implementation = implementation;
   }
 
-  private static JsonLogicCompilerImplementation loadProvider(JsonLogicEvaluator fallbackEvaluator) {
+  private static JsonLogicCompilerImplementation loadProvider(
+      JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
     return ServiceLoader.load(JsonLogicCompilerProvider.class)
         .stream()
         .map(ServiceLoader.Provider::get)
         .filter(JsonLogicCompilerProvider::isAvailable)
         .max(Comparator.comparingInt(JsonLogicCompilerProvider::priority))
-        .map(provider -> provider.create(fallbackEvaluator))
+        .map(provider -> provider.create(fallbackEvaluator, strictMode))
         .orElseThrow(() -> new IllegalStateException(
             "No JSON Logic compiler implementation is available on the classpath."));
-  }
-
-  /**
-   * Enables or disables strict compilation mode.
-   * When enabled, compilation failures throw {@link JsonLogicCompilationException} instead of
-   * falling back to the interpreter.
-   */
-  public JsonLogicCompiler setStrictMode(boolean strict) {
-    implementation.setStrictMode(strict);
-    return this;
   }
 
   /** Returns {@code true} if strict compilation mode is enabled. */

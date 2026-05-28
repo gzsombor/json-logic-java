@@ -30,10 +30,15 @@ public final class JavacJsonLogicCompiler implements JsonLogicCompilerImplementa
   private final JsonLogicEvaluator fallbackEvaluator;
   private final JavaCompiler javac;
   private final Map<String, CompiledRule> cache = new ConcurrentHashMap<>();
-  private boolean strictMode = false;
+  private final boolean strictMode;
 
   public JavacJsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator) {
+    this(fallbackEvaluator, false);
+  }
+
+  public JavacJsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
     this.fallbackEvaluator = fallbackEvaluator;
+    this.strictMode = strictMode;
     JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
     if (compiler == null) {
       throw new IllegalStateException(
@@ -41,12 +46,6 @@ public final class JavacJsonLogicCompiler implements JsonLogicCompilerImplementa
               + "Compilation requires the 'jdk.compiler' module to provide a compiler.");
     }
     this.javac = compiler;
-  }
-
-  @Override
-  public JavacJsonLogicCompiler setStrictMode(boolean strict) {
-    this.strictMode = strict;
-    return this;
   }
 
   @Override

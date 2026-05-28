@@ -46,7 +46,7 @@ public class JmhCompilationBreakEvenBenchmark {
   public void setup() throws JsonLogicException {
     interpreter = new JsonLogic(false);
     compiled = new JsonLogic();
-    compiler = new JsonLogicCompiler(new JsonLogicEvaluator(Collections.emptyList())).setStrictMode(true);
+    compiler = new JsonLogicCompiler(new JsonLogicEvaluator(Collections.emptyList()), true);
 
     switch (ruleShape) {
       case "fiveClauses":

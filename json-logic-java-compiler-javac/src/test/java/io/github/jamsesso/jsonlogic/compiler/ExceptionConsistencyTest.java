@@ -76,7 +76,7 @@ public class ExceptionConsistencyTest {
     String expectedPath    = expected[1];
 
     JsonLogic interpreter = new JsonLogic(false);
-    JsonLogic compiled = new JsonLogic(true).setStrictCompilation(true);
+    JsonLogic compiled = new JsonLogic(true, true);
 
     JsonLogicException interpEx = applyExpectingException(interpreter, json, "interpreter", scenarioName);
     JsonLogicException compiledEx = applyExpectingException(compiled, json, "compiled", scenarioName);

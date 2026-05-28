@@ -33,7 +33,7 @@ public class CompiledRuleEquivalenceTest {
   @Test
   public void shouldMatchInterpreterWithDefaultCompiler() {
     JsonLogic interpreter = new JsonLogic(false);
-    JsonLogic compiled = new JsonLogic().setStrictCompilation(true);
+    JsonLogic compiled = new JsonLogic(true, true);
 
     List<String> failures = new ArrayList<>();
 
