@@ -2,5 +2,5 @@ rootProject.name = 'json-logic-java'
 
 include 'json-logic-core'
 include 'json-logic-java-compiler-javac'
-include 'json-logic-java-compiler-classfile'
+include 'json-logic-jep484'
 include 'json-logic-java-integration-tests'
