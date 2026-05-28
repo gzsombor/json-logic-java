@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.tools.Diagnostic;
@@ -29,7 +28,6 @@ public final class JavacJsonLogicCompiler implements JsonLogicCompilerImplementa
 
   private final JsonLogicEvaluator fallbackEvaluator;
   private final JavaCompiler javac;
-  private final Map<String, CompiledRule> cache = new ConcurrentHashMap<>();
   private final boolean strictMode;
 
   public JavacJsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator) {
@@ -55,15 +53,6 @@ public final class JavacJsonLogicCompiler implements JsonLogicCompilerImplementa
 
   @Override
   public CompiledRule compile(String ruleJson, JsonLogicNode ast) throws JsonLogicCompilationException {
-    return cache.computeIfAbsent(ruleJson, key -> compileInternal(ruleJson, ast));
-  }
-
-  @Override
-  public void invalidate() {
-    cache.clear();
-  }
-
-  private CompiledRule compileInternal(String ruleJson, JsonLogicNode ast) {
     final String className = classNameFor(ruleJson);
     final String qualifiedName = RuleSourceGenerator.GEN_PACKAGE + "." + className;
     final var generator = new RuleSourceGenerator();

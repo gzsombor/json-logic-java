@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 public final class JsonLogic {
   private static final Logger LOG = Logger.getLogger(JsonLogic.class.getName());
 
-  private final Map<String, JsonLogicNode> parseCache = new ConcurrentHashMap<>();
+  private final Map<String, Rule> ruleCache = new ConcurrentHashMap<>();
   private final JsonLogicEvaluator evaluator = new JsonLogicEvaluator();
 
   /**
@@ -117,9 +117,7 @@ public final class JsonLogic {
 
   public JsonLogic addOperation(JsonLogicExpression expression) {
     evaluator.addOperation(expression);
-    if (compiler != null) {
-      compiler.invalidate();
-    }
+    ruleCache.clear();
     return this;
   }
 
@@ -129,11 +127,13 @@ public final class JsonLogic {
   }
 
   public Object apply(String json, Object data) throws JsonLogicException {
-    JsonLogicNode ast;
+    Rule rule;
     try {
-      ast = parseCache.computeIfAbsent(json, k -> {
+      rule = ruleCache.computeIfAbsent(json, k -> {
         try {
-          return JsonLogicParser.parse(k);
+          final JsonLogicNode ast = JsonLogicParser.parse(k);
+          final CompiledRule compiledRule = compiler == null ? null : compiler.compile(k, ast);
+          return new Rule(ast, compiledRule);
         } catch (JsonLogicException e) {
           throw new RuntimeException(e);
         }
@@ -143,21 +143,34 @@ public final class JsonLogic {
       throw e;
     }
 
-    if (compiler != null) {
-      CompiledRule rule = compiler.compile(json, ast);
+    return rule.evaluate(data, evaluator);
+  }
+
+  private static final class Rule {
+    private final JsonLogicNode ast;
+    private final CompiledRule compiledRule;
+
+    private Rule(JsonLogicNode ast, CompiledRule compiledRule) {
+      this.ast = ast;
+      this.compiledRule = compiledRule;
+    }
+
+    Object evaluate(Object data, JsonLogicEvaluator fallbackEvaluator) throws JsonLogicException {
+      if (compiledRule != null) {
+        try {
+          return compiledRule.apply(data);
+        } catch (JsonLogicException e) {
+          e.prependPartialJsonPath("$");
+          throw e;
+        }
+      }
+
       try {
-        return rule.apply(data);
+        return fallbackEvaluator.evaluate(ast, data);
       } catch (JsonLogicException e) {
         e.prependPartialJsonPath("$");
         throw e;
       }
-    }
-
-    try {
-      return evaluator.evaluate(ast, data);
-    } catch (JsonLogicException e) {
-      e.prependPartialJsonPath("$");
-      throw e;
     }
   }
 }

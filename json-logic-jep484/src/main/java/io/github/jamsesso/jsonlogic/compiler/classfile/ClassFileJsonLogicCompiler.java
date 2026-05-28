@@ -21,7 +21,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,7 +39,6 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       CD_CALL_SITE, CD_LOOKUP, CD_String, CD_METHOD_TYPE, CD_String);
 
   private final JsonLogicEvaluator fallbackEvaluator;
-  private final Map<String, CompiledRule> cache = new ConcurrentHashMap<>();
   private final boolean strictMode;
 
   public ClassFileJsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
@@ -55,15 +53,6 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
 
   @Override
   public CompiledRule compile(String ruleJson, JsonLogicNode ast) throws JsonLogicCompilationException {
-    return cache.computeIfAbsent(ruleJson, key -> compileInternal(ruleJson, ast));
-  }
-
-  @Override
-  public void invalidate() {
-    cache.clear();
-  }
-
-  private CompiledRule compileInternal(String ruleJson, JsonLogicNode ast) {
     final String className = classNameFor(ruleJson);
     final String qualifiedName = GENERATED_PACKAGE + "." + className;
     final ClassDesc generatedClass = ClassDesc.of(GENERATED_PACKAGE, className);

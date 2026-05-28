@@ -45,21 +45,8 @@ public final class JsonLogicCompiler {
     return implementation.isStrictMode();
   }
 
-  /**
-   * Returns a {@link CompiledRule} for {@code ast}, compiling it on first call and returning
-   * the cached instance on subsequent calls.
-   *
-   * @param ruleJson the original JSON string (used as cache key)
-   * @param ast      the parsed AST
-   * @return a compiled rule, or an interpreter-backed rule if compilation fails
-   * @throws JsonLogicCompilationException if strict mode is enabled and compilation fails
-   */
+  /** Returns a {@link CompiledRule} for {@code ast}. */
   public CompiledRule compile(String ruleJson, JsonLogicNode ast) throws JsonLogicCompilationException {
     return implementation.compile(ruleJson, ast);
-  }
-
-  /** Evicts all cached compiled rules (e.g. after {@code addOperation} is called). */
-  public void invalidate() {
-    implementation.invalidate();
   }
 }
