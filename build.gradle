@@ -35,7 +35,7 @@ subprojects {
 }
 
 dependencies {
-  api project(":json-logic-java-core")
+  api project(":json-logic-core")
   api project(":json-logic-java-compiler-javac")
 }
 
