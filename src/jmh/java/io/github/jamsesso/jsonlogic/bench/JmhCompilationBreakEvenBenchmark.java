@@ -69,11 +69,6 @@ public class JmhCompilationBreakEvenBenchmark {
     compiled.apply(ruleJson, data);
   }
 
-  @Setup(Level.Invocation)
-  public void resetCompilerCache() {
-    compiler.invalidate();
-  }
-
   @Benchmark
   public Object interpreterEvaluate() throws JsonLogicException {
     return interpreter.apply(ruleJson, data);

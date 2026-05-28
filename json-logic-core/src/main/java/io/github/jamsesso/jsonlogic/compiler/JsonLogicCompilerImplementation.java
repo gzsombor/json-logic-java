@@ -6,6 +6,4 @@ public interface JsonLogicCompilerImplementation {
   boolean isStrictMode();
 
   CompiledRule compile(String ruleJson, JsonLogicNode ast) throws JsonLogicCompilationException;
-
-  void invalidate();
 }
