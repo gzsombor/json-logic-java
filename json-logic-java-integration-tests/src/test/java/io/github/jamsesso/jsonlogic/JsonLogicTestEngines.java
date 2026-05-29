@@ -27,6 +27,6 @@ public final class JsonLogicTestEngines {
   }
 
   public static JsonLogic jep484() {
-    return new JsonLogic(evaluator -> new ClassFileJsonLogicCompiler(evaluator, true));
+    return new JsonLogic(evaluator -> new ClassFileJsonLogicCompiler(evaluator, true, false));
   }
 }

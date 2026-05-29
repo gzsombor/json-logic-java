@@ -17,11 +17,15 @@ public final class JsonLogicCompiler {
    * @throws IllegalStateException if no compiler implementation is available
    */
   public JsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator) {
-    this(fallbackEvaluator, false);
+    this(fallbackEvaluator, false, true);
   }
 
   public JsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
-    this(loadProvider(fallbackEvaluator, strictMode));
+    this(fallbackEvaluator, strictMode, true);
+  }
+
+  public JsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode, boolean fallbackEnabled) {
+    this(loadProvider(fallbackEvaluator, strictMode, fallbackEnabled));
   }
 
   public JsonLogicCompiler(JsonLogicCompilerImplementation implementation) {
@@ -29,13 +33,13 @@ public final class JsonLogicCompiler {
   }
 
   private static JsonLogicCompilerImplementation loadProvider(
-      JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
+      JsonLogicEvaluator fallbackEvaluator, boolean strictMode, boolean fallbackEnabled) {
     return ServiceLoader.load(JsonLogicCompilerProvider.class)
         .stream()
         .map(ServiceLoader.Provider::get)
         .filter(JsonLogicCompilerProvider::isAvailable)
         .max(Comparator.comparingInt(JsonLogicCompilerProvider::priority))
-        .map(provider -> provider.create(fallbackEvaluator, strictMode))
+        .map(provider -> provider.create(fallbackEvaluator, strictMode, fallbackEnabled))
         .orElseThrow(() -> new IllegalStateException(
             "No JSON Logic compiler implementation is available on the classpath."));
   }
