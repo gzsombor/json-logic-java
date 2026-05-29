@@ -210,6 +210,41 @@ public final class RuleHelpers {
     return acc;
   }
 
+  public static boolean compare(String op, List<Object> args) {
+    final int n = Math.min(args.size(), 3);
+    if (n < 2) {
+      throw new IllegalArgumentException("'" + op + "' requires at least 2 arguments");
+    }
+
+    final double[] values = new double[n];
+    for (int i = 0; i < n; i++) {
+      values[i] = toComparableDouble(args.get(i));
+      if (Double.isNaN(values[i])) {
+        return false;
+      }
+    }
+
+    if (args.size() >= 3) {
+      return comparePair(op, values[0], values[1]) && comparePair(op, values[1], values[2]);
+    }
+    return comparePair(op, values[0], values[1]);
+  }
+
+  private static boolean comparePair(String op, double left, double right) {
+    switch (op) {
+      case "<":
+        return left < right;
+      case "<=":
+        return left <= right;
+      case ">":
+        return left > right;
+      case ">=":
+        return left >= right;
+      default:
+        throw new IllegalArgumentException("Unsupported comparison operator: " + op);
+    }
+  }
+
   // ---- string ----
 
   public static String catStr(Object value) {
@@ -225,6 +260,14 @@ public final class RuleHelpers {
     return String.valueOf(value);
   }
 
+  public static String cat(List<Object> values) {
+    final StringBuilder result = new StringBuilder();
+    for (Object value : values) {
+      result.append(catStr(value));
+    }
+    return result.toString();
+  }
+
   public static boolean in(Object needle, Object haystack) {
     if (haystack instanceof String) {
       return needle != null && ((String) haystack).contains(needle.toString());
@@ -233,6 +276,23 @@ public final class RuleHelpers {
       return ArrayLike.toList(haystack).contains(needle);
     }
     return false;
+  }
+
+  public static List<Object> merge(List<Object> values) {
+    final List<Object> result = new ArrayList<>();
+    for (Object value : values) {
+      if (ArrayLike.isEligible(value)) {
+        result.addAll(ArrayLike.toList(value));
+      } else {
+        result.add(value);
+      }
+    }
+    return result;
+  }
+
+  public static Object log(Object value) {
+    System.out.println("JsonLogic: " + value);
+    return value;
   }
 
   public static String substr(Object strArg, Object startArg, Object lengthArg, String jsonPath)
@@ -328,6 +388,15 @@ public final class RuleHelpers {
     }
 
     return missingKeys;
+  }
+
+  public static List<?> missingSomeChecked(Object requiredCount, Object keys, Object data)
+      throws JsonLogicEvaluationException {
+    if (!(requiredCount instanceof Double) || !ArrayLike.isEligible(keys)) {
+      throw new JsonLogicEvaluationException(
+          "missing_some expects first argument to be an integer and the second argument to be an array");
+    }
+    return missingSome(((Double) requiredCount).doubleValue(), ArrayLike.toList(keys), data);
   }
 
   // ---- variable resolution ----
