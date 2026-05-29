@@ -21,7 +21,8 @@ public final class ClassFileJsonLogicCompilerProvider implements JsonLogicCompil
   }
 
   @Override
-  public JsonLogicCompilerImplementation create(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
-    return new ClassFileJsonLogicCompiler(fallbackEvaluator, strictMode);
+  public JsonLogicCompilerImplementation create(
+      JsonLogicEvaluator fallbackEvaluator, boolean strictMode, boolean fallbackEnabled) {
+    return new ClassFileJsonLogicCompiler(fallbackEvaluator, strictMode, fallbackEnabled);
   }
 }

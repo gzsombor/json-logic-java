@@ -15,7 +15,8 @@ public final class JavacJsonLogicCompilerProvider implements JsonLogicCompilerPr
   }
 
   @Override
-  public JsonLogicCompilerImplementation create(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
+  public JsonLogicCompilerImplementation create(
+      JsonLogicEvaluator fallbackEvaluator, boolean strictMode, boolean fallbackEnabled) {
     return new JavacJsonLogicCompiler(fallbackEvaluator, strictMode);
   }
 }
