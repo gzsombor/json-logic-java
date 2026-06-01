@@ -451,7 +451,7 @@ public final class RuleHelpers {
       }
       return cur;
     }
-    return defaultValue;
+    throw new JsonLogicEvaluationException("var first argument must be null, number, or string", "[0]");
   }
 
   /**
@@ -459,7 +459,7 @@ public final class RuleHelpers {
    * Catches any {@link JsonLogicEvaluationException} and prepends {@code ".var"} to the path,
    * matching the path that the tree-walking evaluator produces for {@code var} errors.
    */
-  public static Object resolveVarChecked(Object data, String key, Object defaultValue)
+  public static Object resolveVarChecked(Object data, Object key, Object defaultValue)
       throws JsonLogicEvaluationException {
     try {
       return resolveVar(data, key, defaultValue);

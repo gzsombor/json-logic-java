@@ -6,7 +6,7 @@
     ALOAD 1
     LDC "first"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
     POP
     DUP
@@ -17,7 +17,7 @@
     ALOAD 1
     LDC "last"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
     POP
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.cat (Ljava/util/List;)Ljava/lang/String;

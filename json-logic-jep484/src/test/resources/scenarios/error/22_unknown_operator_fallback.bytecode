@@ -1,6 +1,16 @@
-    LDC 42.0D
-    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_485ee3a6ae93e287.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_485ee3a6ae93e287.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 0
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
+    ALOAD 1
+    LDC ".log[0]"
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.log (Ljava/lang/Object;)Ljava/lang/Object;
     ARETURN
-    MAXSTACK = 2
+    MAXSTACK = 4
     MAXLOCALS = 2

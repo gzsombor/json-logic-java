@@ -1,7 +1,15 @@
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b0dd14168185aea8.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b0dd14168185aea8.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 0
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
     ALOAD 1
-    LDC "items"
-    ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC ".all[0]"
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
     ASTORE 2
     ALOAD 2
     IFNULL L0
@@ -37,7 +45,8 @@
     INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
     CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
     ALOAD 5
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC ".all[1]"
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
     INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
     IFEQ L0
     GOTO L1
@@ -51,5 +60,5 @@
    L3
    FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b0dd14168185aea8 java/lang/Object java/lang/Object] [java/lang/Boolean]
     ARETURN
-    MAXSTACK = 3
+    MAXSTACK = 4
     MAXLOCALS = 6

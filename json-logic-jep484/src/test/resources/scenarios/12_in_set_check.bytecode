@@ -1,7 +1,20 @@
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_41c8ab1ab1608113.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_41c8ab1ab1608113.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 0
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 0
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
     ALOAD 1
-    LDC "customer"
-    ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC ".in[0]"
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
     NEW java/util/ArrayList
     DUP
     LDC 2

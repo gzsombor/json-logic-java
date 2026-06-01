@@ -25,6 +25,19 @@
     ICONST_1
    L2
    FRAME SAME1 I
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_a7191a7ed6a68539.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_a7191a7ed6a68539.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 3
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
+    ALOAD 1
+    LDC ".>[3]"
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
+    POP
     LDC 1.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D

@@ -24,7 +24,9 @@ import io.github.jamsesso.jsonlogic.compiler.RuleHelpers;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.utils.ArrayLike;
+import io.github.jamsesso.jsonlogic.utils.MapHelpers;
 import java.lang.classfile.ClassFile;
+import java.lang.classfile.ClassBuilder;
 import java.lang.classfile.CodeBuilder;
 import java.lang.classfile.Label;
 import java.lang.classfile.attribute.ExceptionsAttribute;
@@ -35,6 +37,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +64,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private static final ClassDesc CD_LIST = ClassDesc.of(List.class.getName());
   private static final ClassDesc CD_LOOKUP = ClassDesc.of("java.lang.invoke.MethodHandles$Lookup");
   private static final ClassDesc CD_MAP = ClassDesc.of(Map.class.getName());
+  private static final ClassDesc CD_MAP_HELPERS = ClassDesc.of(MapHelpers.class.getName());
   private static final ClassDesc CD_METHOD_TYPE = ClassDesc.of("java.lang.invoke.MethodType");
   private static final ClassDesc CD_RULE_HELPERS = ClassDesc.of(RuleHelpers.class.getName());
   private static final ClassDesc CD_STRING_CONCAT_FACTORY = ClassDesc.of("java.lang.invoke.StringConcatFactory");
@@ -71,6 +75,8 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private final boolean fallbackEnabled;
   private final boolean strictMode;
   private ClassDesc currentGeneratedClass;
+  private String currentPath;
+  private Map<String, BodyMethod> bodyMethodsByPath;
   private int nextLocalSlot;
 
   public ClassFileJsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
@@ -116,13 +122,19 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   }
 
   byte[] generateClass(ClassDesc generatedClass, JsonLogicNode ast) {
-    return ClassFile.of().build(generatedClass, classBuilder -> classBuilder
-        .withFlags(Modifier.PUBLIC | Modifier.FINAL)
-        .withInterfaceSymbols(CD_COMPILED_RULE)
-        .withField("fallback", CD_JSON_LOGIC_EVALUATOR, Modifier.PRIVATE | Modifier.FINAL)
-        .withField("ast", CD_JSON_LOGIC_NODE, Modifier.PRIVATE | Modifier.FINAL)
-        .withField("ruleJson", CD_String, Modifier.PRIVATE | Modifier.FINAL)
-        .withMethodBody(
+    final List<BodyMethod> bodyMethods = collectBodyMethods(ast);
+    bodyMethodsByPath = new HashMap<>();
+    for (BodyMethod bodyMethod : bodyMethods) {
+      bodyMethodsByPath.put(bodyMethod.path, bodyMethod);
+    }
+    return ClassFile.of().build(generatedClass, classBuilder -> {
+      classBuilder
+          .withFlags(Modifier.PUBLIC | Modifier.FINAL)
+          .withInterfaceSymbols(CD_COMPILED_RULE)
+          .withField("fallback", CD_JSON_LOGIC_EVALUATOR, Modifier.PRIVATE | Modifier.FINAL)
+          .withField("ast", CD_JSON_LOGIC_NODE, Modifier.PRIVATE | Modifier.FINAL)
+          .withField("ruleJson", CD_String, Modifier.PRIVATE | Modifier.FINAL)
+          .withMethodBody(
             INIT_NAME,
             MethodTypeDesc.ofDescriptor("(Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;"
                 + "Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/String;)V"),
@@ -140,14 +152,14 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
                 .aload(3)
                 .putfield(generatedClass, "ruleJson", CD_String)
                 .return_())
-        .withMethod(
+          .withMethod(
             "apply",
             MethodTypeDesc.of(CD_Object, CD_Object),
             Modifier.PUBLIC,
             methodBuilder -> methodBuilder
                 .with(ExceptionsAttribute.ofSymbols(CD_EVALUATION_EXCEPTION))
                 .withCode(codeBuilder -> emitApplyBody(codeBuilder, generatedClass, ast)))
-        .withMethodBody(
+          .withMethodBody(
             "toString",
             MethodTypeDesc.of(CD_String),
             Modifier.PUBLIC,
@@ -163,11 +175,16 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
                     "makeConcatWithConstants",
                     MethodTypeDesc.of(CD_String, CD_String),
                     "CompiledRule(\u0001)"))
-                .areturn()));
+                .areturn());
+      for (BodyMethod bodyMethod : bodyMethods) {
+        emitBodyMethod(classBuilder, generatedClass, bodyMethod);
+      }
+    });
   }
 
   private void emitApplyBody(CodeBuilder codeBuilder, ClassDesc generatedClass, JsonLogicNode ast) {
     currentGeneratedClass = generatedClass;
+    currentPath = "";
     nextLocalSlot = 2;
     if (emitSupportedNode(codeBuilder, ast)) {
       codeBuilder.areturn();
@@ -189,6 +206,55 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
             "evaluate",
             MethodTypeDesc.of(CD_Object, CD_JSON_LOGIC_NODE, CD_Object))
         .areturn();
+  }
+
+  private void emitBodyMethod(ClassBuilder classBuilder, ClassDesc generatedClass, BodyMethod bodyMethod) {
+    classBuilder.withMethod(
+        bodyMethod.name,
+        MethodTypeDesc.of(CD_Object, CD_Object),
+        Modifier.PRIVATE | Modifier.FINAL,
+        methodBuilder -> methodBuilder
+            .with(ExceptionsAttribute.ofSymbols(CD_EVALUATION_EXCEPTION))
+            .withCode(codeBuilder -> {
+              currentGeneratedClass = generatedClass;
+              currentPath = bodyMethod.path;
+              nextLocalSlot = 2;
+              emitRequiredNode(codeBuilder, bodyMethod.node);
+              codeBuilder.areturn();
+            }));
+  }
+
+  private static List<BodyMethod> collectBodyMethods(JsonLogicNode ast) {
+    final List<BodyMethod> bodyMethods = new ArrayList<>();
+    collectBodyMethods(ast, "", bodyMethods);
+    return bodyMethods;
+  }
+
+  private static void collectBodyMethods(JsonLogicNode node, String path, List<BodyMethod> bodyMethods) {
+    if (node instanceof JsonLogicOperation) {
+      final JsonLogicOperation operation = (JsonLogicOperation) node;
+      final JsonLogicArray args = operation.getArguments();
+      if (("some".equals(operation.getOperator()) || "none".equals(operation.getOperator())) && args.size() == 2) {
+        bodyMethods.add(new BodyMethod("collectionBody$" + bodyMethods.size(), path + "." + operation.getOperator() + "[1]", args.get(1)));
+      }
+      for (int i = 0; i < args.size(); i++) {
+        collectBodyMethods(args.get(i), path + "." + operation.getOperator() + "[" + i + "]", bodyMethods);
+      }
+      return;
+    }
+    if (node instanceof JsonLogicArray) {
+      final JsonLogicArray array = (JsonLogicArray) node;
+      for (int i = 0; i < array.size(); i++) {
+        collectBodyMethods(array.get(i), path + "[" + i + "]", bodyMethods);
+      }
+      return;
+    }
+    if (node instanceof JsonLogicObject) {
+      final JsonLogicObject object = (JsonLogicObject) node;
+      for (JsonLogicNode value : object.getEntries().values()) {
+        collectBodyMethods(value, path, bodyMethods);
+      }
+    }
   }
 
   private boolean emitSupportedNode(CodeBuilder codeBuilder, JsonLogicNode ast) {
@@ -239,7 +305,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder
         .invokestatic(
             CD_RULE_HELPERS,
-            "resolveVar",
+            "resolveVarChecked",
             MethodTypeDesc.of(CD_Object, CD_Object, CD_Object, CD_Object));
     return true;
   }
@@ -340,9 +406,55 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         return emitSomeNone(codeBuilder, "some", args);
       case "none":
         return emitSomeNone(codeBuilder, "none", args);
+      case "reduce":
+        return emitReduceErrors(codeBuilder, args);
       default:
         return false;
     }
+  }
+
+  private boolean emitReduceErrors(CodeBuilder codeBuilder, JsonLogicArray args) {
+    if (args.size() != 3) {
+      emitFailure(codeBuilder, "reduce expects exactly 3 arguments", ".reduce");
+      return true;
+    }
+    if (allSupported(args)) {
+      emitReduce(codeBuilder, args);
+      return true;
+    }
+    return false;
+  }
+
+  private void emitReduce(CodeBuilder codeBuilder, JsonLogicArray args) {
+    final int maybeArraySlot = allocateLocalSlot(1);
+    final int accumulatorSlot = allocateLocalSlot(1);
+    final int contextSlot = allocateLocalSlot(1);
+    final int iteratorSlot = allocateLocalSlot(1);
+    final Label endLabel = codeBuilder.newLabel();
+    final Label loopLabel = codeBuilder.newLabel();
+
+    emitEvaluateOperationArgument(codeBuilder, 0, ".reduce[0]");
+    codeBuilder.astore(maybeArraySlot);
+    emitRequiredNode(codeBuilder, args.get(2), ".reduce[2]");
+    codeBuilder.astore(accumulatorSlot);
+    codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
+    codeBuilder.ifeq(endLabel);
+    codeBuilder.aload(1).aload(accumulatorSlot).invokestatic(
+        CD_MAP_HELPERS, "reduceContext", MethodTypeDesc.of(CD_MAP, CD_Object, CD_Object));
+    codeBuilder.astore(contextSlot);
+    codeBuilder.new_(CD_ARRAY_LIKE).dup().aload(maybeArraySlot).invokespecial(
+        CD_ARRAY_LIKE, INIT_NAME, MethodTypeDesc.ofDescriptor("(Ljava/lang/Object;)V"));
+    codeBuilder.invokevirtual(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR)).astore(iteratorSlot);
+    codeBuilder.labelBinding(loopLabel);
+    codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(endLabel);
+    codeBuilder.aload(contextSlot).ldc("current").aload(iteratorSlot).invokeinterface(
+        CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object));
+    codeBuilder.invokeinterface(CD_MAP, "put", MethodTypeDesc.of(CD_Object, CD_Object, CD_Object)).pop();
+    codeBuilder.aload(contextSlot).ldc("accumulator");
+    emitEvaluateOperationArgumentWithData(codeBuilder, 1, contextSlot, ".reduce[1]");
+    codeBuilder.dup().astore(accumulatorSlot);
+    codeBuilder.invokeinterface(CD_MAP, "put", MethodTypeDesc.of(CD_Object, CD_Object, CD_Object)).pop().goto_(loopLabel);
+    codeBuilder.labelBinding(endLabel).aload(accumulatorSlot);
   }
 
   private boolean emitCat(CodeBuilder codeBuilder, JsonLogicArray args) {
@@ -362,10 +474,10 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!allSupported(args)) {
       return false;
     }
-    emitRequiredNode(codeBuilder, args.get(0));
-    emitRequiredNode(codeBuilder, args.get(1));
+    emitEvaluateOperationArgument(codeBuilder, 0, ".substr[0]");
+    emitRequiredNode(codeBuilder, args.get(1), ".substr[1]");
     if (args.size() == 3) {
-      emitRequiredNode(codeBuilder, args.get(2));
+      emitRequiredNode(codeBuilder, args.get(2), ".substr[2]");
     } else {
       codeBuilder.aconst_null();
     }
@@ -377,16 +489,26 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return true;
   }
 
-  private static void emitFailure(CodeBuilder codeBuilder, String message, String path) {
+  private void emitFailure(CodeBuilder codeBuilder, String message, String path) {
     codeBuilder
         .ldc(message)
-        .ldc(path)
+        .ldc(currentPath + path)
         .invokestatic(CD_RULE_HELPERS, "fail", MethodTypeDesc.of(CD_Object, CD_String, CD_String));
   }
 
   private void emitRequiredNode(CodeBuilder codeBuilder, JsonLogicNode node) {
     if (!emitSupportedNode(codeBuilder, node)) {
       throw new IllegalStateException("Expected supported JEP 484 node was not emitted: " + node.getType());
+    }
+  }
+
+  private void emitRequiredNode(CodeBuilder codeBuilder, JsonLogicNode node, String path) {
+    final String previousPath = currentPath;
+    currentPath = previousPath + path;
+    try {
+      emitRequiredNode(codeBuilder, node);
+    } finally {
+      currentPath = previousPath;
     }
   }
 
@@ -398,8 +520,8 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!isSupported(args.get(0)) || !isSupported(args.get(1))) {
       return false;
     }
-    emitRequiredNode(codeBuilder, args.get(0));
-    emitRequiredNode(codeBuilder, args.get(1));
+    emitEvaluateOperationArgument(codeBuilder, 0, ".in[0]");
+    emitRequiredNode(codeBuilder, args.get(1), ".in[1]");
     codeBuilder.invokestatic(CD_RULE_HELPERS, "in", MethodTypeDesc.of(CD_boolean, CD_Object, CD_Object));
     boxBoolean(codeBuilder);
     return true;
@@ -409,7 +531,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!allSupported(args)) {
       return false;
     }
-    emitArray(codeBuilder, args);
+    emitArrayWithPaths(codeBuilder, args, ".missing");
     codeBuilder
         .aload(1)
         .invokestatic(CD_RULE_HELPERS, "missing", MethodTypeDesc.of(CD_LIST, CD_LIST, CD_Object));
@@ -417,7 +539,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   }
 
   private boolean emitMissingSome(CodeBuilder codeBuilder, JsonLogicArray args) {
-    if (args.size() < 2) {
+    if (args.size() < 2 || !(args.get(0) instanceof JsonLogicNumber) || !(args.get(1) instanceof JsonLogicArray)) {
       emitFailure(
           codeBuilder,
           "missing_some expects first argument to be an integer and the second argument to be an array",
@@ -427,8 +549,8 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!isSupported(args.get(0)) || !isSupported(args.get(1))) {
       return false;
     }
-    emitRequiredNode(codeBuilder, args.get(0));
-    emitRequiredNode(codeBuilder, args.get(1));
+    emitEvaluateOperationArgument(codeBuilder, 0, ".missing_some[0]");
+    emitRequiredNode(codeBuilder, args.get(1), ".missing_some[1]");
     codeBuilder
         .aload(1)
         .invokestatic(CD_RULE_HELPERS, "missingSomeChecked", MethodTypeDesc.of(CD_LIST, CD_Object, CD_Object, CD_Object));
@@ -439,7 +561,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!allSupported(args)) {
       return false;
     }
-    emitArray(codeBuilder, args);
+    emitArrayWithPaths(codeBuilder, args, ".merge");
     codeBuilder.invokestatic(CD_RULE_HELPERS, "merge", MethodTypeDesc.of(CD_LIST, CD_LIST));
     return true;
   }
@@ -452,7 +574,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!isSupported(args.get(0))) {
       return false;
     }
-    emitRequiredNode(codeBuilder, args.get(0));
+    emitEvaluateOperationArgument(codeBuilder, 0, ".log[0]");
     codeBuilder.invokestatic(CD_RULE_HELPERS, "log", MethodTypeDesc.of(CD_Object, CD_Object));
     return true;
   }
@@ -474,7 +596,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     final Label trueLabel = codeBuilder.newLabel();
     final Label endLabel = codeBuilder.newLabel();
 
-    emitRequiredNode(codeBuilder, args.get(0));
+    emitEvaluateOperationArgument(codeBuilder, 0, ".all[0]");
     codeBuilder.astore(maybeArraySlot);
     codeBuilder.aload(maybeArraySlot).ifnull(falseLabel);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
@@ -486,7 +608,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.labelBinding(loopLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(trueLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object));
-    emitEvaluateCollectionBody(codeBuilder, args.get(1));
+    emitEvaluateCollectionBody(codeBuilder, args.get(1), ".all[1]");
     codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
     codeBuilder.ifeq(falseLabel).goto_(loopLabel);
     codeBuilder.labelBinding(falseLabel).getstatic(CD_BOOLEAN, "FALSE", CD_BOOLEAN).goto_(endLabel);
@@ -510,7 +632,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     final Label loopLabel = codeBuilder.newLabel();
     final Label endLabel = codeBuilder.newLabel();
 
-    emitRequiredNode(codeBuilder, args.get(0));
+    emitEvaluateOperationArgument(codeBuilder, 0, ".map[0]");
     codeBuilder.astore(maybeArraySlot);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
     codeBuilder.ifeq(emptyLabel);
@@ -522,7 +644,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(endLabel);
     codeBuilder.aload(resultSlot);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object));
-    emitEvaluateCollectionBody(codeBuilder, args.get(1));
+    emitEvaluateCollectionBody(codeBuilder, args.get(1), ".map[1]");
     codeBuilder.invokeinterface(CD_LIST, "add", MethodTypeDesc.of(CD_boolean, CD_Object)).pop().goto_(loopLabel);
     codeBuilder.labelBinding(emptyLabel);
     emitNewArrayList(codeBuilder);
@@ -549,7 +671,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     final Label skipLabel = codeBuilder.newLabel();
     final Label endLabel = codeBuilder.newLabel();
 
-    emitRequiredNode(codeBuilder, args.get(0));
+    emitEvaluateOperationArgument(codeBuilder, 0, ".filter[0]");
     codeBuilder.astore(maybeArraySlot);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
     codeBuilder.ifeq(failLabel);
@@ -561,7 +683,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(endLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object)).astore(itemSlot);
     codeBuilder.aload(itemSlot);
-    emitEvaluateCollectionBody(codeBuilder, args.get(1));
+    emitEvaluateCollectionBody(codeBuilder, args.get(1), ".filter[1]");
     codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
     codeBuilder.ifeq(skipLabel);
     codeBuilder.aload(resultSlot).aload(itemSlot).invokeinterface(CD_LIST, "add", MethodTypeDesc.of(CD_boolean, CD_Object)).pop();
@@ -581,53 +703,131 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!isSupported(args.get(0))) {
       return false;
     }
+    if (args.size() != 2) {
+      codeBuilder.getstatic(CD_BOOLEAN, "none".equals(operator) ? "TRUE" : "FALSE", CD_BOOLEAN);
+      return true;
+    }
 
+    final BodyMethod bodyMethod = bodyMethodsByPath.get(currentPath + "." + operator + "[1]");
     final int maybeArraySlot = allocateLocalSlot(1);
     final int iteratorSlot = allocateLocalSlot(1);
     final Label nullLabel = codeBuilder.newLabel();
-    final Label trueLabel = codeBuilder.newLabel();
-    final Label falseLabel = codeBuilder.newLabel();
+    final Label failLabel = codeBuilder.newLabel();
+    final Label foundLabel = codeBuilder.newLabel();
+    final Label emptyLabel = codeBuilder.newLabel();
     final Label loopLabel = codeBuilder.newLabel();
     final Label endLabel = codeBuilder.newLabel();
 
-    emitRequiredNode(codeBuilder, args.get(0));
+    emitEvaluateOperationArgument(codeBuilder, 0, "." + operator + "[0]");
     codeBuilder.astore(maybeArraySlot);
     codeBuilder.aload(maybeArraySlot).ifnull(nullLabel);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
-    codeBuilder.ifeq(falseLabel);
-    codeBuilder.new_(CD_ARRAY_LIKE).dup().aload(maybeArraySlot).invokespecial(CD_ARRAY_LIKE, INIT_NAME, MethodTypeDesc.ofDescriptor("(Ljava/lang/Object;)V"));
+    codeBuilder.ifeq(failLabel);
+    codeBuilder.new_(CD_ARRAY_LIKE).dup().aload(maybeArraySlot).invokespecial(
+        CD_ARRAY_LIKE, INIT_NAME, MethodTypeDesc.ofDescriptor("(Ljava/lang/Object;)V"));
     codeBuilder.invokevirtual(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR)).astore(iteratorSlot);
     codeBuilder.labelBinding(loopLabel);
-    codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(falseLabel);
-    codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object));
-    emitEvaluateCollectionBody(codeBuilder, args.get(1));
+    codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(emptyLabel);
+    codeBuilder.aload(0).aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object));
+    codeBuilder.invokevirtual(currentGeneratedClass, bodyMethod.name, MethodTypeDesc.of(CD_Object, CD_Object));
     codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
-    codeBuilder.ifne(trueLabel).goto_(loopLabel);
+    codeBuilder.ifne(foundLabel).goto_(loopLabel);
 
     codeBuilder.labelBinding(nullLabel);
-    codeBuilder.getstatic(CD_BOOLEAN, "some".equals(operator) ? "FALSE" : "TRUE", CD_BOOLEAN).goto_(endLabel);
-    codeBuilder.labelBinding(trueLabel);
+    codeBuilder.getstatic(CD_BOOLEAN, "none".equals(operator) ? "TRUE" : "FALSE", CD_BOOLEAN).goto_(endLabel);
+    codeBuilder.labelBinding(foundLabel);
     codeBuilder.getstatic(CD_BOOLEAN, "some".equals(operator) ? "TRUE" : "FALSE", CD_BOOLEAN).goto_(endLabel);
-    codeBuilder.labelBinding(falseLabel);
-    codeBuilder.getstatic(CD_BOOLEAN, "some".equals(operator) ? "FALSE" : "TRUE", CD_BOOLEAN).labelBinding(endLabel);
+    codeBuilder.labelBinding(emptyLabel);
+    codeBuilder.getstatic(CD_BOOLEAN, "none".equals(operator) ? "TRUE" : "FALSE", CD_BOOLEAN).goto_(endLabel);
+    codeBuilder.labelBinding(failLabel);
+    emitFailure(codeBuilder, "first argument to " + operator + " must be a valid array", "." + operator + "[0]");
+    codeBuilder.labelBinding(endLabel);
     return true;
   }
 
-  private void emitEvaluateCollectionBody(CodeBuilder codeBuilder, JsonLogicNode body) {
+  private void emitEvaluateCollectionBody(CodeBuilder codeBuilder, JsonLogicNode body, String path) {
     final int dataSlot = allocateLocalSlot(1);
     codeBuilder
         .astore(dataSlot)
         .aload(0)
         .getfield(currentGeneratedClass, "fallback", CD_JSON_LOGIC_EVALUATOR);
-    emitSecondOperationArgument(codeBuilder);
+    emitOperationArgument(codeBuilder, 1);
     codeBuilder.aload(dataSlot);
-    codeBuilder.invokevirtual(CD_JSON_LOGIC_EVALUATOR, "evaluate", MethodTypeDesc.of(CD_Object, CD_JSON_LOGIC_NODE, CD_Object));
+    codeBuilder.ldc(currentPath + path);
+    codeBuilder.invokevirtual(
+        CD_JSON_LOGIC_EVALUATOR,
+        "evaluate",
+        MethodTypeDesc.of(CD_Object, CD_JSON_LOGIC_NODE, CD_Object, CD_String));
   }
 
-  private void emitSecondOperationArgument(CodeBuilder codeBuilder) {
-    codeBuilder.aload(0).getfield(currentGeneratedClass, "ast", CD_JSON_LOGIC_NODE).checkcast(CD_JSON_LOGIC_OPERATION);
+  private void emitEvaluateOperationArgument(CodeBuilder codeBuilder, int index, String path) {
+    codeBuilder
+        .aload(0)
+        .getfield(currentGeneratedClass, "fallback", CD_JSON_LOGIC_EVALUATOR);
+    emitOperationArgument(codeBuilder, index);
+    codeBuilder
+        .aload(1)
+        .ldc(path)
+        .invokevirtual(
+            CD_JSON_LOGIC_EVALUATOR,
+            "evaluate",
+            MethodTypeDesc.of(CD_Object, CD_JSON_LOGIC_NODE, CD_Object, CD_String));
+  }
+
+  private void emitEvaluateOperationArgumentWithData(CodeBuilder codeBuilder, int index, int dataSlot, String path) {
+    codeBuilder
+        .aload(0)
+        .getfield(currentGeneratedClass, "fallback", CD_JSON_LOGIC_EVALUATOR);
+    emitOperationArgument(codeBuilder, index);
+    codeBuilder
+        .aload(dataSlot)
+        .ldc(currentPath + path)
+        .invokevirtual(
+            CD_JSON_LOGIC_EVALUATOR,
+            "evaluate",
+            MethodTypeDesc.of(CD_Object, CD_JSON_LOGIC_NODE, CD_Object, CD_String));
+  }
+
+  private void emitOperationArgument(CodeBuilder codeBuilder, int index) {
+    codeBuilder.aload(0).getfield(currentGeneratedClass, "ast", CD_JSON_LOGIC_NODE);
+    emitDescendCurrentPath(codeBuilder);
+    codeBuilder.checkcast(CD_JSON_LOGIC_OPERATION);
     codeBuilder.invokevirtual(CD_JSON_LOGIC_OPERATION, "getArguments", MethodTypeDesc.of(ClassDesc.of(JsonLogicArray.class.getName())));
-    codeBuilder.ldc(1).invokeinterface(CD_LIST, "get", MethodTypeDesc.of(CD_Object, ClassDesc.ofDescriptor("I"))).checkcast(CD_JSON_LOGIC_NODE);
+    codeBuilder.ldc(index).invokeinterface(CD_LIST, "get", MethodTypeDesc.of(CD_Object, ClassDesc.ofDescriptor("I"))).checkcast(CD_JSON_LOGIC_NODE);
+  }
+
+  private void emitDescendCurrentPath(CodeBuilder codeBuilder) {
+    int offset = 0;
+    while (offset < currentPath.length()) {
+      final int start = currentPath.indexOf('[', offset);
+      if (start < 0) {
+        return;
+      }
+      final int end = currentPath.indexOf(']', start);
+      final int index = Integer.parseInt(currentPath.substring(start + 1, end));
+      codeBuilder
+          .checkcast(CD_JSON_LOGIC_OPERATION)
+          .invokevirtual(CD_JSON_LOGIC_OPERATION, "getArguments", MethodTypeDesc.of(ClassDesc.of(JsonLogicArray.class.getName())))
+          .ldc(index)
+          .invokeinterface(CD_LIST, "get", MethodTypeDesc.of(CD_Object, ClassDesc.ofDescriptor("I")))
+          .checkcast(CD_JSON_LOGIC_NODE);
+      offset = end + 1;
+    }
+  }
+
+  private void emitArrayWithPaths(CodeBuilder codeBuilder, JsonLogicArray args, String path) {
+    codeBuilder
+        .new_(CD_ARRAY_LIST)
+        .dup()
+        .ldc(args.size())
+        .invokespecial(CD_ARRAY_LIST, INIT_NAME, MethodTypeDesc.ofDescriptor("(I)V"));
+    for (int i = 0; i < args.size(); i++) {
+      codeBuilder.dup();
+      emitRequiredNode(codeBuilder, args.get(i), path + "[" + i + "]");
+      codeBuilder
+          .invokeinterface(CD_LIST, "add", MethodTypeDesc.of(CD_boolean, CD_Object))
+          .pop();
+    }
   }
 
   private static void emitNewArrayList(CodeBuilder codeBuilder) {
@@ -658,11 +858,11 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     final Label endLabel = codeBuilder.newLabel();
     for (int i = 0; i < args.size() - 1; i += 2) {
       final Label nextLabel = codeBuilder.newLabel();
-      emitRequiredNode(codeBuilder, args.get(i));
+      emitRequiredNode(codeBuilder, args.get(i), ".if[" + i + "]");
       codeBuilder
           .invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object))
           .ifeq(nextLabel);
-      emitRequiredNode(codeBuilder, args.get(i + 1));
+      emitRequiredNode(codeBuilder, args.get(i + 1), ".if[" + (i + 1) + "]");
       codeBuilder
           .goto_(endLabel)
           .labelBinding(nextLabel);
@@ -670,7 +870,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if ((args.size() & 1) == 0) {
       codeBuilder.aconst_null();
     } else {
-      emitRequiredNode(codeBuilder, args.get(args.size() - 1));
+      emitRequiredNode(codeBuilder, args.get(args.size() - 1), ".if[" + (args.size() - 1) + "]");
     }
     codeBuilder.labelBinding(endLabel);
     return true;
@@ -686,7 +886,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     }
     final Label endLabel = codeBuilder.newLabel();
     for (int i = 0; i < args.size(); i++) {
-      emitRequiredNode(codeBuilder, args.get(i));
+      emitRequiredNode(codeBuilder, args.get(i), ".and[" + i + "]");
       if (i < args.size() - 1) {
         codeBuilder
             .dup()
@@ -709,7 +909,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     }
     final Label endLabel = codeBuilder.newLabel();
     for (int i = 0; i < args.size(); i++) {
-      emitRequiredNode(codeBuilder, args.get(i));
+      emitRequiredNode(codeBuilder, args.get(i), ".or[" + i + "]");
       if (i < args.size() - 1) {
         codeBuilder
             .dup()
@@ -730,8 +930,8 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!isSupported(args.get(0)) || !isSupported(args.get(1))) {
       return false;
     }
-    emitRequiredNode(codeBuilder, args.get(0));
-    emitRequiredNode(codeBuilder, args.get(1));
+    emitRequiredNode(codeBuilder, args.get(0), "." + operator + "[0]");
+    emitRequiredNode(codeBuilder, args.get(1), "." + operator + "[1]");
     codeBuilder.invokestatic(
         CD_RULE_HELPERS,
         "===".equals(operator) || "!==".equals(operator) ? "strictEq" : "looseEq",
@@ -751,9 +951,13 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!allComparable(args)) {
       return false;
     }
-    emitComparePair(codeBuilder, operator, args.get(0), args.get(1));
+    emitComparePair(codeBuilder, operator, args.get(0), args.get(1), "." + operator + "[0]", "." + operator + "[1]");
+    if (args.size() > 3) {
+      emitEvaluateOperationArgument(codeBuilder, args.size() - 1, "." + operator + "[" + (args.size() - 1) + "]");
+      codeBuilder.pop();
+    }
     if (args.size() >= 3) {
-      emitComparePair(codeBuilder, operator, args.get(1), args.get(2));
+      emitComparePair(codeBuilder, operator, args.get(1), args.get(2), "." + operator + "[1]", "." + operator + "[2]");
       codeBuilder.iand();
     }
     boxBoolean(codeBuilder);
@@ -761,15 +965,20 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   }
 
   private void emitComparePair(CodeBuilder codeBuilder, String operator, JsonLogicNode left, JsonLogicNode right) {
+    emitComparePair(codeBuilder, operator, left, right, "", "");
+  }
+
+  private void emitComparePair(
+      CodeBuilder codeBuilder, String operator, JsonLogicNode left, JsonLogicNode right, String leftPath, String rightPath) {
     final int leftSlot = allocateLocalSlot(2);
     final int rightSlot = allocateLocalSlot(2);
     final Label falseLabel = codeBuilder.newLabel();
     final Label trueLabel = codeBuilder.newLabel();
     final Label endLabel = codeBuilder.newLabel();
 
-    emitDouble(codeBuilder, left);
+    emitDouble(codeBuilder, left, leftPath);
     codeBuilder.dstore(leftSlot);
-    emitDouble(codeBuilder, right);
+    emitDouble(codeBuilder, right, rightPath);
     codeBuilder.dstore(rightSlot);
 
     codeBuilder
@@ -829,7 +1038,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     final int[] objectSlots = new int[effectiveArgs.size()];
     for (int i = 0; i < effectiveArgs.size(); i++) {
       objectSlots[i] = allocateLocalSlot(1);
-      emitRequiredNode(codeBuilder, effectiveArgs.get(i));
+      emitRequiredNode(codeBuilder, effectiveArgs.get(i), "." + operator + "[" + i + "]");
       codeBuilder.astore(objectSlots[i]);
     }
 
@@ -932,6 +1141,11 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.invokestatic(CD_RULE_HELPERS, "toComparableDouble", MethodTypeDesc.of(ClassDesc.ofDescriptor("D"), CD_Object));
   }
 
+  private void emitDouble(CodeBuilder codeBuilder, JsonLogicNode node, String path) {
+    emitRequiredNode(codeBuilder, node, path);
+    codeBuilder.invokestatic(CD_RULE_HELPERS, "toComparableDouble", MethodTypeDesc.of(ClassDesc.ofDescriptor("D"), CD_Object));
+  }
+
   private static void boxDouble(CodeBuilder codeBuilder) {
     codeBuilder.invokestatic(CD_DOUBLE, "valueOf", MethodTypeDesc.of(CD_DOUBLE, ClassDesc.ofDescriptor("D")));
   }
@@ -1011,7 +1225,11 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!isSupported(args.get(0))) {
       return false;
     }
-    emitRequiredNode(codeBuilder, args.get(0));
+    if (args.size() > 1) {
+      emitEvaluateOperationArgument(codeBuilder, args.size() - 1, "." + operator + "[" + (args.size() - 1) + "]");
+      codeBuilder.pop();
+    }
+    emitRequiredNode(codeBuilder, args.get(0), "." + operator + "[0]");
     codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
     emitBooleanNot(codeBuilder);
     if ("!!".equals(operator)) {
@@ -1076,7 +1294,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         case ">=":
         case "<":
         case "<=":
-          return args.size() >= 2 && allComparable(args);
+          return args.size() < 2 || allComparable(args);
         case "+":
         case "*":
           return allMathNumeric(args);
@@ -1113,6 +1331,8 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         case "some":
         case "none":
           return true;
+        case "reduce":
+          return args.size() != 3 || allSupported(args);
         default:
           return false;
       }
@@ -1135,5 +1355,17 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       hash *= 0x100000001b3L;
     }
     return "Rule_" + Long.toUnsignedString(hash, 16);
+  }
+
+  private static final class BodyMethod {
+    private final String name;
+    private final String path;
+    private final JsonLogicNode node;
+
+    private BodyMethod(String name, String path, JsonLogicNode node) {
+      this.name = name;
+      this.path = path;
+      this.node = node;
+    }
   }
 }

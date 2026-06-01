@@ -1,7 +1,7 @@
     ALOAD 1
     LDC "customer"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     LDC "cus1"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
@@ -12,7 +12,7 @@
     ALOAD 1
     LDC "action"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     LDC "login"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
@@ -27,7 +27,7 @@
     ALOAD 1
     LDC "customer"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     LDC "cus2"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
@@ -38,7 +38,7 @@
     ALOAD 1
     LDC "action"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     LDC "delete"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
