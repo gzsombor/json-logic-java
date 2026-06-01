@@ -337,8 +337,9 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       case "filter":
         return emitFilter(codeBuilder, args);
       case "some":
+        return emitSomeNone(codeBuilder, "some", args);
       case "none":
-        return emitUnsupportedCollectionOperation(codeBuilder, operation.getOperator(), args);
+        return emitSomeNone(codeBuilder, "none", args);
       default:
         return false;
     }
@@ -569,6 +570,46 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     emitFailure(codeBuilder, "first argument to filter must be a valid array", ".filter[0]");
     codeBuilder.areturn();
     codeBuilder.labelBinding(endLabel).aload(resultSlot);
+    return true;
+  }
+
+  private boolean emitSomeNone(CodeBuilder codeBuilder, String operator, JsonLogicArray args) {
+    if (args.size() != 2) {
+      emitFailure(codeBuilder, operator + " expects exactly 2 arguments", "." + operator);
+      return true;
+    }
+    if (!isSupported(args.get(0))) {
+      return false;
+    }
+
+    final int maybeArraySlot = allocateLocalSlot(1);
+    final int iteratorSlot = allocateLocalSlot(1);
+    final Label nullLabel = codeBuilder.newLabel();
+    final Label trueLabel = codeBuilder.newLabel();
+    final Label falseLabel = codeBuilder.newLabel();
+    final Label loopLabel = codeBuilder.newLabel();
+    final Label endLabel = codeBuilder.newLabel();
+
+    emitRequiredNode(codeBuilder, args.get(0));
+    codeBuilder.astore(maybeArraySlot);
+    codeBuilder.aload(maybeArraySlot).ifnull(nullLabel);
+    codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
+    codeBuilder.ifeq(falseLabel);
+    codeBuilder.new_(CD_ARRAY_LIKE).dup().aload(maybeArraySlot).invokespecial(CD_ARRAY_LIKE, INIT_NAME, MethodTypeDesc.ofDescriptor("(Ljava/lang/Object;)V"));
+    codeBuilder.invokevirtual(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR)).astore(iteratorSlot);
+    codeBuilder.labelBinding(loopLabel);
+    codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(falseLabel);
+    codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object));
+    emitEvaluateCollectionBody(codeBuilder, args.get(1));
+    codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
+    codeBuilder.ifne(trueLabel).goto_(loopLabel);
+
+    codeBuilder.labelBinding(nullLabel);
+    codeBuilder.getstatic(CD_BOOLEAN, "some".equals(operator) ? "FALSE" : "TRUE", CD_BOOLEAN).goto_(endLabel);
+    codeBuilder.labelBinding(trueLabel);
+    codeBuilder.getstatic(CD_BOOLEAN, "some".equals(operator) ? "TRUE" : "FALSE", CD_BOOLEAN).goto_(endLabel);
+    codeBuilder.labelBinding(falseLabel);
+    codeBuilder.getstatic(CD_BOOLEAN, "some".equals(operator) ? "FALSE" : "TRUE", CD_BOOLEAN).labelBinding(endLabel);
     return true;
   }
 
@@ -1069,10 +1110,9 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         case "all":
         case "map":
         case "filter":
-          return true;
         case "some":
         case "none":
-          return args.size() != 2;
+          return true;
         default:
           return false;
       }
