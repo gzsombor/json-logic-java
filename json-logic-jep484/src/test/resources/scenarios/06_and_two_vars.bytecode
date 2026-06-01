@@ -1,0 +1,47 @@
+    LDC ">"
+    NEW java/util/ArrayList
+    DUP
+    LDC 2
+    INVOKESPECIAL java/util/ArrayList.<init> (I)V
+    DUP
+    ALOAD 1
+    LDC "a"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    DUP
+    LDC 10.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.compare (Ljava/lang/String;Ljava/util/List;)Z
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+    DUP
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L0
+    POP
+    LDC "<"
+    NEW java/util/ArrayList
+    DUP
+    LDC 2
+    INVOKESPECIAL java/util/ArrayList.<init> (I)V
+    DUP
+    ALOAD 1
+    LDC "b"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    DUP
+    LDC 100.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.compare (Ljava/lang/String;Ljava/util/List;)Z
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L0
+   FRAME SAME1 java/lang/Boolean
+    ARETURN
+    MAXSTACK = 6
+    MAXLOCALS = 2

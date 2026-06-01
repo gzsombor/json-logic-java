@@ -1,0 +1,12 @@
+    ALOAD 1
+    LDC "s"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC 4.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    ACONST_NULL
+    LDC ".substr"
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.substr (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String;
+    ARETURN
+    MAXSTACK = 4
+    MAXLOCALS = 2

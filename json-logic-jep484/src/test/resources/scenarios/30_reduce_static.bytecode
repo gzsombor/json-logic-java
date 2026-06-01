@@ -1,0 +1,9 @@
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    ALOAD 1
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;)Ljava/lang/Object;
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 2

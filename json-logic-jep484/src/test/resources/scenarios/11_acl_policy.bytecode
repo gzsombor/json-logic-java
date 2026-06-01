@@ -1,0 +1,58 @@
+    ALOAD 1
+    LDC "customer"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC "cus1"
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+    DUP
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L0
+    POP
+    ALOAD 1
+    LDC "action"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC "login"
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L0
+   FRAME SAME1 java/lang/Boolean
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L1
+    LDC "log"
+    GOTO L2
+   L1
+   FRAME SAME
+    ALOAD 1
+    LDC "customer"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC "cus2"
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+    DUP
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L3
+    POP
+    ALOAD 1
+    LDC "action"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC "delete"
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+   L3
+   FRAME SAME1 java/lang/Boolean
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L4
+    LDC "log"
+    GOTO L2
+   L4
+   FRAME SAME
+    LDC "allow"
+   L2
+   FRAME SAME1 java/lang/String
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 2

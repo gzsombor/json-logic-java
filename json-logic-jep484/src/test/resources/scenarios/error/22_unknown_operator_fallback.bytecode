@@ -1,0 +1,6 @@
+    LDC 42.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.log (Ljava/lang/Object;)Ljava/lang/Object;
+    ARETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2

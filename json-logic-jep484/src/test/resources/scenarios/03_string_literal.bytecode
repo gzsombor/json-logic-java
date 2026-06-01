@@ -1,0 +1,4 @@
+    LDC "hello"
+    ARETURN
+    MAXSTACK = 1
+    MAXLOCALS = 2

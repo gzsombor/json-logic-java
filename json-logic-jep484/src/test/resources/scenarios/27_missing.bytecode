@@ -1,0 +1,17 @@
+    NEW java/util/ArrayList
+    DUP
+    LDC 2
+    INVOKESPECIAL java/util/ArrayList.<init> (I)V
+    DUP
+    LDC "a"
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    DUP
+    LDC "b"
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    ALOAD 1
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.missing (Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 2

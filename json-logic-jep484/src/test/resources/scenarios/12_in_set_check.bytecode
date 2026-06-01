@@ -1,0 +1,30 @@
+    ALOAD 1
+    LDC "customer"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    NEW java/util/ArrayList
+    DUP
+    LDC 2
+    INVOKESPECIAL java/util/ArrayList.<init> (I)V
+    DUP
+    LDC "cust1"
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    DUP
+    LDC "cust2"
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.in (Ljava/lang/Object;Ljava/lang/Object;)Z
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L0
+    LDC "ok"
+    GOTO L1
+   L0
+   FRAME SAME
+    LDC "not_ok"
+   L1
+   FRAME SAME1 java/lang/String
+    ARETURN
+    MAXSTACK = 4
+    MAXLOCALS = 2

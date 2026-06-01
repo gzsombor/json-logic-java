@@ -1,0 +1,19 @@
+    ALOAD 1
+    LDC "role"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC "admin"
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.looseEq (Ljava/lang/Object;Ljava/lang/Object;)Z
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L0
+    LDC "full"
+    GOTO L1
+   L0
+   FRAME SAME
+    LDC "limited"
+   L1
+   FRAME SAME1 java/lang/String
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 2
