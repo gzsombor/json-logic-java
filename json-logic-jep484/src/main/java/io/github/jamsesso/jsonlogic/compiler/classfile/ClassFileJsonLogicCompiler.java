@@ -461,7 +461,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!allSupported(args)) {
       return false;
     }
-    emitArray(codeBuilder, args);
+    emitArrayWithPaths(codeBuilder, args, ".cat");
     codeBuilder.invokestatic(CD_RULE_HELPERS, "cat", MethodTypeDesc.of(CD_String, CD_LIST));
     return true;
   }
