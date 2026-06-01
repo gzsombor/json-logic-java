@@ -2,14 +2,15 @@ package io.github.jamsesso.jsonlogic;
 
 import com.google.gson.*;
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FixtureTests {
@@ -31,35 +32,18 @@ public class FixtureTests {
     return fixtures;
   }
 
-  @ParameterizedTest(name = "{0}")
-  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
-  public void testAllFixtures(String label, JsonLogic jsonLogic) {
-    List<TestResult> failures = new ArrayList<>();
+  static Stream<Arguments> fixtures() {
+    return JsonLogicTestEngines.engines()
+        .flatMap(engine -> FIXTURES.stream()
+            .map(fixture -> Arguments.of(engine[0], engine[1], fixture)));
+  }
 
-    for (Fixture fixture : FIXTURES) {
-      try {
-        Object result = jsonLogic.apply(fixture.getJson(), fixture.getData());
-
-        if (!Objects.equals(result, fixture.getExpectedValue())) {
-          failures.add(new TestResult(fixture, result));
-        }
-      }
-      catch (JsonLogicException e) {
-        failures.add(new TestResult(fixture, e));
-      }
-    }
-
-    for (TestResult testResult : failures) {
-      Object actual = testResult.getResult();
-      Fixture fixture = testResult.getFixture();
-
-      System.out.println(String.format("FAIL [%s]: %s\n\t%s\n\tExpected: %s Got: %s\n",
-        label, fixture.getJson(), fixture.getData(),
-        fixture.getExpectedValue(), actual instanceof Exception ? ((Exception) actual).getMessage() : actual));
-    }
-
-    assertEquals(0, failures.size(),
-        String.format("[%s] %d/%d test failures!", label, failures.size(), FIXTURES.size()));
+  @ParameterizedTest(name = "{0} {2}")
+  @MethodSource("fixtures")
+  public void testAllFixtures(String label, JsonLogic jsonLogic, Fixture fixture) throws JsonLogicException {
+    Object result = jsonLogic.apply(fixture.getJson(), fixture.getData());
+    assertEquals(fixture.getExpectedValue(), result,
+        String.format("FAIL [%s]: %s\n\t%s", label, fixture.getJson(), fixture.getData()));
   }
 
   private static class Fixture {
@@ -88,23 +72,10 @@ public class FixtureTests {
     Object getExpectedValue() {
       return expectedValue;
     }
-  }
 
-  private static class TestResult {
-    private final Fixture fixture;
-    private final Object result;
-
-    private TestResult(Fixture fixture, Object result) {
-      this.fixture = fixture;
-      this.result = result;
-    }
-
-    Fixture getFixture() {
-      return fixture;
-    }
-
-    Object getResult() {
-      return result;
+    @Override
+    public String toString() {
+      return json;
     }
   }
 }
