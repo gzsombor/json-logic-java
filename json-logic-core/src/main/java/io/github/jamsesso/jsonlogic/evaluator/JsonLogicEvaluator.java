@@ -68,6 +68,10 @@ public class JsonLogicEvaluator {
     expressions.put(expression.key(), expression);
   }
 
+  public boolean hasOperation(String operator) {
+    return expressions.containsKey(operator);
+  }
+
   private static List<JsonLogicExpression> defaultExpressions() {
     return Arrays.asList(
         MathExpression.ADD,

@@ -409,8 +409,24 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       case "reduce":
         return emitReduceErrors(codeBuilder, args);
       default:
+        if (fallbackEvaluator.hasOperation(operation.getOperator())) {
+          return emitFallbackOperation(codeBuilder, operation);
+        }
         return false;
     }
+  }
+
+  private boolean emitFallbackOperation(CodeBuilder codeBuilder, JsonLogicOperation operation) {
+    codeBuilder.aload(0).getfield(currentGeneratedClass, "fallback", CD_JSON_LOGIC_EVALUATOR);
+    emitCurrentNode(codeBuilder);
+    codeBuilder
+        .aload(1)
+        .ldc(currentPath)
+        .invokevirtual(
+            CD_JSON_LOGIC_EVALUATOR,
+            "evaluate",
+            MethodTypeDesc.of(CD_Object, CD_JSON_LOGIC_NODE, CD_Object, CD_String));
+    return true;
   }
 
   private boolean emitReduceErrors(CodeBuilder codeBuilder, JsonLogicArray args) {
@@ -539,7 +555,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   }
 
   private boolean emitMissingSome(CodeBuilder codeBuilder, JsonLogicArray args) {
-    if (args.size() < 2 || !(args.get(0) instanceof JsonLogicNumber) || !(args.get(1) instanceof JsonLogicArray)) {
+    if (args.size() < 2 || (args.size() >= 2 && args.get(0) instanceof JsonLogicNumber && !(args.get(1) instanceof JsonLogicArray))) {
       emitFailure(
           codeBuilder,
           "missing_some expects first argument to be an integer and the second argument to be an array",
@@ -789,11 +805,15 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   }
 
   private void emitOperationArgument(CodeBuilder codeBuilder, int index) {
-    codeBuilder.aload(0).getfield(currentGeneratedClass, "ast", CD_JSON_LOGIC_NODE);
-    emitDescendCurrentPath(codeBuilder);
+    emitCurrentNode(codeBuilder);
     codeBuilder.checkcast(CD_JSON_LOGIC_OPERATION);
     codeBuilder.invokevirtual(CD_JSON_LOGIC_OPERATION, "getArguments", MethodTypeDesc.of(ClassDesc.of(JsonLogicArray.class.getName())));
     codeBuilder.ldc(index).invokeinterface(CD_LIST, "get", MethodTypeDesc.of(CD_Object, ClassDesc.ofDescriptor("I"))).checkcast(CD_JSON_LOGIC_NODE);
+  }
+
+  private void emitCurrentNode(CodeBuilder codeBuilder) {
+    codeBuilder.aload(0).getfield(currentGeneratedClass, "ast", CD_JSON_LOGIC_NODE);
+    emitDescendCurrentPath(codeBuilder);
   }
 
   private void emitDescendCurrentPath(CodeBuilder codeBuilder) {
@@ -1025,7 +1045,14 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       codeBuilder.aconst_null();
       return true;
     }
-    final JsonLogicArray effectiveArgs = effectiveMathArgs(operator, args);
+    if (("+".equals(operator) || "*".equals(operator)) && args.size() == 1 && !(args.get(0) instanceof JsonLogicArray)) {
+      emitRequiredNode(codeBuilder, args.get(0), "." + operator + "[0]");
+      codeBuilder.ldc(operator);
+      codeBuilder.swap();
+      codeBuilder.invokestatic(CD_RULE_HELPERS, "mathSingle", MethodTypeDesc.of(CD_Object, CD_String, CD_Object));
+      return true;
+    }
+    final JsonLogicArray effectiveArgs = effectiveMathArgs(operator, args, true);
     if (effectiveArgs == null || effectiveArgs.isEmpty()) {
       codeBuilder.aconst_null();
       return true;
@@ -1110,9 +1137,12 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return false;
   }
 
-  private static JsonLogicArray effectiveMathArgs(String operator, JsonLogicArray args) {
+  private static JsonLogicArray effectiveMathArgs(String operator, JsonLogicArray args, boolean staticOnly) {
     if (("+".equals(operator) || "*".equals(operator)) && args.size() == 1 && args.get(0) instanceof JsonLogicArray) {
       return flattenMathArray((JsonLogicArray) args.get(0));
+    }
+    if (("+".equals(operator) || "*".equals(operator)) && args.size() == 1 && !staticOnly) {
+      return flattenMathArray(args);
     }
     if ("+".equals(operator) || "*".equals(operator)) {
       return flattenMathArray(args);
@@ -1150,7 +1180,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.invokestatic(CD_DOUBLE, "valueOf", MethodTypeDesc.of(CD_DOUBLE, ClassDesc.ofDescriptor("D")));
   }
 
-  private static boolean allSupported(JsonLogicArray args) {
+  private boolean allSupported(JsonLogicArray args) {
     for (JsonLogicNode arg : args) {
       if (!isSupported(arg)) {
         return false;
@@ -1159,7 +1189,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return true;
   }
 
-  private static boolean allComparable(JsonLogicArray args) {
+  private boolean allComparable(JsonLogicArray args) {
     for (JsonLogicNode arg : args) {
       if (!isComparable(arg)) {
         return false;
@@ -1168,7 +1198,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return true;
   }
 
-  private static boolean allMathNumeric(JsonLogicArray args) {
+  private boolean allMathNumeric(JsonLogicArray args) {
     for (JsonLogicNode arg : args) {
       if (!isMathNumeric(arg)) {
         return false;
@@ -1177,7 +1207,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return true;
   }
 
-  private static boolean isComparable(JsonLogicNode node) {
+  private boolean isComparable(JsonLogicNode node) {
     if (node instanceof JsonLogicNull
         || node instanceof JsonLogicNumber
         || node instanceof JsonLogicBoolean
@@ -1192,7 +1222,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return false;
   }
 
-  private static boolean isMathNumeric(JsonLogicNode node) {
+  private boolean isMathNumeric(JsonLogicNode node) {
     if (node instanceof JsonLogicNumber || node instanceof JsonLogicString) {
       return true;
     }
@@ -1255,7 +1285,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.invokestatic(CD_BOOLEAN, "valueOf", MethodTypeDesc.of(CD_BOOLEAN, CD_boolean));
   }
 
-  private static boolean isSupported(JsonLogicNode ast) {
+  private boolean isSupported(JsonLogicNode ast) {
     if (ast instanceof JsonLogicNull
         || ast instanceof JsonLogicBoolean
         || ast instanceof JsonLogicNumber
@@ -1334,7 +1364,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         case "reduce":
           return args.size() != 3 || allSupported(args);
         default:
-          return false;
+          return fallbackEvaluator.hasOperation(operation.getOperator());
       }
     }
     return false;
