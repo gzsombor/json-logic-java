@@ -210,6 +210,13 @@ public final class RuleHelpers {
     return acc;
   }
 
+  public static Object mathSingle(String op, Object arg) {
+    if (ArrayLike.isEligible(arg)) {
+      return mathReduce(op, ArrayLike.toList(arg));
+    }
+    return mathReduce(op, List.of(arg));
+  }
+
   public static boolean compare(String op, List<Object> args) {
     final int n = Math.min(args.size(), 3);
     if (n < 2) {
