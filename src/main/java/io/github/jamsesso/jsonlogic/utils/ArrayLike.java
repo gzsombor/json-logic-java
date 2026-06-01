@@ -10,30 +10,36 @@ import java.util.stream.Collectors;
 public class ArrayLike implements List<Object> {
   private final List<Object> delegate;
 
-  @SuppressWarnings("unchecked")
   public ArrayLike(Object data) {
+    delegate = toList(data);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static List<Object> toList(Object data) {
     if (data instanceof List) {
-      delegate = ((List<Object>) data)
+      return ((List<Object>) data)
               .stream()
               .map(JsonLogicEvaluator::transform)
               .collect(Collectors.toList());
     }
     else if (data != null && data.getClass().isArray()) {
-      delegate = new ArrayList<>();
+      List<Object> list = new ArrayList<>();
 
       for (int i = 0; i < Array.getLength(data); i++) {
-        delegate.add(i, JsonLogicEvaluator.transform(Array.get(data, i)));
+        list.add(i, JsonLogicEvaluator.transform(Array.get(data, i)));
       }
+      return list;
     }
     else if (data instanceof JsonArray) {
-      delegate = (List) JsonValueExtractor.extract((JsonArray) data);
+      return (List<Object>) JsonValueExtractor.extract((JsonArray) data);
     }
     else if (data instanceof Iterable) {
-      delegate = new ArrayList<>();
+      List<Object> list = new ArrayList<>();
 
-      for (Object item : (Iterable) data) {
-        delegate.add(JsonLogicEvaluator.transform(item));
+      for (Object item : (Iterable<Object>) data) {
+        list.add(JsonLogicEvaluator.transform(item));
       }
+      return list;
     }
     else {
       throw new IllegalArgumentException("ArrayLike only works with lists, iterables, arrays, or JsonArray");

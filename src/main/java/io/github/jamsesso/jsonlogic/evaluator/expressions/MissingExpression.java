@@ -39,7 +39,7 @@ public abstract class MissingExpression implements PreEvaluatedArgumentsExpressi
       }
 
       int requiredCount = ((Double) arguments.get(0)).intValue();
-      List<?> keys = new ArrayLike(arguments.get(1));
+      List<?> keys = ArrayLike.toList(arguments.get(1));
       return RuleHelpers.missingSome(requiredCount, keys, data);
     }
   }

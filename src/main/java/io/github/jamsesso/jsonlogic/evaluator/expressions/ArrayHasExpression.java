@@ -51,7 +51,7 @@ public class ArrayHasExpression extends JsonPathHandlerJsonLogicExpression imple
       throw new JsonLogicEvaluationException("first argument to " + key() + " must be a valid array", "[0]");
     }
 
-    for (Object item : new ArrayLike(maybeArray)) {
+    for (Object item : ArrayLike.toList(maybeArray)) {
       try {
         if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item))) {
           return isSome;

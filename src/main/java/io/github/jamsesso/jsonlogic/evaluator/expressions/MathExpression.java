@@ -48,7 +48,7 @@ public class MathExpression implements PreEvaluatedArgumentsExpression {
 
       if ("*".equals(key) || "+".equals(key)) {
         while (ArrayLike.isEligible(value)) {
-          ArrayLike array = new ArrayLike(value);
+          List<Object> array = ArrayLike.toList(value);
           if (array.isEmpty()) {
             break;
           }

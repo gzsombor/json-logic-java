@@ -37,7 +37,7 @@ public final class TestRule implements CompiledRule {
       someResult_2 = fail("first argument to some must be a valid array", ".some[0]");
     } else {
       someResult_2 = Boolean.FALSE;
-      final Iterator<Object> someIterator_3 = new ArrayLike(someArray_1).iterator();
+      final Iterator<Object> someIterator_3 = ArrayLike.toList(someArray_1).iterator();
       while (someIterator_3.hasNext()) {
         final Object someItem_4 = someIterator_3.next();
         if (JsonLogic.truthy(collectionBody$0(someItem_4))) {

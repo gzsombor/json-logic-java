@@ -6,6 +6,7 @@ import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicExpression;
 import io.github.jamsesso.jsonlogic.utils.ArrayLike;
+import java.util.List;
 
 public class AllExpression extends JsonPathHandlerJsonLogicExpression implements JsonLogicExpression {
   public static final AllExpression INSTANCE = new AllExpression();
@@ -42,7 +43,7 @@ public class AllExpression extends JsonPathHandlerJsonLogicExpression implements
       throw new JsonLogicEvaluationException("first argument to all must be a valid array");
     }
 
-    ArrayLike array = new ArrayLike(maybeArray);
+    List<Object> array = ArrayLike.toList(maybeArray);
 
     if (array.size() < 1) {
       return false;

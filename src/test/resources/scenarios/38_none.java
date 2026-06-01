@@ -37,7 +37,7 @@ public final class TestRule implements CompiledRule {
       noneResult_2 = fail("first argument to none must be a valid array", ".none[0]");
     } else {
       noneResult_2 = Boolean.TRUE;
-      final Iterator<Object> noneIterator_3 = new ArrayLike(noneArray_1).iterator();
+      final Iterator<Object> noneIterator_3 = ArrayLike.toList(noneArray_1).iterator();
       while (noneIterator_3.hasNext()) {
         final Object noneItem_4 = noneIterator_3.next();
         if (JsonLogic.truthy(collectionBody$0(noneItem_4))) {

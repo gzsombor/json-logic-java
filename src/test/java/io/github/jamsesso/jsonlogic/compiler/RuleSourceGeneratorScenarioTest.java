@@ -58,7 +58,6 @@ public class RuleSourceGeneratorScenarioTest {
     JsonLogicNode node = JsonLogicParser.parse(json);
     RuleSourceGenerator generator = new RuleSourceGenerator();
     String actualSource = generator.generate(node, "TestRule");
-
     assertEquals(
         expectedSource.stripTrailing(),
         actualSource.stripTrailing(),

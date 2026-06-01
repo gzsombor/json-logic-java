@@ -43,7 +43,7 @@ public class FilterExpression extends JsonPathHandlerJsonLogicExpression impleme
 
     List<Object> result = new ArrayList<>();
 
-    for (Object item : new ArrayLike(maybeArray)) {
+    for (Object item : ArrayLike.toList(maybeArray)) {
       try {
         if (JsonLogic.truthy(evaluator.evaluate(arguments.get(1), item))) {
           result.add(item);

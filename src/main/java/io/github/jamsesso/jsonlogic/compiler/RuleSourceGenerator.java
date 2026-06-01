@@ -522,10 +522,10 @@ public final class RuleSourceGenerator {
         .append(javaStringLiteral("first argument to " + operator + " must be a valid array"))
         .append(", ").append(javaStringLiteral(opPath + "[0]")).append(");\n")
         .append("    } else {\n")
-        .append("      ").append(result).append(" = Boolean.")
-        .append("none".equals(operator) ? "TRUE" : "FALSE").append(";\n")
-        .append("      final Iterator<Object> ").append(iterator)
-        .append(" = new ArrayLike(").append(maybeArray).append(").iterator();\n")
+      .append("      ").append(result).append(" = Boolean.")
+      .append("none".equals(operator) ? "TRUE" : "FALSE").append(";\n")
+      .append("      final Iterator<Object> ").append(iterator)
+        .append(" = ArrayLike.toList(").append(maybeArray).append(").iterator();\n")
         .append("      while (").append(iterator).append(".hasNext()) {\n")
         .append("        final Object ").append(item).append(" = ").append(iterator).append(".next();\n")
         .append("        if (JsonLogic.truthy(").append(bodyMethod).append("(").append(item).append("))) {\n")
@@ -757,7 +757,7 @@ public final class RuleSourceGenerator {
     out.append("      Map<String, Object> ").append(contextVar)
         .append(" = reduceContext(").append(dataExpr).append(", ").append(accumulatorVar).append(");\n");
     out.append("      for (Object ").append(itemVar)
-        .append(" : new ArrayLike(").append(arrayVar).append(")) {\n");
+        .append(" : ArrayLike.toList(").append(arrayVar).append(")) {\n");
     out.append("        ").append(contextVar).append(".put(\"current\", ").append(itemVar).append(");\n");
 
     final var body = new StringBuilder();

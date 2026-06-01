@@ -44,7 +44,7 @@ public class MapExpression extends JsonPathHandlerJsonLogicExpression implements
 
     List<Object> result = new ArrayList<>();
 
-    for (Object item : new ArrayLike(maybeArray)) {
+    for (Object item : ArrayLike.toList(maybeArray)) {
       try {
         result.add(evaluator.evaluate(arguments.get(1), item));
       } catch (JsonLogicEvaluationException e) {

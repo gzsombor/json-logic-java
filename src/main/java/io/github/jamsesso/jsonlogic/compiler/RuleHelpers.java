@@ -174,7 +174,7 @@ public final class RuleHelpers {
   /** Unwraps nested single-element arrays, mirroring {@code MathExpression}'s behaviour for {@code +} and {@code *}. */
   public static Object unwrapArrayArg(Object value) {
     while (ArrayLike.isEligible(value)) {
-      final ArrayLike list = new ArrayLike(value);
+      final List<Object> list = ArrayLike.toList(value);
       if (list.isEmpty()) {
         return null;
       }
@@ -188,10 +188,9 @@ public final class RuleHelpers {
    * single-array-argument unwrapping and per-element array unwrapping.
    */
   public static Object mathReduce(String op, List<Object> args) {
-    List<Object> effective = args;
-    if (args.size() == 1 && ArrayLike.isEligible(args.get(0))) {
-      effective = new ArrayLike(args.get(0));
-    }
+    final List<Object> effective = args.size() == 1 && ArrayLike.isEligible(args.get(0))
+        ? ArrayLike.toList(args.get(0))
+        : args;
     Double acc = null;
     for (final Object raw : effective) {
       final Double num = toDoubleNullable(unwrapArrayArg(raw));
@@ -260,7 +259,7 @@ public final class RuleHelpers {
 
   public static List<Object> missing(List<?> keys, Object data) {
     if (keys.size() == 1 && ArrayLike.isEligible(keys.get(0))) {
-      keys = new ArrayLike(keys.get(0));
+      keys = ArrayLike.toList(keys.get(0));
     }
 
     Map<?, ?> map = MapHelpers.toMap(data);
@@ -304,7 +303,7 @@ public final class RuleHelpers {
     if (key instanceof Number) {
       final int idx = ((Number) key).intValue();
       if (ArrayLike.isEligible(data)) {
-        final ArrayLike list = new ArrayLike(data);
+        final List<Object> list = ArrayLike.toList(data);
         return (idx >= 0 && idx < list.size()) ? list.get(idx) : defaultValue;
       }
       return defaultValue;
@@ -322,7 +321,7 @@ public final class RuleHelpers {
         }
         if (ArrayLike.isEligible(cur)) {
           try {
-            final ArrayLike list = new ArrayLike(cur);
+            final List<Object> list = ArrayLike.toList(cur);
             final int idx = Integer.parseInt(part);
             if (idx < 0 || idx >= list.size()) {
               return defaultValue;

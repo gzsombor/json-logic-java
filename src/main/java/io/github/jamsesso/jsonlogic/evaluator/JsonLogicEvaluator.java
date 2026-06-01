@@ -207,7 +207,7 @@ public class JsonLogicEvaluator {
       int index = ((Number) key).intValue();
 
       if (ArrayLike.isEligible(data)) {
-        ArrayLike list = new ArrayLike(data);
+        List<Object> list = ArrayLike.toList(data);
 
         if (index >= 0 && index < list.size()) {
           return transform(list.get(index));
@@ -251,7 +251,7 @@ public class JsonLogicEvaluator {
 
   private Object evaluatePartialVariable(String key, Object data) throws JsonLogicEvaluationException {
     if (ArrayLike.isEligible(data)) {
-      ArrayLike list = new ArrayLike(data);
+      List<Object> list = ArrayLike.toList(data);
       int index;
 
       try {

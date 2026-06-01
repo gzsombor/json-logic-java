@@ -51,7 +51,7 @@ public class ReduceExpression extends JsonPathHandlerJsonLogicExpression impleme
 
     Map<String, Object> context = MapHelpers.reduceContext(data, accumulator);
 
-    for (Object item : new ArrayLike(maybeArray)) {
+    for (Object item : ArrayLike.toList(maybeArray)) {
       context.put("current", item);
       try {
         context.put("accumulator", evaluator.evaluate(arguments.get(1), context));

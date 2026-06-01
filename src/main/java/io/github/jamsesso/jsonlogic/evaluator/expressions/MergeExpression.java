@@ -23,7 +23,7 @@ public class MergeExpression implements PreEvaluatedArgumentsExpression {
   @Override
   public Object evaluate(List arguments, Object data, String jsonPath) throws JsonLogicEvaluationException {
     return ((List<Object>) arguments).stream()
-      .map(obj -> ArrayLike.isEligible(obj) ? new ArrayLike(obj) : Collections.singleton(obj))
+      .map(obj -> ArrayLike.isEligible(obj) ? ArrayLike.toList(obj) : Collections.singleton(obj))
       .flatMap(Collection::stream)
       .collect(Collectors.toList());
   }

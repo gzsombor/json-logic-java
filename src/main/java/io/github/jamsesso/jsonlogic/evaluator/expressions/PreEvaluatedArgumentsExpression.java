@@ -17,7 +17,7 @@ public interface PreEvaluatedArgumentsExpression extends JsonLogicExpression {
     List<Object> values = evaluator.evaluate(arguments, data, jsonPath);
 
     if (values.size() == 1 && ArrayLike.isEligible(values.get(0))) {
-      values = new ArrayLike(values.get(0));
+      values = ArrayLike.toList(values.get(0));
     }
 
     return evaluate(values, data, jsonPath);
