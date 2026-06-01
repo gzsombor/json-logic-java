@@ -1,0 +1,54 @@
+    ALOAD 1
+    LDC "items"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 2
+    ALOAD 2
+    IFNULL L0
+    ALOAD 2
+    INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.isEligible (Ljava/lang/Object;)Z
+    IFEQ L1
+    NEW io/github/jamsesso/jsonlogic/utils/ArrayLike
+    DUP
+    ALOAD 2
+    INVOKESPECIAL io/github/jamsesso/jsonlogic/utils/ArrayLike.<init> (Ljava/lang/Object;)V
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator ()Ljava/util/Iterator;
+    ASTORE 3
+   L2
+   FRAME APPEND [java/lang/Object java/util/Iterator]
+    ALOAD 3
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L1
+    ALOAD 3
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 4
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_4e534366bfe88b35.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_4e534366bfe88b35.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 1
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
+    ALOAD 4
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFNE L3
+    GOTO L2
+   L0
+   FRAME CHOP 1
+    GETSTATIC java/lang/Boolean.TRUE : Ljava/lang/Boolean;
+    GOTO L4
+   L3
+   FRAME APPEND [java/util/Iterator java/lang/Object]
+    GETSTATIC java/lang/Boolean.FALSE : Ljava/lang/Boolean;
+    GOTO L4
+   L1
+   FRAME CHOP 2
+    GETSTATIC java/lang/Boolean.TRUE : Ljava/lang/Boolean;
+   L4
+   FRAME SAME1 java/lang/Boolean
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 5
