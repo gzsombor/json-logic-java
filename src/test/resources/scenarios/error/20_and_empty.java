@@ -30,4 +30,3 @@ public final class TestRule implements CompiledRule {
     throw new JsonLogicEvaluationException("and operator expects at least 1 argument", ".and");
   }
 }
-

@@ -98,13 +98,16 @@ public final class RuleSourceGenerator {
    * declaration line, e.g. {@code "  private static final Set<Object> SET_1 = Set.of(...);\n"}.
    */
   private final StringBuilder staticFields = new StringBuilder();
+  private final StringBuilder helperMethods = new StringBuilder();
 
   /**
    * Cache from a canonical set-element string (e.g. {@code "\"a\",\"b\""}) to the already-
    * declared field name, so identical haystacks share a single {@code Set} constant.
    */
   private final Map<String, String> setCache = new LinkedHashMap<>();
+  private final Map<JsonLogicNode, String> bodyMethodCache = new LinkedHashMap<>();
   private boolean needsReduceHelpers = false;
+  private boolean needsArrayLike = false;
 
   // -------------------------------------------------------------------------
   // Public API
@@ -131,7 +134,7 @@ public final class RuleSourceGenerator {
         + "import io.github.jamsesso.jsonlogic.compiler.CompiledRule;\n"
         + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;\n"
         + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;\n"
-        + (needsReduceHelpers ? "import io.github.jamsesso.jsonlogic.utils.ArrayLike;\n" : "")
+        + ((needsReduceHelpers || needsArrayLike) ? "import io.github.jamsesso.jsonlogic.utils.ArrayLike;\n" : "")
         + "import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;\n"
         + (needsReduceHelpers ? "import static io.github.jamsesso.jsonlogic.utils.MapHelpers.reduceContext;\n" : "")
         + "import java.util.*;\n"
@@ -169,6 +172,7 @@ public final class RuleSourceGenerator {
         + body
         + (omitReturn ? "" : "    return " + resultVar + ";\n")
         + "  }\n"
+        + helperMethods
         + "}\n";
   }
 
@@ -489,8 +493,76 @@ public final class RuleSourceGenerator {
       case "missing": return emitMissing(args, pre, dataExpr, opPath);
       case "missing_some": return emitMissingSome(op, pre, dataExpr, opPath, path);
       case "reduce": return emitReduceExpression(op, pre, dataExpr, opPath);
+      case "some": return emitSomeNone("some", op, pre, dataExpr, opPath);
+      case "none": return emitSomeNone("none", op, pre, dataExpr, opPath);
       default:    return emitFallback(op, pre, dataExpr, path);
     }
+  }
+
+  private String emitSomeNone(String operator, JsonLogicOperation op, StringBuilder pre, String dataExpr, String opPath) {
+    final JsonLogicArray args = op.getArguments();
+    if (args.size() != 2) {
+      return emitFallback(op, pre, dataExpr, parentPath(opPath, operator));
+    }
+
+    needsArrayLike = true;
+    final String maybeArray = freshVar(operator + "Array");
+    final String result = freshVar(operator + "Result");
+    final String iterator = freshVar(operator + "Iterator");
+    final String item = freshVar(operator + "Item");
+    final String bodyMethod = bodyMethodFor(args.get(1), opPath + "[1]");
+    pre.append("    final Object ").append(maybeArray).append(" = ")
+        .append(arg(args, 0, pre, dataExpr, opPath)).append(";\n")
+        .append("    Boolean ").append(result).append(";\n")
+        .append("    if (").append(maybeArray).append(" == null) {\n")
+        .append("      ").append(result).append(" = Boolean.")
+        .append("none".equals(operator) ? "TRUE" : "FALSE").append(";\n")
+        .append("    } else if (!ArrayLike.isEligible(").append(maybeArray).append(")) {\n")
+        .append("      ").append(result).append(" = fail(")
+        .append(javaStringLiteral("first argument to " + operator + " must be a valid array"))
+        .append(", ").append(javaStringLiteral(opPath + "[0]")).append(");\n")
+        .append("    } else {\n")
+        .append("      ").append(result).append(" = Boolean.")
+        .append("none".equals(operator) ? "TRUE" : "FALSE").append(";\n")
+        .append("      final Iterator<Object> ").append(iterator)
+        .append(" = new ArrayLike(").append(maybeArray).append(").iterator();\n")
+        .append("      while (").append(iterator).append(".hasNext()) {\n")
+        .append("        final Object ").append(item).append(" = ").append(iterator).append(".next();\n")
+        .append("        if (JsonLogic.truthy(").append(bodyMethod).append("(").append(item).append("))) {\n")
+        .append("          ").append(result).append(" = Boolean.")
+        .append("some".equals(operator) ? "TRUE" : "FALSE").append(";\n")
+        .append("          break;\n")
+        .append("        }\n")
+        .append("      }\n")
+        .append("    }\n");
+    return result;
+  }
+
+  private String bodyMethodFor(JsonLogicNode body, String path) {
+    final String existing = bodyMethodCache.get(body);
+    if (existing != null) {
+      return existing;
+    }
+    final String methodName = "collectionBody$" + bodyMethodCache.size();
+    bodyMethodCache.put(body, methodName);
+
+    final var methodBody = new StringBuilder();
+    final String result = freshVar("collectionBodyResult");
+    final VarScope varScope = new VarScope();
+    varScopes.add(varScope);
+    try {
+      emitStatement(body, result, methodBody, "item", path);
+    } finally {
+      varScopes.remove(varScopes.size() - 1);
+    }
+    helperMethods
+        .append("\n")
+        .append("  private Object ").append(methodName).append("(Object item) throws JsonLogicEvaluationException {\n")
+        .append(varScope.preamble)
+        .append(methodBody)
+        .append("    return ").append(result).append(";\n")
+        .append("  }\n");
+    return methodName;
   }
 
   // ---- if / nested else-if ----
