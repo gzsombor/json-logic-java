@@ -563,19 +563,37 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!allComparable(args)) {
       return false;
     }
-    codeBuilder.ldc(operator);
-    emitArray(codeBuilder, args);
-    codeBuilder.invokestatic(CD_RULE_HELPERS, "compare", MethodTypeDesc.of(CD_boolean, CD_String, CD_LIST));
+    emitComparePair(codeBuilder, operator, args.get(0), args.get(1));
+    if (args.size() >= 3) {
+      emitComparePair(codeBuilder, operator, args.get(1), args.get(2));
+      codeBuilder.iand();
+    }
     boxBoolean(codeBuilder);
     return true;
   }
 
   private void emitComparePair(CodeBuilder codeBuilder, String operator, JsonLogicNode left, JsonLogicNode right) {
-    emitDouble(codeBuilder, left);
-    emitDouble(codeBuilder, right);
-    codeBuilder.dcmpl();
+    final int leftSlot = allocateLocalSlot(2);
+    final int rightSlot = allocateLocalSlot(2);
+    final Label falseLabel = codeBuilder.newLabel();
     final Label trueLabel = codeBuilder.newLabel();
     final Label endLabel = codeBuilder.newLabel();
+
+    emitDouble(codeBuilder, left);
+    codeBuilder.dstore(leftSlot);
+    emitDouble(codeBuilder, right);
+    codeBuilder.dstore(rightSlot);
+
+    codeBuilder
+        .dload(leftSlot)
+        .invokestatic(CD_DOUBLE, "isNaN", MethodTypeDesc.of(CD_boolean, ClassDesc.ofDescriptor("D")))
+        .ifne(falseLabel)
+        .dload(rightSlot)
+        .invokestatic(CD_DOUBLE, "isNaN", MethodTypeDesc.of(CD_boolean, ClassDesc.ofDescriptor("D")))
+        .ifne(falseLabel)
+        .dload(leftSlot)
+        .dload(rightSlot)
+        .dcmpl();
     switch (operator) {
       case ">":
         codeBuilder.ifgt(trueLabel);
@@ -593,6 +611,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         throw new IllegalArgumentException("Unsupported comparison operator: " + operator);
     }
     codeBuilder
+        .labelBinding(falseLabel)
         .iconst_0()
         .goto_(endLabel)
         .labelBinding(trueLabel)
