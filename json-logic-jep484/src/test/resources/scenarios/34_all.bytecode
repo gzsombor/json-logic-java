@@ -1,0 +1,55 @@
+    ALOAD 1
+    LDC "items"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 2
+    ALOAD 2
+    IFNULL L0
+    ALOAD 2
+    INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.isEligible (Ljava/lang/Object;)Z
+    IFEQ L0
+    NEW io/github/jamsesso/jsonlogic/utils/ArrayLike
+    DUP
+    ALOAD 2
+    INVOKESPECIAL io/github/jamsesso/jsonlogic/utils/ArrayLike.<init> (Ljava/lang/Object;)V
+    ASTORE 3
+    ALOAD 3
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/utils/ArrayLike.isEmpty ()Z
+    IFNE L0
+    ALOAD 3
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator ()Ljava/util/Iterator;
+    ASTORE 4
+   L1
+   FRAME APPEND [java/lang/Object io/github/jamsesso/jsonlogic/utils/ArrayLike java/util/Iterator]
+    ALOAD 4
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L2
+    ALOAD 4
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 5
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b0dd14168185aea8.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b0dd14168185aea8.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 1
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
+    ALOAD 5
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L0
+    GOTO L1
+   L0
+   FRAME CHOP 2
+    GETSTATIC java/lang/Boolean.FALSE : Ljava/lang/Boolean;
+    GOTO L3
+   L2
+   FRAME APPEND [io/github/jamsesso/jsonlogic/utils/ArrayLike java/util/Iterator]
+    GETSTATIC java/lang/Boolean.TRUE : Ljava/lang/Boolean;
+   L3
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b0dd14168185aea8 java/lang/Object java/lang/Object] [java/lang/Boolean]
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 6

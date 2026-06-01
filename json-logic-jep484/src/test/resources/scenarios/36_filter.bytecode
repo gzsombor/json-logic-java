@@ -1,0 +1,60 @@
+    ALOAD 1
+    LDC "items"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 2
+    ALOAD 2
+    INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.isEligible (Ljava/lang/Object;)Z
+    IFEQ L0
+    NEW java/util/ArrayList
+    DUP
+    INVOKESPECIAL java/util/ArrayList.<init> ()V
+    ASTORE 3
+    NEW io/github/jamsesso/jsonlogic/utils/ArrayLike
+    DUP
+    ALOAD 2
+    INVOKESPECIAL io/github/jamsesso/jsonlogic/utils/ArrayLike.<init> (Ljava/lang/Object;)V
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator ()Ljava/util/Iterator;
+    ASTORE 4
+   L1
+   FRAME APPEND [java/lang/Object java/util/ArrayList java/util/Iterator]
+    ALOAD 4
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L2
+    ALOAD 4
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    ASTORE 5
+    ALOAD 5
+    ASTORE 6
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_c868ac3f215fa965.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_c868ac3f215fa965.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 1
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
+    ALOAD 6
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L3
+    ALOAD 3
+    ALOAD 5
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+   L3
+   FRAME APPEND [java/lang/Object java/lang/Object]
+    GOTO L1
+   L0
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_c868ac3f215fa965 java/lang/Object java/lang/Object] []
+    LDC "first argument to filter must be a valid array"
+    LDC ".filter[0]"
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.fail (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;
+    ARETURN
+   L2
+   FRAME APPEND [java/util/ArrayList java/util/Iterator]
+    ALOAD 3
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 7
