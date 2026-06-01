@@ -1,0 +1,15 @@
+    LDC 1.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L0
+    ICONST_0
+    GOTO L1
+   L0
+   FRAME SAME
+    ICONST_1
+   L1
+   FRAME SAME1 I
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+    ARETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2

@@ -1,0 +1,4 @@
+    ACONST_NULL
+    ARETURN
+    MAXSTACK = 1
+    MAXLOCALS = 2

@@ -1,0 +1,6 @@
+    LDC "or operator expects at least 1 argument"
+    LDC ".or"
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.fail (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;
+    ARETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2

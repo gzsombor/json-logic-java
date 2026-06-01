@@ -42,7 +42,7 @@ import java.util.logging.Logger;
 
 public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplementation {
   private static final Logger LOG = Logger.getLogger(ClassFileJsonLogicCompiler.class.getName());
-  private static final String GENERATED_PACKAGE = "io.github.jamsesso.jsonlogic.compiler.classfile.gen";
+  static final String GENERATED_PACKAGE = "io.github.jamsesso.jsonlogic.compiler.classfile.gen";
   private static final ClassDesc CD_CALL_SITE = ClassDesc.of("java.lang.invoke.CallSite");
   private static final ClassDesc CD_BOOLEAN = ClassDesc.of(Boolean.class.getName());
   private static final ClassDesc CD_ARRAY_LIST = ClassDesc.of(ArrayList.class.getName());
@@ -109,7 +109,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     }
   }
 
-  private byte[] generateClass(ClassDesc generatedClass, JsonLogicNode ast) {
+  byte[] generateClass(ClassDesc generatedClass, JsonLogicNode ast) {
     return ClassFile.of().build(generatedClass, classBuilder -> classBuilder
         .withFlags(Modifier.PUBLIC | Modifier.FINAL)
         .withInterfaceSymbols(CD_COMPILED_RULE)
@@ -921,7 +921,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return data -> fallbackEvaluator.evaluate(ast, data);
   }
 
-  private static String classNameFor(String ruleJson) {
+  static String classNameFor(String ruleJson) {
     long hash = 0xcbf29ce484222325L;
     for (int i = 0; i < ruleJson.length(); i++) {
       hash ^= ruleJson.charAt(i);

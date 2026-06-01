@@ -1,0 +1,19 @@
+    ALOAD 1
+    LDC "condition"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L0
+    ALOAD 1
+    LDC "value"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    GOTO L1
+   L0
+   FRAME SAME
+    ACONST_NULL
+   L1
+   FRAME SAME1 java/lang/Object
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 2

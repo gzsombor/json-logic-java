@@ -1,5 +1,6 @@
 [versions]
 gson = "2.14.0"
+asm = "9.9"
 jmh = "1.37"
 junit = "5.14.4"
 junit-platform = "1.14.4"
@@ -7,6 +8,8 @@ maven-publish = "0.34.0"
 
 [libraries]
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
+asm-util = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
 jmh-generator-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }

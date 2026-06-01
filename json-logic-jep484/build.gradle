@@ -11,4 +11,8 @@ java {
 
 dependencies {
   api project(":json-logic-core")
+  testImplementation libs.asm.tree
+  testImplementation libs.asm.util
+  testImplementation libs.junit.jupiter
+  testRuntimeOnly libs.junit.platform.launcher
 }

@@ -1,0 +1,5 @@
+    LDC 42.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    ARETURN
+    MAXSTACK = 2
+    MAXLOCALS = 2

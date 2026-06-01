@@ -1,0 +1,42 @@
+    ALOAD 1
+    LDC "enabled"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    IFEQ L0
+    NEW java/util/LinkedHashMap
+    DUP
+    INVOKESPECIAL java/util/LinkedHashMap.<init> ()V
+    DUP
+    LDC "key_a"
+    LDC 1.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKEINTERFACE java/util/Map.put (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; (itf)
+    POP
+    DUP
+    LDC "key_b"
+    LDC "hello"
+    INVOKEINTERFACE java/util/Map.put (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; (itf)
+    POP
+    GOTO L1
+   L0
+   FRAME SAME
+    NEW java/util/LinkedHashMap
+    DUP
+    INVOKESPECIAL java/util/LinkedHashMap.<init> ()V
+    DUP
+    LDC "key_a"
+    LDC 2.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKEINTERFACE java/util/Map.put (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; (itf)
+    POP
+    DUP
+    LDC "key_b"
+    LDC "world"
+    INVOKEINTERFACE java/util/Map.put (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; (itf)
+    POP
+   L1
+   FRAME SAME1 java/util/LinkedHashMap
+    ARETURN
+    MAXSTACK = 5
+    MAXLOCALS = 2

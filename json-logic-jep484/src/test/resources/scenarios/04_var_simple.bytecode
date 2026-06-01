@@ -1,0 +1,7 @@
+    ALOAD 1
+    LDC "a"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 2
