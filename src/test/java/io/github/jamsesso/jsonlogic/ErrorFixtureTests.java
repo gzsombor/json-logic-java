@@ -1,45 +1,37 @@
 package io.github.jamsesso.jsonlogic;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import org.junit.jupiter.api.Test;
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.Arguments;
 
 import static io.github.jamsesso.jsonlogic.FixtureTests.readFixtures;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ErrorFixtureTests {
   private static final List<ErrorFixture> FIXTURES = readFixtures("error-fixtures.json", ErrorFixture::fromArray);
 
-  @Test
-  public void testAllFixtures() {
-    JsonLogic jsonLogic = new JsonLogic();
-    List<TestResult> failures = new ArrayList<>();
+  static Stream<Arguments> fixtures() {
+    return JsonLogicTestEngines.engines()
+        .flatMap(engine -> FIXTURES.stream()
+            .map(fixture -> Arguments.of(engine[0], engine[1], fixture)));
+  }
 
-    for (ErrorFixture fixture : FIXTURES) {
-      try {
-        jsonLogic.apply(fixture.getJson(), fixture.getData());
-        failures.add(new TestResult(fixture, new JsonLogicException("Expected an exception at " + fixture.getExpectedJsonPath(), "")));
-      } catch (JsonLogicException e) {
-        if (!fixture.getExpectedJsonPath().equals(e.getJsonPath()) ||
-            !fixture.getExpectedError().equals(e.getMessage())) {
-          failures.add(new TestResult(fixture, e));
-        }
-      }
+  @ParameterizedTest(name = "{0} {2}")
+  @MethodSource("fixtures")
+  public void testAllFixtures(String label, JsonLogic jsonLogic, ErrorFixture fixture) {
+    try {
+      jsonLogic.apply(fixture.getJson(), fixture.getData());
+      fail("Expected an exception at " + fixture.getExpectedJsonPath());
+    } catch (JsonLogicException e) {
+      assertEquals(fixture.getExpectedError(), e.getMessage());
+      assertEquals(fixture.getExpectedJsonPath(), e.getJsonPath());
     }
-
-    for (TestResult testResult : failures) {
-      JsonLogicException exception = testResult.getException();
-      ErrorFixture fixture = testResult.getFixture();
-
-      System.out.printf("FAIL: %s\n\t%s\n\tExpected: %s at %s Got: \"%s\" at \"%s\"\n%n", fixture.getJson(), fixture.getData(),
-        fixture.getExpectedError(), fixture.getExpectedJsonPath(),
-        exception.getMessage(), exception.getJsonPath());
-    }
-
-    assertEquals(0, failures.size(), String.format("%d/%d test failures!", failures.size(), FIXTURES.size()));
   }
 
   private static class ErrorFixture {
@@ -74,23 +66,10 @@ public class ErrorFixtureTests {
     String getExpectedError() {
       return expectedError;
     }
-  }
 
-  private static class TestResult {
-    private final ErrorFixture fixture;
-    private final JsonLogicException exception;
-
-    private TestResult(ErrorFixture fixture, JsonLogicException exception) {
-      this.fixture = fixture;
-      this.exception = exception;
-    }
-
-    ErrorFixture getFixture() {
-      return fixture;
-    }
-
-    JsonLogicException getException() {
-      return exception;
+    @Override
+    public String toString() {
+      return json;
     }
   }
 }
