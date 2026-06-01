@@ -56,7 +56,6 @@ public class ClassFileJsonLogicCompilerBytecodeTest {
     final String json = Files.readString(jsonPath, StandardCharsets.UTF_8).trim();
     final String expectedBytecode = Files.readString(bytecodePath, StandardCharsets.UTF_8);
     final String actualBytecode = disassemble(json);
-
     assertEquals(expectedBytecode.stripTrailing(), actualBytecode.stripTrailing(), scenarioName);
   }
 

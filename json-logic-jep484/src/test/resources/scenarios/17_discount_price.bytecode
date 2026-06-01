@@ -1,7 +1,7 @@
     ALOAD 1
     LDC "price"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     ASTORE 2
     LDC 1.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
@@ -9,7 +9,7 @@
     ALOAD 1
     LDC "discount"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     ASTORE 6
     LDC 100.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;

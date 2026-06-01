@@ -1,7 +1,7 @@
     ALOAD 1
     LDC "score"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
     DSTORE 2
     LDC 0.0D
@@ -35,7 +35,7 @@
     ALOAD 1
     LDC "score"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
     DSTORE 6
     LDC 100.0D

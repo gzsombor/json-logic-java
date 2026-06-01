@@ -2,8 +2,64 @@
     GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
     ALOAD 0
     GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 0
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
     ALOAD 1
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;)Ljava/lang/Object;
+    LDC ".reduce[0]"
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
+    ASTORE 2
+    LDC 0.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    ASTORE 3
+    ALOAD 2
+    INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.isEligible (Ljava/lang/Object;)Z
+    IFEQ L0
+    ALOAD 1
+    ALOAD 3
+    INVOKESTATIC io/github/jamsesso/jsonlogic/utils/MapHelpers.reduceContext (Ljava/lang/Object;Ljava/lang/Object;)Ljava/util/Map;
+    ASTORE 4
+    NEW io/github/jamsesso/jsonlogic/utils/ArrayLike
+    DUP
+    ALOAD 2
+    INVOKESPECIAL io/github/jamsesso/jsonlogic/utils/ArrayLike.<init> (Ljava/lang/Object;)V
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator ()Ljava/util/Iterator;
+    ASTORE 5
+   L1
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd java/lang/Object java/lang/Object java/lang/Object java/util/Map java/util/Iterator] []
+    ALOAD 5
+    INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
+    IFEQ L0
+    ALOAD 4
+    LDC "current"
+    ALOAD 5
+    INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
+    INVOKEINTERFACE java/util/Map.put (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; (itf)
+    POP
+    ALOAD 4
+    LDC "accumulator"
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    ALOAD 0
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
+    LDC 1
+    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
+    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
+    ALOAD 4
+    LDC ".reduce[1]"
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
+    DUP
+    ASTORE 3
+    INVOKEINTERFACE java/util/Map.put (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; (itf)
+    POP
+    GOTO L1
+   L0
+   FRAME CHOP 2
+    ALOAD 3
     ARETURN
-    MAXSTACK = 3
-    MAXLOCALS = 2
+    MAXSTACK = 6
+    MAXLOCALS = 6

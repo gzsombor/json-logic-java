@@ -1,7 +1,7 @@
     ALOAD 1
     LDC "x"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     ASTORE 3
     LDC 2.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
@@ -32,7 +32,7 @@
     ALOAD 1
     LDC "y"
     ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVar (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     ASTORE 5
     ALOAD 2
     IFNULL L2
