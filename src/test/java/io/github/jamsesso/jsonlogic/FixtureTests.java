@@ -1,6 +1,8 @@
 package io.github.jamsesso.jsonlogic;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -17,8 +19,7 @@ public class FixtureTests {
   private static final List<Fixture> FIXTURES = readFixtures("fixtures.json", Fixture::fromArray);
   public static <F> List<F> readFixtures(String fileName, Function<JsonArray, F> makeFixture) {
     InputStream inputStream = FixtureTests.class.getClassLoader().getResourceAsStream(fileName);
-    JsonParser parser = new JsonParser();
-    JsonArray json = parser.parse(new InputStreamReader(inputStream)).getAsJsonArray();
+    JsonArray json = JsonParser.parseReader(new InputStreamReader(inputStream)).getAsJsonArray();
 
     List<F> fixtures = new ArrayList<>();
     for (JsonElement element : json) {

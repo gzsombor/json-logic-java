@@ -20,8 +20,7 @@ public class JsonLogicConformanceTests {
   private static final List<ConformanceFixture> FIXTURES = readConformanceFixtures("jsonlogic-tests.json");
   public static List<ConformanceFixture> readConformanceFixtures(String fileName) {
     InputStream inputStream = JsonLogicConformanceTests.class.getClassLoader().getResourceAsStream(fileName);
-    JsonParser parser = new JsonParser();
-    JsonArray json = parser.parse(new InputStreamReader(inputStream)).getAsJsonArray();
+    JsonArray json = JsonParser.parseReader(new InputStreamReader(inputStream)).getAsJsonArray();
 
     List<ConformanceFixture> fixtures = new ArrayList<>();
     for (JsonElement element : json) {

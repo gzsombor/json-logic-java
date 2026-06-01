@@ -1,6 +1,8 @@
 package io.github.jamsesso.jsonlogic.compiler;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
 import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
@@ -82,7 +84,7 @@ public class CompiledRuleEquivalenceTest {
 
   private static List<Fixture> readFixtures(String fileName) {
     InputStream is = CompiledRuleEquivalenceTest.class.getClassLoader().getResourceAsStream(fileName);
-    JsonArray json = new JsonParser().parse(new InputStreamReader(is)).getAsJsonArray();
+    JsonArray json = JsonParser.parseReader(new InputStreamReader(is)).getAsJsonArray();
     List<Fixture> list = new ArrayList<>();
     for (JsonElement element : json) {
       if (!element.isJsonArray()) continue;

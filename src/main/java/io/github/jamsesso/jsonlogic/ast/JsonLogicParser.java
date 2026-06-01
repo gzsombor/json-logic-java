@@ -9,15 +9,13 @@ import java.util.List;
 import java.util.Map;
 
 public final class JsonLogicParser {
-  private static final JsonParser PARSER = new JsonParser();
-
   private JsonLogicParser() {
     // Utility class has no public constructor.
   }
 
   public static JsonLogicNode parse(String json) throws JsonLogicParseException {
     try {
-      return parse(PARSER.parse(json), false);
+      return parse(JsonParser.parseString(json), false);
     } catch (JsonLogicParseException e) {
       e.prependPartialJsonPath("$");
       throw e;
