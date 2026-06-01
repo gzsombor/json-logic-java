@@ -1,30 +1,59 @@
-    LDC ">"
-    NEW java/util/ArrayList
-    DUP
-    LDC 4
-    INVOKESPECIAL java/util/ArrayList.<init> (I)V
-    DUP
     LDC 0.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
-    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
-    POP
-    DUP
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
+    DSTORE 2
     LDC 1.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
-    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
-    POP
-    DUP
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
+    DSTORE 4
+    DLOAD 2
+    INVOKESTATIC java/lang/Double.isNaN (D)Z
+    IFNE L0
+    DLOAD 4
+    INVOKESTATIC java/lang/Double.isNaN (D)Z
+    IFNE L0
+    DLOAD 2
+    DLOAD 4
+    DCMPL
+    IFGT L1
+   L0
+   FRAME APPEND [D D]
+    ICONST_0
+    GOTO L2
+   L1
+   FRAME SAME
+    ICONST_1
+   L2
+   FRAME SAME1 I
+    LDC 1.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
+    DSTORE 6
     LDC 2.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
-    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
-    POP
-    DUP
-    LDC 3.0D
-    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
-    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
-    POP
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.compare (Ljava/lang/String;Ljava/util/List;)Z
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
+    DSTORE 8
+    DLOAD 6
+    INVOKESTATIC java/lang/Double.isNaN (D)Z
+    IFNE L3
+    DLOAD 8
+    INVOKESTATIC java/lang/Double.isNaN (D)Z
+    IFNE L3
+    DLOAD 6
+    DLOAD 8
+    DCMPL
+    IFGT L4
+   L3
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_a7191a7ed6a68539 java/lang/Object D D D D] [I]
+    ICONST_0
+    GOTO L5
+   L4
+   FRAME SAME1 I
+    ICONST_1
+   L5
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_a7191a7ed6a68539 java/lang/Object D D D D] [I I]
+    IAND
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
     ARETURN
     MAXSTACK = 5
-    MAXLOCALS = 2
+    MAXLOCALS = 10
