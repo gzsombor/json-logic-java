@@ -103,6 +103,18 @@ public final class JavacJsonLogicCompiler implements JsonLogicCompilerImplementa
     }
   }
 
+  /** Returns generated javac class bytes keyed by binary class name for inspection tooling. */
+  public Map<String, byte[]> compileClassBytes(String ruleJson, JsonLogicNode ast) {
+    final String className = classNameFor(ruleJson);
+    final String qualifiedName = RuleSourceGenerator.GEN_PACKAGE + "." + className;
+    final String source = new RuleSourceGenerator().generate(ast, className);
+    final Map<String, byte[]> classBytes = compileSource(qualifiedName, source, ruleJson);
+    if (classBytes == null) {
+      throw new JsonLogicCompilationException("Javac errors during compilation for rule: " + ruleJson);
+    }
+    return classBytes;
+  }
+
   private Map<String, byte[]> compileSource(String className, String source, String ruleJson) {
     var diagnostics = new DiagnosticCollector<JavaFileObject>();
 
@@ -148,7 +160,7 @@ public final class JavacJsonLogicCompiler implements JsonLogicCompilerImplementa
     return data -> fallbackEvaluator.evaluate(ast, data);
   }
 
-  static String classNameFor(String ruleJson) {
+  public static String classNameFor(String ruleJson) {
     long hash = 0xcbf29ce484222325L;
     for (int i = 0; i < ruleJson.length(); i++) {
       hash ^= ruleJson.charAt(i);

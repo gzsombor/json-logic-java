@@ -127,6 +127,14 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     }
   }
 
+  /** Returns generated Class-File API class bytes keyed by binary class name for inspection tooling. */
+  public Map<String, byte[]> generateClassBytes(String ruleJson, JsonLogicNode ast) {
+    final String className = classNameFor(ruleJson);
+    final String qualifiedName = GENERATED_PACKAGE + "." + className;
+    final ClassDesc generatedClass = ClassDesc.of(GENERATED_PACKAGE, className);
+    return Map.of(qualifiedName, generateClass(generatedClass, ast));
+  }
+
   byte[] generateClass(ClassDesc generatedClass, JsonLogicNode ast) {
     final List<BodyMethod> bodyMethods = collectBodyMethods(ast);
     final List<StaticSetField> staticSetFields = collectStaticSetFields(ast);
@@ -1668,7 +1676,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return data -> fallbackEvaluator.evaluate(ast, data);
   }
 
-  static String classNameFor(String ruleJson) {
+  public static String classNameFor(String ruleJson) {
     long hash = 0xcbf29ce484222325L;
     for (int i = 0; i < ruleJson.length(); i++) {
       hash ^= ruleJson.charAt(i);
