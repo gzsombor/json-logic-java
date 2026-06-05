@@ -18,6 +18,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.concurrent.TimeUnit;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -84,6 +85,20 @@ public class JmhJsonLogicBenchmark {
   private final Map<String, Object> fizzBuzz15 = Map.of("i", 15.0);
   private final Map<String, Object> fizzBuzz5 = Map.of("i", 5.0);
   private final Map<String, Object> fizzBuzz2 = Map.of("i", 2.0);
+
+  // Dynamic haystack: exercises in(...) helper compilation rather than static set specialization.
+  private String logicDynamicIn;
+  private Map<String, Object> dataDynamicIn;
+
+  // String concatenation and substring operators.
+  private String logicCat;
+  private Map<String, Object> dataCat;
+  private String logicSubstr;
+  private Map<String, Object> dataSubstr;
+
+  // Collection transform: doubles every value in a list.
+  private String logicMapDouble;
+  private Map<String, Object> dataMapDouble;
 
   @Setup
   public void setup() {
@@ -190,6 +205,25 @@ public class JmhJsonLogicBenchmark {
     dataArithmetic = new HashMap<>();
     dataArithmetic.put("a", 7);
     dataArithmetic.put("b", 3);
+
+    logicDynamicIn = "{\"if\":[{\"in\":[{\"var\":\"customer\"},{\"var\":\"allowed\"}]},\"ok\",\"not_ok\"]}";
+    dataDynamicIn = new HashMap<>();
+    dataDynamicIn.put("customer", "cust3");
+    dataDynamicIn.put("allowed", Arrays.asList("cust1", "cust2", "cust3", "cust4", "cust5"));
+
+    logicCat = "{\"cat\":[\"acct:\",{\"var\":\"account\"},\":\",{\"var\":\"region\"},\":\",{\"var\":\"tier\"}]}";
+    dataCat = new HashMap<>();
+    dataCat.put("account", "alpha");
+    dataCat.put("region", "eu");
+    dataCat.put("tier", "pro");
+
+    logicSubstr = "{\"substr\":[{\"var\":\"message\"},5,12]}";
+    dataSubstr = new HashMap<>();
+    dataSubstr.put("message", "prefix-important-suffix");
+
+    logicMapDouble = "{\"map\":[{\"var\":\"values\"},{\"*\":[{\"var\":\"\"},2]}]}";
+    dataMapDouble = new HashMap<>();
+    dataMapDouble.put("values", Arrays.asList(1, 2, 3, 4, 5));
   }
 
   @Benchmark
@@ -252,5 +286,25 @@ public class JmhJsonLogicBenchmark {
     blackhole.consume(jsonLogic.apply(fizzBuzzString, fizzBuzz15));
     blackhole.consume(jsonLogic.apply(fizzBuzzString, fizzBuzz5));
     return jsonLogic.apply(fizzBuzzString, fizzBuzz2);
+  }
+
+  @Benchmark
+  public Object evaluateDynamicInHit() throws JsonLogicException {
+    return jsonLogic.apply(logicDynamicIn, dataDynamicIn);
+  }
+
+  @Benchmark
+  public Object evaluateCat() throws JsonLogicException {
+    return jsonLogic.apply(logicCat, dataCat);
+  }
+
+  @Benchmark
+  public Object evaluateSubstr() throws JsonLogicException {
+    return jsonLogic.apply(logicSubstr, dataSubstr);
+  }
+
+  @Benchmark
+  public Object evaluateMapDouble() throws JsonLogicException {
+    return jsonLogic.apply(logicMapDouble, dataMapDouble);
   }
 }
