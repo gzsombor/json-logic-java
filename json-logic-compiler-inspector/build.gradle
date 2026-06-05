@@ -1,0 +1,23 @@
+plugins {
+  id "application"
+}
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(24)
+  }
+}
+
+tasks.withType(JavaCompile).configureEach {
+  options.release = 24
+}
+
+dependencies {
+  implementation project(":json-logic-core")
+  implementation project(":json-logic-java-compiler-javac")
+  implementation project(":json-logic-jep484")
+}
+
+application {
+  mainClass = "io.github.jamsesso.jsonlogic.inspector.CompilerClassDump"
+}
