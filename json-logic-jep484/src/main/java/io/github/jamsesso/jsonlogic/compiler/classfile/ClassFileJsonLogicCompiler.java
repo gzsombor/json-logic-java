@@ -71,6 +71,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private static final ClassDesc CD_METHOD_TYPE = ClassDesc.of("java.lang.invoke.MethodType");
   private static final ClassDesc CD_RULE_HELPERS = ClassDesc.of(RuleHelpers.class.getName());
   private static final ClassDesc CD_SET = ClassDesc.of(Set.class.getName());
+  private static final ClassDesc CD_STRING_BUILDER = ClassDesc.of(StringBuilder.class.getName());
   private static final ClassDesc CD_STRING_CONCAT_FACTORY = ClassDesc.of("java.lang.invoke.StringConcatFactory");
   private static final MethodTypeDesc MTD_STRING_CONCAT_BOOTSTRAP = MethodTypeDesc.of(
       CD_CALL_SITE, CD_LOOKUP, CD_String, CD_METHOD_TYPE, CD_String);
@@ -603,9 +604,50 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!allSupported(args)) {
       return false;
     }
-    emitArrayWithPaths(codeBuilder, args, ".cat");
-    codeBuilder.invokestatic(CD_RULE_HELPERS, "cat", MethodTypeDesc.of(CD_String, CD_LIST));
+    if (args.isEmpty()) {
+      codeBuilder.ldc("");
+      return true;
+    }
+    if (args.size() == 1) {
+      emitCatArgument(codeBuilder, args.get(0), ".cat[0]");
+      return true;
+    }
+    codeBuilder
+        .new_(CD_STRING_BUILDER)
+        .dup()
+        .invokespecial(CD_STRING_BUILDER, INIT_NAME, MTD_void);
+    for (int i = 0; i < args.size(); i++) {
+      emitCatArgument(codeBuilder, args.get(i), ".cat[" + i + "]");
+      codeBuilder.invokevirtual(CD_STRING_BUILDER, "append", MethodTypeDesc.of(CD_STRING_BUILDER, CD_String));
+    }
+    codeBuilder.invokevirtual(CD_STRING_BUILDER, "toString", MethodTypeDesc.of(CD_String));
     return true;
+  }
+
+  private void emitCatArgument(CodeBuilder codeBuilder, JsonLogicNode node, String path) {
+    if (node instanceof JsonLogicString) {
+      codeBuilder.ldc(((JsonLogicString) node).getValue());
+      return;
+    }
+    if (node instanceof JsonLogicNumber) {
+      final double value = ((JsonLogicNumber) node).getValue();
+      if (value == Math.floor(value) && !Double.isInfinite(value) && !Double.isNaN(value)) {
+        codeBuilder.ldc(String.valueOf((long) value));
+      } else {
+        codeBuilder.ldc(Double.toString(value));
+      }
+      return;
+    }
+    if (node instanceof JsonLogicNull) {
+      codeBuilder.ldc("null");
+      return;
+    }
+    if (node instanceof JsonLogicBoolean) {
+      codeBuilder.ldc(((JsonLogicBoolean) node).getValue() ? "true" : "false");
+      return;
+    }
+    emitRequiredNode(codeBuilder, node, path);
+    codeBuilder.invokestatic(CD_RULE_HELPERS, "catStr", MethodTypeDesc.of(CD_String, CD_Object));
   }
 
   private boolean emitSubstr(CodeBuilder codeBuilder, JsonLogicArray args) {
@@ -616,7 +658,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!allSupported(args)) {
       return false;
     }
-    emitEvaluateOperationArgument(codeBuilder, 0, ".substr[0]");
+    emitRequiredNode(codeBuilder, args.get(0), ".substr[0]");
     emitRequiredNode(codeBuilder, args.get(1), ".substr[1]");
     if (args.size() == 3) {
       emitRequiredNode(codeBuilder, args.get(2), ".substr[2]");
