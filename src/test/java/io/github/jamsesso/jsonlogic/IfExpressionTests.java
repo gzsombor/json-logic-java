@@ -179,6 +179,30 @@ public class IfExpressionTests {
     assertEquals(Boolean.FALSE, result);
   }
 
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("enginesAndOperators")
+  public void testFizzBuzz(String label, JsonLogic jsonLogic, String operator)
+      throws JsonLogicException {
+    String json = rule(operator, "[\n" + //
+            "{\"==\": [ { \"%\": [ { \"var\": \"i\" }, 15 ] }, 0]},\n" + //
+            "\"fizzbuzz\",\n" + //
+            "{\"==\": [ { \"%\": [ { \"var\": \"i\" }, 3 ] }, 0]},\n" + //
+            "\"fizz\",\n" + //
+            "{\"==\": [ { \"%\": [ { \"var\": \"i\" }, 5 ] }, 0]},\n" + //
+            "\"buzz\",\n" + //
+            "{ \"var\": \"i\" }\n" + //
+            "]");
+
+    Object result15 = jsonLogic.apply(json, Map.of("i", 15.0));
+    assertEquals("fizzbuzz", result15);
+    Object result5 = jsonLogic.apply(json, Map.of("i", 5.0));
+    assertEquals("buzz", result5);
+    Object result3 = jsonLogic.apply(json, Map.of("i", 3.0));
+    assertEquals("fizz", result3);
+    Object result2 = jsonLogic.apply(json, Map.of("i", 2.0));
+    assertEquals(2.0, result2);
+  }
+
   private static String rule(String operator, String arguments) {
     return "{\"" + operator + "\": " + arguments + "}";
   }

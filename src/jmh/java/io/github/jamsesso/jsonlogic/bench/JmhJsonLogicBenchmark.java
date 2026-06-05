@@ -2,6 +2,7 @@ package io.github.jamsesso.jsonlogic.bench;
 
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
+
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -13,6 +14,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.concurrent.TimeUnit;
 
@@ -69,6 +71,19 @@ public class JmhJsonLogicBenchmark {
   // (a + b + 10) * 3  — two vars + two constants, exercises addScalars + mulScalars
   private String logicArithmetic;
   private Map<String, Object> dataArithmetic;
+
+  private final String fizzBuzzString =  "{\"if\": [\n" + //
+        "{\"==\": [ { \"%\": [ { \"var\": \"i\" }, 15 ] }, 0]},\n" + //
+        "\"fizzbuzz\",\n" + //
+        "{\"==\": [ { \"%\": [ { \"var\": \"i\" }, 3 ] }, 0]},\n" + //
+        "\"fizz\",\n" + //
+        "{\"==\": [ { \"%\": [ { \"var\": \"i\" }, 5 ] }, 0]},\n" + //
+        "\"buzz\",\n" + //
+        "{ \"var\": \"i\" }\n" + //
+        "]}";
+  private final Map<String, Object> fizzBuzz15 = Map.of("i", 15.0);
+  private final Map<String, Object> fizzBuzz5 = Map.of("i", 5.0);
+  private final Map<String, Object> fizzBuzz2 = Map.of("i", 2.0);
 
   @Setup
   public void setup() {
@@ -230,5 +245,12 @@ public class JmhJsonLogicBenchmark {
   @Benchmark
   public Object evaluateArithmetic() throws JsonLogicException {
     return jsonLogic.apply(logicArithmetic, dataArithmetic);
+  }
+
+  @Benchmark
+  public Object evaluateFizzBuzz(Blackhole blackhole) throws JsonLogicException {
+    blackhole.consume(jsonLogic.apply(fizzBuzzString, fizzBuzz15));
+    blackhole.consume(jsonLogic.apply(fizzBuzzString, fizzBuzz5));
+    return jsonLogic.apply(fizzBuzzString, fizzBuzz2);
   }
 }
