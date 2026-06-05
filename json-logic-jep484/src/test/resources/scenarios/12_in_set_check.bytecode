@@ -15,19 +15,9 @@
     ALOAD 1
     LDC ".in[0]"
     INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
-    NEW java/util/ArrayList
-    DUP
-    LDC 2
-    INVOKESPECIAL java/util/ArrayList.<init> (I)V
-    DUP
-    LDC "cust1"
-    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
-    POP
-    DUP
-    LDC "cust2"
-    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
-    POP
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.in (Ljava/lang/Object;Ljava/lang/Object;)Z
+    GETSTATIC io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_41c8ab1ab1608113.SET$0 : Ljava/util/Set;
+    SWAP
+    INVOKEINTERFACE java/util/Set.contains (Ljava/lang/Object;)Z (itf)
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
     INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
     IFEQ L0
