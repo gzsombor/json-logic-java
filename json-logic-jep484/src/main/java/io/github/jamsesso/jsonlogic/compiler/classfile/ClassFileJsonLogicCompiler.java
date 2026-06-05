@@ -38,10 +38,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -60,6 +62,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private static final ClassDesc CD_JSON_LOGIC_NODE = ClassDesc.of(JsonLogicNode.class.getName());
   private static final ClassDesc CD_JSON_LOGIC_OPERATION = ClassDesc.of(JsonLogicOperation.class.getName());
   private static final ClassDesc CD_ITERATOR = ClassDesc.of(Iterator.class.getName());
+  private static final ClassDesc CD_HASH_SET = ClassDesc.of(HashSet.class.getName());
   private static final ClassDesc CD_LINKED_HASH_MAP = ClassDesc.of(LinkedHashMap.class.getName());
   private static final ClassDesc CD_LIST = ClassDesc.of(List.class.getName());
   private static final ClassDesc CD_LOOKUP = ClassDesc.of("java.lang.invoke.MethodHandles$Lookup");
@@ -67,6 +70,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private static final ClassDesc CD_MAP_HELPERS = ClassDesc.of(MapHelpers.class.getName());
   private static final ClassDesc CD_METHOD_TYPE = ClassDesc.of("java.lang.invoke.MethodType");
   private static final ClassDesc CD_RULE_HELPERS = ClassDesc.of(RuleHelpers.class.getName());
+  private static final ClassDesc CD_SET = ClassDesc.of(Set.class.getName());
   private static final ClassDesc CD_STRING_CONCAT_FACTORY = ClassDesc.of("java.lang.invoke.StringConcatFactory");
   private static final MethodTypeDesc MTD_STRING_CONCAT_BOOTSTRAP = MethodTypeDesc.of(
       CD_CALL_SITE, CD_LOOKUP, CD_String, CD_METHOD_TYPE, CD_String);
@@ -77,6 +81,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private ClassDesc currentGeneratedClass;
   private String currentPath;
   private Map<String, BodyMethod> bodyMethodsByPath;
+  private Map<String, StaticSetField> staticSetFieldsByKey;
   private int nextLocalSlot;
 
   public ClassFileJsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
@@ -123,9 +128,14 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
 
   byte[] generateClass(ClassDesc generatedClass, JsonLogicNode ast) {
     final List<BodyMethod> bodyMethods = collectBodyMethods(ast);
+    final List<StaticSetField> staticSetFields = collectStaticSetFields(ast);
     bodyMethodsByPath = new HashMap<>();
     for (BodyMethod bodyMethod : bodyMethods) {
       bodyMethodsByPath.put(bodyMethod.path, bodyMethod);
+    }
+    staticSetFieldsByKey = new HashMap<>();
+    for (StaticSetField staticSetField : staticSetFields) {
+      staticSetFieldsByKey.put(staticSetField.key, staticSetField);
     }
     return ClassFile.of().build(generatedClass, classBuilder -> {
       classBuilder
@@ -176,10 +186,56 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
                     MethodTypeDesc.of(CD_String, CD_String),
                     "CompiledRule(\u0001)"))
                 .areturn());
+      for (StaticSetField staticSetField : staticSetFields) {
+        classBuilder.withField(staticSetField.name, CD_SET, Modifier.PRIVATE | Modifier.STATIC | Modifier.FINAL);
+      }
+      if (!staticSetFields.isEmpty()) {
+        emitStaticInitializer(classBuilder, generatedClass, staticSetFields);
+      }
       for (BodyMethod bodyMethod : bodyMethods) {
         emitBodyMethod(classBuilder, generatedClass, bodyMethod);
       }
     });
+  }
+
+  private void emitStaticInitializer(
+      ClassBuilder classBuilder, ClassDesc generatedClass, List<StaticSetField> staticSetFields) {
+    classBuilder.withMethodBody("<clinit>", MTD_void, Modifier.STATIC, codeBuilder -> {
+      for (StaticSetField staticSetField : staticSetFields) {
+        codeBuilder
+            .new_(CD_HASH_SET)
+            .dup()
+            .invokespecial(CD_HASH_SET, INIT_NAME, MTD_void)
+            .putstatic(generatedClass, staticSetField.name, CD_SET);
+        for (JsonLogicNode element : staticSetField.elements) {
+          codeBuilder.getstatic(generatedClass, staticSetField.name, CD_SET);
+          emitPrimitiveLiteral(codeBuilder, element);
+          codeBuilder.invokeinterface(CD_SET, "add", MethodTypeDesc.of(CD_boolean, CD_Object)).pop();
+        }
+      }
+      codeBuilder.return_();
+    });
+  }
+
+  private void emitPrimitiveLiteral(CodeBuilder codeBuilder, JsonLogicNode node) {
+    if (node instanceof JsonLogicNull) {
+      codeBuilder.aconst_null();
+      return;
+    }
+    if (node instanceof JsonLogicBoolean) {
+      final JsonLogicBoolean bool = (JsonLogicBoolean) node;
+      codeBuilder.getstatic(CD_BOOLEAN, bool.getValue() ? "TRUE" : "FALSE", CD_BOOLEAN);
+      return;
+    }
+    if (node instanceof JsonLogicNumber) {
+      final JsonLogicNumber number = (JsonLogicNumber) node;
+      codeBuilder
+          .ldc(number.getValue())
+          .invokestatic(CD_DOUBLE, "valueOf", MethodTypeDesc.of(CD_DOUBLE, ClassDesc.ofDescriptor("D")));
+      return;
+    }
+    final JsonLogicString string = (JsonLogicString) node;
+    codeBuilder.ldc(string.getValue());
   }
 
   private void emitApplyBody(CodeBuilder codeBuilder, ClassDesc generatedClass, JsonLogicNode ast) {
@@ -255,6 +311,76 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         collectBodyMethods(value, path, bodyMethods);
       }
     }
+  }
+
+  private static List<StaticSetField> collectStaticSetFields(JsonLogicNode ast) {
+    final Map<String, StaticSetField> fieldsByKey = new LinkedHashMap<>();
+    collectStaticSetFields(ast, fieldsByKey);
+    return new ArrayList<>(fieldsByKey.values());
+  }
+
+  private static void collectStaticSetFields(JsonLogicNode node, Map<String, StaticSetField> fieldsByKey) {
+    if (node instanceof JsonLogicOperation) {
+      final JsonLogicOperation operation = (JsonLogicOperation) node;
+      final JsonLogicArray args = operation.getArguments();
+      if ("in".equals(operation.getOperator()) && args.size() == 2 && isPrimitiveLiteralArray(args.get(1))) {
+        final JsonLogicArray haystack = (JsonLogicArray) args.get(1);
+        final String key = staticSetKey(haystack);
+        if (!fieldsByKey.containsKey(key)) {
+          fieldsByKey.put(key, new StaticSetField("SET$" + fieldsByKey.size(), key, haystack));
+        }
+      }
+      for (JsonLogicNode arg : args) {
+        collectStaticSetFields(arg, fieldsByKey);
+      }
+      return;
+    }
+    if (node instanceof JsonLogicArray) {
+      for (JsonLogicNode element : (JsonLogicArray) node) {
+        collectStaticSetFields(element, fieldsByKey);
+      }
+      return;
+    }
+    if (node instanceof JsonLogicObject) {
+      final JsonLogicObject object = (JsonLogicObject) node;
+      for (JsonLogicNode value : object.getEntries().values()) {
+        collectStaticSetFields(value, fieldsByKey);
+      }
+    }
+  }
+
+  private static boolean isPrimitiveLiteralArray(JsonLogicNode node) {
+    if (!(node instanceof JsonLogicArray)) {
+      return false;
+    }
+    for (JsonLogicNode element : (JsonLogicArray) node) {
+      if (!(element instanceof JsonLogicNull
+          || element instanceof JsonLogicBoolean
+          || element instanceof JsonLogicNumber
+          || element instanceof JsonLogicString)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static String staticSetKey(JsonLogicArray haystack) {
+    final StringBuilder key = new StringBuilder();
+    for (JsonLogicNode element : haystack) {
+      if (key.length() > 0) {
+        key.append('|');
+      }
+      if (element instanceof JsonLogicNull) {
+        key.append("null:");
+      } else if (element instanceof JsonLogicBoolean) {
+        key.append("boolean:").append(((JsonLogicBoolean) element).getValue());
+      } else if (element instanceof JsonLogicNumber) {
+        key.append("number:").append(((JsonLogicNumber) element).getValue());
+      } else {
+        key.append("string:").append(((JsonLogicString) element).getValue());
+      }
+    }
+    return key.toString();
   }
 
   private boolean emitSupportedNode(CodeBuilder codeBuilder, JsonLogicNode ast) {
@@ -535,6 +661,16 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     }
     if (!isSupported(args.get(0)) || !isSupported(args.get(1))) {
       return false;
+    }
+    if (args.size() == 2 && isPrimitiveLiteralArray(args.get(1))) {
+      emitEvaluateOperationArgument(codeBuilder, 0, ".in[0]");
+      final StaticSetField staticSetField = staticSetFieldsByKey.get(staticSetKey((JsonLogicArray) args.get(1)));
+      codeBuilder
+          .getstatic(currentGeneratedClass, staticSetField.name, CD_SET)
+          .swap()
+          .invokeinterface(CD_SET, "contains", MethodTypeDesc.of(CD_boolean, CD_Object));
+      boxBoolean(codeBuilder);
+      return true;
     }
     emitEvaluateOperationArgument(codeBuilder, 0, ".in[0]");
     emitRequiredNode(codeBuilder, args.get(1), ".in[1]");
@@ -1396,6 +1532,18 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       this.name = name;
       this.path = path;
       this.node = node;
+    }
+  }
+
+  private static final class StaticSetField {
+    private final String name;
+    private final String key;
+    private final JsonLogicArray elements;
+
+    private StaticSetField(String name, String key, JsonLogicArray elements) {
+      this.name = name;
+      this.key = key;
+      this.elements = elements;
     }
   }
 }
