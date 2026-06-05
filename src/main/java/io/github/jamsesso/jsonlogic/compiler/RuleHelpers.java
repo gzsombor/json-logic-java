@@ -225,6 +225,16 @@ public final class RuleHelpers {
     return String.valueOf(value);
   }
 
+  public static boolean in(Object needle, Object haystack) {
+    if (haystack instanceof String) {
+      return needle != null && ((String) haystack).contains(needle.toString());
+    }
+    if (ArrayLike.isEligible(haystack)) {
+      return ArrayLike.toList(haystack).contains(needle);
+    }
+    return false;
+  }
+
   public static String substr(Object strArg, Object startArg, Object lengthArg, String jsonPath)
       throws JsonLogicEvaluationException {
     if (!(startArg instanceof Double)) {

@@ -308,7 +308,7 @@ public final class RuleSourceGenerator {
       case "==": case "!=": case "===": case "!==":
         return argc == 2;
       case "in":
-        return argc == 2 && isAllPrimitiveLiteralArray(op.getArguments().get(1));
+        return argc == 2;
       default:
         return false;
     }
@@ -1280,12 +1280,14 @@ public final class RuleSourceGenerator {
 
   private String emitIn(JsonLogicOperation op, JsonLogicArray args, StringBuilder pre,
                         String dataExpr, String opPath, String parentPath) {
-    // Require exactly 2 args and a primitive-only literal array as haystack.
+    // Require exactly 2 args. Primitive-only literal arrays use a static set; other shapes
+    // still compile to the shared helper instead of falling back to the interpreter.
     if (args.size() != 2) {
       return emitFallback(op, pre, dataExpr, parentPath);
     }
     if (!isAllPrimitiveLiteralArray(args.get(1))) {
-      return emitFallback(op, pre, dataExpr, parentPath);
+      return "in(" + arg(args, 0, pre, dataExpr, opPath) + ", "
+          + arg(args, 1, pre, dataExpr, opPath) + ")";
     }
 
     final JsonLogicArray haystack = (JsonLogicArray) args.get(1);
