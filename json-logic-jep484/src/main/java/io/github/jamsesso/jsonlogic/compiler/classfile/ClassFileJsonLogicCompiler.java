@@ -663,7 +663,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       return false;
     }
     if (args.size() == 2 && isPrimitiveLiteralArray(args.get(1))) {
-      emitEvaluateOperationArgument(codeBuilder, 0, ".in[0]");
+      emitRequiredNode(codeBuilder, args.get(0), ".in[0]");
       final StaticSetField staticSetField = staticSetFieldsByKey.get(staticSetKey((JsonLogicArray) args.get(1)));
       codeBuilder
           .getstatic(currentGeneratedClass, staticSetField.name, CD_SET)
@@ -672,7 +672,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       boxBoolean(codeBuilder);
       return true;
     }
-    emitEvaluateOperationArgument(codeBuilder, 0, ".in[0]");
+    emitRequiredNode(codeBuilder, args.get(0), ".in[0]");
     emitRequiredNode(codeBuilder, args.get(1), ".in[1]");
     codeBuilder.invokestatic(CD_RULE_HELPERS, "in", MethodTypeDesc.of(CD_boolean, CD_Object, CD_Object));
     boxBoolean(codeBuilder);
@@ -1014,10 +1014,11 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     final Label endLabel = codeBuilder.newLabel();
     for (int i = 0; i < args.size() - 1; i += 2) {
       final Label nextLabel = codeBuilder.newLabel();
-      emitRequiredNode(codeBuilder, args.get(i), ".if[" + i + "]");
-      codeBuilder
-          .invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object))
-          .ifeq(nextLabel);
+      if (!emitPrimitiveBoolean(codeBuilder, args.get(i), ".if[" + i + "]")) {
+        emitRequiredNode(codeBuilder, args.get(i), ".if[" + i + "]");
+        codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
+      }
+      codeBuilder.ifeq(nextLabel);
       emitRequiredNode(codeBuilder, args.get(i + 1), ".if[" + (i + 1) + "]");
       codeBuilder
           .goto_(endLabel)
@@ -1086,15 +1087,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!isSupported(args.get(0)) || !isSupported(args.get(1))) {
       return false;
     }
-    emitRequiredNode(codeBuilder, args.get(0), "." + operator + "[0]");
-    emitRequiredNode(codeBuilder, args.get(1), "." + operator + "[1]");
-    codeBuilder.invokestatic(
-        CD_RULE_HELPERS,
-        "===".equals(operator) || "!==".equals(operator) ? "strictEq" : "looseEq",
-        MethodTypeDesc.of(CD_boolean, CD_Object, CD_Object));
-    if ("!=".equals(operator) || "!==".equals(operator)) {
-      emitBooleanNot(codeBuilder);
-    }
+    emitEqualityPrimitive(codeBuilder, operator, args, "." + operator);
     boxBoolean(codeBuilder);
     return true;
   }
@@ -1107,17 +1100,101 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     if (!allComparable(args)) {
       return false;
     }
-    emitComparePair(codeBuilder, operator, args.get(0), args.get(1), "." + operator + "[0]", "." + operator + "[1]");
+    emitComparisonPrimitive(codeBuilder, operator, args, "." + operator);
+    boxBoolean(codeBuilder);
+    return true;
+  }
+
+  private boolean emitPrimitiveBoolean(CodeBuilder codeBuilder, JsonLogicNode node, String path) {
+    if (!(node instanceof JsonLogicOperation)) {
+      return false;
+    }
+    final JsonLogicOperation operation = (JsonLogicOperation) node;
+    final JsonLogicArray args = operation.getArguments();
+    final String previousPath = currentPath;
+    currentPath = previousPath + path;
+    try {
+      switch (operation.getOperator()) {
+        case "==":
+        case "!=":
+        case "===":
+        case "!==":
+          if (args.size() != 2 || !isSupported(args.get(0)) || !isSupported(args.get(1))) {
+            return false;
+          }
+          emitEqualityPrimitive(codeBuilder, operation.getOperator(), args, "." + operation.getOperator());
+          return true;
+        case ">":
+        case ">=":
+        case "<":
+        case "<=":
+          if (args.size() < 2 || !allComparable(args)) {
+            return false;
+          }
+          emitComparisonPrimitive(codeBuilder, operation.getOperator(), args, "." + operation.getOperator());
+          return true;
+        case "!":
+        case "!!":
+          if (args.isEmpty() || !isSupported(args.get(0))) {
+            return false;
+          }
+          emitRequiredNode(codeBuilder, args.get(0), "." + operation.getOperator() + "[0]");
+          codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
+          emitBooleanNot(codeBuilder);
+          if ("!!".equals(operation.getOperator())) {
+            emitBooleanNot(codeBuilder);
+          }
+          return true;
+        case "in":
+          if (args.size() < 2 || !isSupported(args.get(0)) || !isSupported(args.get(1))) {
+            return false;
+          }
+          emitInPrimitive(codeBuilder, args, ".in");
+          return true;
+        default:
+          return false;
+      }
+    } finally {
+      currentPath = previousPath;
+    }
+  }
+
+  private void emitEqualityPrimitive(CodeBuilder codeBuilder, String operator, JsonLogicArray args, String path) {
+    emitRequiredNode(codeBuilder, args.get(0), path + "[0]");
+    emitRequiredNode(codeBuilder, args.get(1), path + "[1]");
+    codeBuilder.invokestatic(
+        CD_RULE_HELPERS,
+        "===".equals(operator) || "!==".equals(operator) ? "strictEq" : "looseEq",
+        MethodTypeDesc.of(CD_boolean, CD_Object, CD_Object));
+    if ("!=".equals(operator) || "!==".equals(operator)) {
+      emitBooleanNot(codeBuilder);
+    }
+  }
+
+  private void emitComparisonPrimitive(CodeBuilder codeBuilder, String operator, JsonLogicArray args, String path) {
+    emitComparePair(codeBuilder, operator, args.get(0), args.get(1), path + "[0]", path + "[1]");
     if (args.size() > 3) {
-      emitEvaluateOperationArgument(codeBuilder, args.size() - 1, "." + operator + "[" + (args.size() - 1) + "]");
+      emitEvaluateOperationArgument(codeBuilder, args.size() - 1, path + "[" + (args.size() - 1) + "]");
       codeBuilder.pop();
     }
     if (args.size() >= 3) {
-      emitComparePair(codeBuilder, operator, args.get(1), args.get(2), "." + operator + "[1]", "." + operator + "[2]");
+      emitComparePair(codeBuilder, operator, args.get(1), args.get(2), path + "[1]", path + "[2]");
       codeBuilder.iand();
     }
-    boxBoolean(codeBuilder);
-    return true;
+  }
+
+  private void emitInPrimitive(CodeBuilder codeBuilder, JsonLogicArray args, String path) {
+    emitRequiredNode(codeBuilder, args.get(0), path + "[0]");
+    if (args.size() == 2 && isPrimitiveLiteralArray(args.get(1))) {
+      final StaticSetField staticSetField = staticSetFieldsByKey.get(staticSetKey((JsonLogicArray) args.get(1)));
+      codeBuilder
+          .getstatic(currentGeneratedClass, staticSetField.name, CD_SET)
+          .swap()
+          .invokeinterface(CD_SET, "contains", MethodTypeDesc.of(CD_boolean, CD_Object));
+      return;
+    }
+    emitRequiredNode(codeBuilder, args.get(1), path + "[1]");
+    codeBuilder.invokestatic(CD_RULE_HELPERS, "in", MethodTypeDesc.of(CD_boolean, CD_Object, CD_Object));
   }
 
   private void emitComparePair(CodeBuilder codeBuilder, String operator, JsonLogicNode left, JsonLogicNode right) {
