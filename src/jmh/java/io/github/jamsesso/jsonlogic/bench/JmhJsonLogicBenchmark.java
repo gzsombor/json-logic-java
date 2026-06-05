@@ -1,8 +1,9 @@
 package io.github.jamsesso.jsonlogic.bench;
 
+import static io.github.jamsesso.jsonlogic.bench.BenchmarkCompilerEngines.jsonLogicFor;
+
 import io.github.jamsesso.jsonlogic.JsonLogic;
 import io.github.jamsesso.jsonlogic.JsonLogicException;
-
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -30,8 +31,8 @@ import java.util.Map;
 @OutputTimeUnit(TimeUnit.SECONDS)
 public class JmhJsonLogicBenchmark {
 
-  @Param({"false", "true"})
-  private boolean compiled;
+  @Param({"interpreter", "javac", "jep484"})
+  private String engine;
 
   private JsonLogic jsonLogic;
 
@@ -110,7 +111,7 @@ public class JmhJsonLogicBenchmark {
 
   @Setup
   public void setup() {
-    jsonLogic = new JsonLogic(compiled);
+    jsonLogic = jsonLogicFor(engine);
 
     logic5 = "{\"and\":[{\">\":[{\"var\":\"score\"},10]},{\"<\":[{\"var\":\"count\"},100]},"
         + "{\"==\":[{\"var\":\"category\"},\"x\"]},{\"!=\":[{\"var\":\"tag\"},\"y\"]},"

@@ -6,8 +6,8 @@ import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
 import io.github.jamsesso.jsonlogic.compiler.CompiledRule;
 import io.github.jamsesso.jsonlogic.compiler.JsonLogicCompiler;
-import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
-import java.util.Collections;
+import static io.github.jamsesso.jsonlogic.bench.BenchmarkCompilerEngines.compilerFor;
+import static io.github.jamsesso.jsonlogic.bench.BenchmarkCompilerEngines.jsonLogicFor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +35,9 @@ public class JmhCompilationBreakEvenBenchmark {
   @Param({"fiveClauses", "twentyClauses", "dispatchMiss"})
   private String ruleShape;
 
+  @Param({"javac", "jep484"})
+  private String compilerEngine;
+
   private JsonLogic interpreter;
   private JsonLogic compiled;
   private JsonLogicCompiler compiler;
@@ -45,8 +48,8 @@ public class JmhCompilationBreakEvenBenchmark {
   @Setup(Level.Trial)
   public void setup() throws JsonLogicException {
     interpreter = new JsonLogic(false);
-    compiled = new JsonLogic();
-    compiler = new JsonLogicCompiler(new JsonLogicEvaluator(Collections.emptyList()), true);
+    compiled = jsonLogicFor(compilerEngine);
+    compiler = compilerFor(compilerEngine);
 
     switch (ruleShape) {
       case "fiveClauses":
@@ -143,4 +146,5 @@ public class JmhCompilationBreakEvenBenchmark {
     data = new HashMap<>();
     data.put("status", "archived");
   }
+
 }
