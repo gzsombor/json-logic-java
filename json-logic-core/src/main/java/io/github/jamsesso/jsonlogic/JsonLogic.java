@@ -53,6 +53,10 @@ public final class JsonLogic {
     this.compiler = new JsonLogicCompiler(compilerFactory.apply(evaluator));
   }
 
+  public static JsonLogic withCompiler(Function<JsonLogicEvaluator, JsonLogicCompilerImplementation> compilerFactory) {
+    return new JsonLogic(compilerFactory);
+  }
+
   /** Returns {@code true} if strict compilation mode is enabled. */
   public boolean isStrictCompilation() {
     return compiler != null ? compiler.isStrictMode() : false;

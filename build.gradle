@@ -56,10 +56,14 @@ configurations {
 
 dependencies {
   jmhImplementation project(":")
+  jmhImplementation project(":json-logic-jep484")
   jmhImplementation libs.jmh.core
   jmhAnnotationProcessor libs.jmh.generator.annprocess
 }
 
+compileJmhJava.javaCompiler = javaToolchains.compilerFor {
+  languageVersion = JavaLanguageVersion.of(24)
+}
 compileJmhJava.options.annotationProcessorPath = configurations.jmhAnnotationProcessor
 
 tasks.register('jmh', JavaExec) {
