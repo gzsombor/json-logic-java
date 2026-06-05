@@ -4,8 +4,6 @@
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     LDC "admin"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.looseEq (Ljava/lang/Object;Ljava/lang/Object;)Z
-    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
-    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
     IFEQ L0
     LDC "full"
     GOTO L1
