@@ -1,15 +1,7 @@
-    ALOAD 0
-    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_de28ab3c42dfd37.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
-    ALOAD 0
-    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_de28ab3c42dfd37.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
-    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
-    LDC 0
-    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
-    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
     ALOAD 1
-    LDC ".substr[0]"
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
+    LDC "s"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     LDC 4.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
     LDC -2.0D
