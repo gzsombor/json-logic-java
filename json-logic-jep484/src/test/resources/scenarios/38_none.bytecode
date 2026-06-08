@@ -16,11 +16,8 @@
     ALOAD 2
     INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.isEligible (Ljava/lang/Object;)Z
     IFEQ L1
-    NEW io/github/jamsesso/jsonlogic/utils/ArrayLike
-    DUP
     ALOAD 2
-    INVOKESPECIAL io/github/jamsesso/jsonlogic/utils/ArrayLike.<init> (Ljava/lang/Object;)V
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator ()Ljava/util/Iterator;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator (Ljava/lang/Object;)Ljava/util/Iterator;
     ASTORE 3
    L2
    FRAME APPEND [java/lang/Object java/util/Iterator]

@@ -21,11 +21,8 @@
     ALOAD 3
     INVOKESTATIC io/github/jamsesso/jsonlogic/utils/MapHelpers.reduceContext (Ljava/lang/Object;Ljava/lang/Object;)Ljava/util/Map;
     ASTORE 4
-    NEW io/github/jamsesso/jsonlogic/utils/ArrayLike
-    DUP
     ALOAD 2
-    INVOKESPECIAL io/github/jamsesso/jsonlogic/utils/ArrayLike.<init> (Ljava/lang/Object;)V
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator ()Ljava/util/Iterator;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator (Ljava/lang/Object;)Ljava/util/Iterator;
     ASTORE 5
    L1
    FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_42c83ce2b00e21ca java/lang/Object java/lang/Object java/lang/Object java/util/Map java/util/Iterator] []
