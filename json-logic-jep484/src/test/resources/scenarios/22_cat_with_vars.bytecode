@@ -1,21 +1,19 @@
-    NEW java/lang/StringBuilder
-    DUP
-    INVOKESPECIAL java/lang/StringBuilder.<init> ()V
     ALOAD 1
     LDC "first"
     ACONST_NULL
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.catStr (Ljava/lang/Object;)Ljava/lang/String;
-    INVOKEVIRTUAL java/lang/StringBuilder.append (Ljava/lang/String;)Ljava/lang/StringBuilder;
     LDC " "
-    INVOKEVIRTUAL java/lang/StringBuilder.append (Ljava/lang/String;)Ljava/lang/StringBuilder;
     ALOAD 1
     LDC "last"
     ACONST_NULL
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.catStr (Ljava/lang/Object;)Ljava/lang/String;
-    INVOKEVIRTUAL java/lang/StringBuilder.append (Ljava/lang/String;)Ljava/lang/StringBuilder;
-    INVOKEVIRTUAL java/lang/StringBuilder.toString ()Ljava/lang/String;
+    INVOKEDYNAMIC makeConcat(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String; [
+      // handle kind 0x6 : INVOKESTATIC
+      java/lang/invoke/StringConcatFactory.makeConcat(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;
+      // arguments: none
+    ]
     ARETURN
-    MAXSTACK = 4
+    MAXSTACK = 5
     MAXLOCALS = 2

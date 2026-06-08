@@ -612,15 +612,15 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       emitCatArgument(codeBuilder, args.get(0), ".cat[0]");
       return true;
     }
-    codeBuilder
-        .new_(CD_STRING_BUILDER)
-        .dup()
-        .invokespecial(CD_STRING_BUILDER, INIT_NAME, MTD_void);
+    final ClassDesc[] parameterTypes = new ClassDesc[args.size()];
     for (int i = 0; i < args.size(); i++) {
       emitCatArgument(codeBuilder, args.get(i), ".cat[" + i + "]");
-      codeBuilder.invokevirtual(CD_STRING_BUILDER, "append", MethodTypeDesc.of(CD_STRING_BUILDER, CD_String));
+      parameterTypes[i] = CD_String;
     }
-    codeBuilder.invokevirtual(CD_STRING_BUILDER, "toString", MethodTypeDesc.of(CD_String));
+    codeBuilder.invokedynamic(DynamicCallSiteDesc.of(
+        ofCallsiteBootstrap(CD_STRING_CONCAT_FACTORY, "makeConcat", CD_CALL_SITE),
+        "makeConcat",
+        MethodTypeDesc.of(CD_String, parameterTypes)));
     return true;
   }
 
