@@ -585,9 +585,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.aload(1).aload(accumulatorSlot).invokestatic(
         CD_MAP_HELPERS, "reduceContext", MethodTypeDesc.of(CD_MAP, CD_Object, CD_Object));
     codeBuilder.astore(contextSlot);
-    codeBuilder.new_(CD_ARRAY_LIKE).dup().aload(maybeArraySlot).invokespecial(
-        CD_ARRAY_LIKE, INIT_NAME, MethodTypeDesc.ofDescriptor("(Ljava/lang/Object;)V"));
-    codeBuilder.invokevirtual(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR)).astore(iteratorSlot);
+    codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR, CD_Object)).astore(iteratorSlot);
     codeBuilder.labelBinding(loopLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(endLabel);
     codeBuilder.aload(contextSlot).ldc("current").aload(iteratorSlot).invokeinterface(
@@ -783,7 +781,6 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     }
 
     final int maybeArraySlot = allocateLocalSlot(1);
-    final int arraySlot = allocateLocalSlot(1);
     final int iteratorSlot = allocateLocalSlot(1);
     final Label falseLabel = codeBuilder.newLabel();
     final Label loopLabel = codeBuilder.newLabel();
@@ -795,10 +792,8 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.aload(maybeArraySlot).ifnull(falseLabel);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
     codeBuilder.ifeq(falseLabel);
-    codeBuilder.new_(CD_ARRAY_LIKE).dup().aload(maybeArraySlot).invokespecial(CD_ARRAY_LIKE, INIT_NAME, MethodTypeDesc.ofDescriptor("(Ljava/lang/Object;)V"));
-    codeBuilder.astore(arraySlot);
-    codeBuilder.aload(arraySlot).invokevirtual(CD_ARRAY_LIKE, "isEmpty", MethodTypeDesc.of(CD_boolean)).ifne(falseLabel);
-    codeBuilder.aload(arraySlot).invokevirtual(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR)).astore(iteratorSlot);
+    codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEmpty", MethodTypeDesc.of(CD_boolean, CD_Object)).ifne(falseLabel);
+    codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR, CD_Object)).astore(iteratorSlot);
     codeBuilder.labelBinding(loopLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(trueLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object));
@@ -832,8 +827,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.ifeq(emptyLabel);
     emitNewArrayList(codeBuilder);
     codeBuilder.astore(resultSlot);
-    codeBuilder.new_(CD_ARRAY_LIKE).dup().aload(maybeArraySlot).invokespecial(CD_ARRAY_LIKE, INIT_NAME, MethodTypeDesc.ofDescriptor("(Ljava/lang/Object;)V"));
-    codeBuilder.invokevirtual(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR)).astore(iteratorSlot);
+    codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR, CD_Object)).astore(iteratorSlot);
     codeBuilder.labelBinding(loopLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(endLabel);
     codeBuilder.aload(resultSlot);
@@ -871,8 +865,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.ifeq(failLabel);
     emitNewArrayList(codeBuilder);
     codeBuilder.astore(resultSlot);
-    codeBuilder.new_(CD_ARRAY_LIKE).dup().aload(maybeArraySlot).invokespecial(CD_ARRAY_LIKE, INIT_NAME, MethodTypeDesc.ofDescriptor("(Ljava/lang/Object;)V"));
-    codeBuilder.invokevirtual(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR)).astore(iteratorSlot);
+    codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR, CD_Object)).astore(iteratorSlot);
     codeBuilder.labelBinding(loopLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(endLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object)).astore(itemSlot);
@@ -917,9 +910,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.aload(maybeArraySlot).ifnull(nullLabel);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
     codeBuilder.ifeq(failLabel);
-    codeBuilder.new_(CD_ARRAY_LIKE).dup().aload(maybeArraySlot).invokespecial(
-        CD_ARRAY_LIKE, INIT_NAME, MethodTypeDesc.ofDescriptor("(Ljava/lang/Object;)V"));
-    codeBuilder.invokevirtual(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR)).astore(iteratorSlot);
+    codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR, CD_Object)).astore(iteratorSlot);
     codeBuilder.labelBinding(loopLabel);
     codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(emptyLabel);
     codeBuilder.aload(0).aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object));

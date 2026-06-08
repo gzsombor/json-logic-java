@@ -18,11 +18,8 @@
     DUP
     INVOKESPECIAL java/util/ArrayList.<init> ()V
     ASTORE 3
-    NEW io/github/jamsesso/jsonlogic/utils/ArrayLike
-    DUP
     ALOAD 2
-    INVOKESPECIAL io/github/jamsesso/jsonlogic/utils/ArrayLike.<init> (Ljava/lang/Object;)V
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator ()Ljava/util/Iterator;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator (Ljava/lang/Object;)Ljava/util/Iterator;
     ASTORE 4
    L1
    FRAME APPEND [java/lang/Object java/util/ArrayList java/util/Iterator]
