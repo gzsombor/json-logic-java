@@ -265,6 +265,35 @@ public final class RuleHelpers {
     return value.substring(start, end);
   }
 
+  public static String substr(Object strArg, int startArg, int lengthArg) {
+    final String value = String.valueOf(strArg == null ? "" : strArg);
+    final int len = value.length();
+    int start = startArg;
+    if (start < 0) {
+      start = len + start;
+    }
+    int end = lengthArg;
+    if (end < 0) {
+      end = len + end;
+    } else {
+      end = start + end;
+    }
+    if (start > end || end > len || start < 0) {
+      return "";
+    }
+    return value.substring(start, end);
+  }
+
+  public static String substr(Object strArg, int startArg) {
+    final String value = String.valueOf(strArg == null ? "" : strArg);
+    final int len = value.length();
+    int start = startArg;
+    if (start < 0) {
+      start = len + start;
+    }
+    return start < 0 ? "" : value.substring(Math.min(start, len));
+  }
+
   // ---- missing ----
 
   public static List<Object> missing(List<?> keys, Object data) {

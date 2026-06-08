@@ -1260,11 +1260,19 @@ public final class RuleSourceGenerator {
   // ---- substr ----
 
   private String emitSubstr(JsonLogicOperation op, JsonLogicArray args,
-                             StringBuilder pre, String dataExpr, String opPath, String path) {
+                              StringBuilder pre, String dataExpr, String opPath, String path) {
     if (args.size() < 2 || args.size() > 3) {
       return emitFailure("substr expects 2 or 3 arguments", opPath);
     }
     final String strExpr   = arg(args, 0, pre, dataExpr, opPath);
+    if (args.get(1) instanceof JsonLogicNumber && (args.size() == 2 || args.get(2) instanceof JsonLogicNumber)) {
+      final int start = ((JsonLogicNumber) args.get(1)).getValue().intValue();
+      if (args.size() == 2) {
+        return "substr(" + strExpr + ", " + start + ")";
+      }
+      final int length = ((JsonLogicNumber) args.get(2)).getValue().intValue();
+      return "substr(" + strExpr + ", " + start + ", " + length + ")";
+    }
     final String startExpr = arg(args, 1, pre, dataExpr, opPath);
     final String lenExpr   = args.size() == 3 ? arg(args, 2, pre, dataExpr, opPath) : "null";
     return "substr(" + strExpr + ", " + startExpr + ", " + lenExpr

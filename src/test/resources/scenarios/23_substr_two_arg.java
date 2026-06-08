@@ -28,7 +28,7 @@ public final class TestRule implements CompiledRule {
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
     final Object var_s_1 = resolveVarChecked(data, "s", null);
-    Object result_0 = substr(var_s_1, 4.0, null, ".substr");
+    Object result_0 = substr(var_s_1, 4);
     return result_0;
   }
 }
