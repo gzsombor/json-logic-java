@@ -100,6 +100,10 @@ public class JmhJsonLogicBenchmark {
   private String logicMapDouble;
   private Map<String, Object> dataMapDouble;
 
+  // Reduce that increments the accumulator once per input item without reading current.
+  private String logicReduceCount;
+  private Map<String, Object> dataReduceCount;
+
   @Setup
   public void setup() {
     jsonLogic = new JsonLogic(compiled);
@@ -224,6 +228,10 @@ public class JmhJsonLogicBenchmark {
     logicMapDouble = "{\"map\":[{\"var\":\"values\"},{\"*\":[{\"var\":\"\"},2]}]}";
     dataMapDouble = new HashMap<>();
     dataMapDouble.put("values", Arrays.asList(1, 2, 3, 4, 5));
+
+    logicReduceCount = "{\"reduce\":[{\"var\":\"myList\"},{\"+\":[1,{\"var\":\"accumulator\"}]},0]}";
+    dataReduceCount = new HashMap<>();
+    dataReduceCount.put("myList", Arrays.asList(10, 20, 30, 40, 50));
   }
 
   @Benchmark
@@ -306,5 +314,10 @@ public class JmhJsonLogicBenchmark {
   @Benchmark
   public Object evaluateMapDouble() throws JsonLogicException {
     return jsonLogic.apply(logicMapDouble, dataMapDouble);
+  }
+
+  @Benchmark
+  public Object evaluateReduceCount() throws JsonLogicException {
+    return jsonLogic.apply(logicReduceCount, dataReduceCount);
   }
 }

@@ -108,4 +108,17 @@ public class ReduceExpressionTests {
 
     assertEquals(null, result);
   }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldReduceAccumulatorWithoutReadingCurrent(String label, JsonLogic jsonLogic)
+      throws JsonLogicException {
+    String json = "{\"reduce\":[{\"var\":\"myList\"},{\"+\":[1,{\"var\":\"accumulator\"}]},0]}";
+    final Map<String, Object> data = new HashMap<>();
+    data.put("myList", new int[] {10, 20, 30});
+
+    Object result = jsonLogic.apply(json, data);
+
+    assertEquals(3.0, result);
+  }
 }
