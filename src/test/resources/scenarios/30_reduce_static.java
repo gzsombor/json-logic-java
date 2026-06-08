@@ -34,7 +34,7 @@ public final class TestRule implements CompiledRule {
     Object result_0 = reduceAccumulator_2;
     if (ArrayLike.isEligible(reduceArray_1)) {
       Map<String, Object> reduceContext_3 = reduceContext(data, reduceAccumulator_2);
-      for (Object reduceItem_4 : ArrayLike.toList(reduceArray_1)) {
+      for (Object reduceItem_4 : ArrayLike.iterable(reduceArray_1)) {
         reduceContext_3.put("current", reduceItem_4);
         final Object var_current_6 = resolveVarChecked(reduceContext_3, "current", null);
         final Object var_accumulator_8 = resolveVarChecked(reduceContext_3, "accumulator", null);

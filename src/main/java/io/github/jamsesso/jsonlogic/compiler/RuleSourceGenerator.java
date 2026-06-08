@@ -525,7 +525,7 @@ public final class RuleSourceGenerator {
       .append("      ").append(result).append(" = Boolean.")
       .append("none".equals(operator) ? "TRUE" : "FALSE").append(";\n")
       .append("      final Iterator<Object> ").append(iterator)
-        .append(" = ArrayLike.toList(").append(maybeArray).append(").iterator();\n")
+        .append(" = ArrayLike.iterator(").append(maybeArray).append(");\n")
         .append("      while (").append(iterator).append(".hasNext()) {\n")
         .append("        final Object ").append(item).append(" = ").append(iterator).append(".next();\n")
         .append("        if (JsonLogic.truthy(").append(bodyMethod).append("(").append(item).append("))) {\n")
@@ -757,7 +757,7 @@ public final class RuleSourceGenerator {
     out.append("      Map<String, Object> ").append(contextVar)
         .append(" = reduceContext(").append(dataExpr).append(", ").append(accumulatorVar).append(");\n");
     out.append("      for (Object ").append(itemVar)
-        .append(" : ArrayLike.toList(").append(arrayVar).append(")) {\n");
+        .append(" : ArrayLike.iterable(").append(arrayVar).append(")) {\n");
     out.append("        ").append(contextVar).append(".put(\"current\", ").append(itemVar).append(");\n");
 
     final var body = new StringBuilder();

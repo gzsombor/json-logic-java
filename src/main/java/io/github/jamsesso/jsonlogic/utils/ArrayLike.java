@@ -46,6 +46,70 @@ public class ArrayLike implements List<Object> {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  public static Iterator<Object> iterator(Object data) {
+    if (data instanceof List) {
+      final Iterator<Object> iterator = ((List<Object>) data).iterator();
+      return transformingIterator(iterator);
+    }
+    if (data != null && data.getClass().isArray()) {
+      return new Iterator<Object>() {
+        private int index = 0;
+
+        @Override
+        public boolean hasNext() {
+          return index < Array.getLength(data);
+        }
+
+        @Override
+        public Object next() {
+          return JsonLogicEvaluator.transform(Array.get(data, index++));
+        }
+      };
+    }
+    if (data instanceof JsonArray) {
+      return toList(data).iterator();
+    }
+    if (data instanceof Iterable) {
+      return transformingIterator(((Iterable<Object>) data).iterator());
+    }
+    throw new IllegalArgumentException("ArrayLike only works with lists, iterables, arrays, or JsonArray");
+  }
+
+  public static Iterable<Object> iterable(Object data) {
+    return () -> iterator(data);
+  }
+
+  public static boolean isEmpty(Object data) {
+    if (data instanceof Collection) {
+      return ((Collection<?>) data).isEmpty();
+    }
+    if (data != null && data.getClass().isArray()) {
+      return Array.getLength(data) == 0;
+    }
+    if (data instanceof JsonArray) {
+      return ((JsonArray) data).isEmpty();
+    }
+    if (data instanceof Iterable) {
+      return !((Iterable<?>) data).iterator().hasNext();
+    }
+    throw new IllegalArgumentException("ArrayLike only works with lists, iterables, arrays, or JsonArray");
+  }
+
+  private static Iterator<Object> transformingIterator(Iterator<Object> iterator) {
+    return new Iterator<Object>() {
+      @Override
+      public boolean hasNext() {
+        return iterator.hasNext();
+      }
+
+      @Override
+      public Object next() {
+        return JsonLogicEvaluator.transform(iterator.next());
+      }
+    };
+  }
+
   @Override
   public int size() {
     return delegate.size();
