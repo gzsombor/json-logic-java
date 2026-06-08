@@ -42,6 +42,17 @@ public class InExpressionTests {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldEvaluateMixedLiteralListMembership(String label, JsonLogic jsonLogic) throws JsonLogicException {
+    final String rule = "{\"in\":[{\"var\":\"name\"},[\"Springfield\",\"a\",5,null]]}";
+    assertEquals(true, jsonLogic.apply(rule, Collections.singletonMap("name", 5)));
+    assertEquals(false, jsonLogic.apply(rule, Collections.singletonMap("name", "5")));
+    assertEquals(true, jsonLogic.apply(rule, Collections.singletonMap("name", null)));
+    assertEquals(true, jsonLogic.apply(rule, Collections.singletonMap("name", "a")));
+    assertEquals(false, jsonLogic.apply(rule, Collections.singletonMap("name", 0)));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
   public void testInVariableInt(String label, JsonLogic jsonLogic) throws JsonLogicException {
     Map data = Collections.singletonMap("list", Arrays.asList(1, 2, 3));
     assertEquals(true, jsonLogic.apply("{\"in\": [2, {\"var\": \"list\"}]}", data));
