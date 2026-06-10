@@ -1,15 +1,22 @@
-    ALOAD 0
-    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
-    ALOAD 0
-    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
-    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
-    LDC 0
-    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
-    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
-    ALOAD 1
-    LDC ".reduce[0]"
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
+    NEW java/util/ArrayList
+    DUP
+    LDC 3
+    INVOKESPECIAL java/util/ArrayList.<init> (I)V
+    DUP
+    LDC 1.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    DUP
+    LDC 2.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
+    DUP
+    LDC 3.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
+    POP
     ASTORE 2
     LDC 0.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
@@ -25,7 +32,7 @@
     INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.iterator (Ljava/lang/Object;)Ljava/util/Iterator;
     ASTORE 5
    L1
-   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd java/lang/Object java/lang/Object java/lang/Object java/util/Map java/util/Iterator] []
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_78b4ae15b7cfcdd java/lang/Object java/util/ArrayList java/lang/Object java/util/Map java/util/Iterator] []
     ALOAD 5
     INVOKEINTERFACE java/util/Iterator.hasNext ()Z (itf)
     IFEQ L0
