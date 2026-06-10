@@ -576,7 +576,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     final Label endLabel = codeBuilder.newLabel();
     final Label loopLabel = codeBuilder.newLabel();
 
-    emitEvaluateOperationArgument(codeBuilder, 0, ".reduce[0]");
+    emitRequiredNode(codeBuilder, args.get(0), ".reduce[0]");
     codeBuilder.astore(maybeArraySlot);
     emitRequiredNode(codeBuilder, args.get(2), ".reduce[2]");
     codeBuilder.astore(accumulatorSlot);
