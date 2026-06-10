@@ -104,6 +104,10 @@ public class JmhJsonLogicBenchmark {
   private String logicReduceCount;
   private Map<String, Object> dataReduceCount;
 
+  // Common reduce shape: sum current into accumulator.
+  private String logicReduceSum;
+  private Map<String, Object> dataReduceSum;
+
   @Setup
   public void setup() {
     jsonLogic = new JsonLogic(compiled);
@@ -232,6 +236,10 @@ public class JmhJsonLogicBenchmark {
     logicReduceCount = "{\"reduce\":[{\"var\":\"myList\"},{\"+\":[1,{\"var\":\"accumulator\"}]},0]}";
     dataReduceCount = new HashMap<>();
     dataReduceCount.put("myList", Arrays.asList(10, 20, 30, 40, 50));
+
+    logicReduceSum = "{\"reduce\":[{\"var\":\"myList\"},{\"+\":[{\"var\":\"accumulator\"},{\"var\":\"current\"}]},0]}";
+    dataReduceSum = new HashMap<>();
+    dataReduceSum.put("myList", Arrays.asList(10, 20, 30, 40, 50));
   }
 
   @Benchmark
@@ -319,5 +327,10 @@ public class JmhJsonLogicBenchmark {
   @Benchmark
   public Object evaluateReduceCount() throws JsonLogicException {
     return jsonLogic.apply(logicReduceCount, dataReduceCount);
+  }
+
+  @Benchmark
+  public Object evaluateReduceSum() throws JsonLogicException {
+    return jsonLogic.apply(logicReduceSum, dataReduceSum);
   }
 }
