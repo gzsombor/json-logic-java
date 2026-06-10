@@ -1,7 +1,7 @@
     ALOAD 0
-    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_7de72cdc3676ace1.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_bce696c308ec1a4e.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
     ALOAD 0
-    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_7de72cdc3676ace1.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
+    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_bce696c308ec1a4e.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
     CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
     INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
     LDC 0
@@ -30,7 +30,7 @@
     ALOAD 0
     ALOAD 4
     INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_7de72cdc3676ace1.collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_bce696c308ec1a4e.collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
     INVOKEINTERFACE java/util/List.add (Ljava/lang/Object;)Z (itf)
     POP
     GOTO L1
