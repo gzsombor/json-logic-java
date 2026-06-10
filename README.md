@@ -45,40 +45,49 @@ gradle jmh -PjmhArgs="CompilationBreakEven"
 
 ### Results
 
-Throughput on an Intel i9-12950HX, JDK 17, 3 forks × 5 s warmup + 5 s measurement.
+Throughput on an Intel i9-12950HX, JDK 17.0.14, 1 fork x 3 x 2 s warmup + 3 x 2 s measurement.
 Higher is better (ops/s = rule evaluations per second).
 
 | Scenario | Interpreter (ops/s) | Compiled (ops/s) | Speedup |
 |---|--:|--:|--:|
-| Dispatch table miss | 764,520 | 17,012,825 | **22.2×** |
-| Dispatch table hit | 1,856,461 | 22,125,525 | **11.9×** |
-| In-set check, hit | 2,142,007 | 20,220,420 | **9.4×** |
-| In-set check, miss | 1,950,122 | 20,755,424 | **10.6×** |
-| Repeated var lookup (same key used 5×) | 1,371,671 | 12,990,380 | **9.5×** |
-| Two string comparisons | 2,873,332 | 13,030,453 | **4.5×** |
-| Three string comparisons | 1,780,765 | 9,084,658 | **5.1×** |
-| Four string comparisons | 1,696,041 | 6,894,653 | **4.1×** |
-| Five mixed operations | 1,294,813 | 5,551,687 | **4.3×** |
-| Twenty-clause AND chain | 290,905 | 1,210,222 | **4.2×** |
+| Arithmetic | 1,391,811 | 7,738,979 | **5.6x** |
+| String concatenation | 1,403,041 | 4,553,208 | **3.2x** |
+| Dispatch table hit | 1,113,313 | 12,604,718 | **11.3x** |
+| Dispatch table miss | 720,690 | 12,279,292 | **17.0x** |
+| Dynamic `in` check, hit | 2,411,212 | 4,200,999 | **1.7x** |
+| Five mixed operations | 776,904 | 3,252,051 | **4.2x** |
+| FizzBuzz conditional chain | 275,689 | 3,909,191 | **14.2x** |
+| Four string comparisons | 972,814 | 3,697,499 | **3.8x** |
+| In-set check, hit | 1,271,430 | 12,312,758 | **9.7x** |
+| In-set check, miss | 1,116,950 | 11,948,308 | **10.7x** |
+| Map double | 584,876 | 577,456 | **1.0x** |
+| Reduce count | 416,772 | 11,922,612 | **28.6x** |
+| Reduce sum | 460,071 | 11,654,549 | **25.3x** |
+| Repeated var lookup (same key used 3x) | 801,503 | 7,521,359 | **9.4x** |
+| Substring | 2,639,158 | 12,139,819 | **4.6x** |
+| Three string comparisons | 1,287,003 | 5,129,518 | **4.0x** |
+| Twenty-clause AND chain | 213,580 | 687,116 | **3.2x** |
+| Two string comparisons | 1,648,420 | 7,362,681 | **4.5x** |
 
 Key observations:
 
-- **Dispatch overhead is eliminated.** The interpreter pays a map lookup + virtual dispatch on every operator; the compiler emits a direct Java call. For rules that consist of a single cached lookup, the compiled path is up to ~22× faster.
-- **`in` against a literal set is now compiled.** The haystack is emitted as a `private static final HashSet<Object>` field, allocated once at class-load time; each evaluation is a single `HashSet.contains` call. This lifts `in`-set throughput from ~2M to ~20M ops/s (~10×).
-- **Repeated variable access scales well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals, reducing five map lookups to one. That alone accounts for the ~9.5× gain on the repeated-lookup benchmark vs ~4–5× for single-use vars.
-- **Complex rules still benefit.** Even a twenty-clause AND chain — the worst case for compilation overhead — sees a ~4× improvement, because every intermediate truthiness check and var resolution is a direct primitive operation rather than a virtual dispatch through the evaluator tree.
+- **Dispatch overhead is eliminated.** The interpreter pays a map lookup + virtual dispatch on every operator; the compiler emits direct Java code. Dispatch-table rules are ~11-17x faster when compiled.
+- **`in` against a literal set is compiled.** The haystack is emitted as a `private static final HashSet<Object>` field, allocated once at class-load time; each evaluation is a single `HashSet.contains` call. Literal `in` checks improve by ~10x.
+- **Repeated variable access and reductions scale well.** The compiler hoists repeated `{"var":"x"}` lookups into `final` locals and emits tight loops for supported `reduce` shapes, reaching ~9-29x throughput gains in these benchmarks.
+- **Complex rules still benefit.** Even a twenty-clause AND chain sees a ~3x improvement, because every intermediate truthiness check and var resolution is direct code rather than virtual dispatch through the evaluator tree.
+- **Fallback-heavy rules may not improve.** `map` currently shows no compiled-path benefit in this benchmark because the compiled rule falls back to interpreter behavior for the transform-heavy expression.
 
 ### Compilation break-even
 
 Compilation is a one-time cost paid on first use of a unique rule, then the compiled function is cached. The break-even estimate is `compile time / (interpreter eval time - compiled eval time)`.
 
-Measured with JMH average-time mode on JDK 11:
+Measured with JMH average-time mode on JDK 17.0.14:
 
 | Scenario | Compile time | Interpreter eval | Compiled eval | Break-even |
 |---|--:|--:|--:|--:|
-| Five mixed operations | 11,804 us | 0.947 us | 0.215 us | ~16,100 evals |
-| Twenty-clause AND chain | 10,010 us | 3.609 us | 0.876 us | ~3,700 evals |
-| Dispatch table miss | 9,588 us | 1.019 us | 0.075 us | ~10,200 evals |
+| Five mixed operations | 14,942 us | 1.400 us | 0.384 us | ~14,700 evals |
+| Twenty-clause AND chain | 17,085 us | 5.099 us | 1.528 us | ~4,800 evals |
+| Dispatch table miss | 16,660 us | 1.550 us | 0.124 us | ~11,700 evals |
 
 As a rule of thumb, compilation pays off for rules evaluated thousands to tens of thousands of times. For one-off or rarely executed rules, use `new JsonLogic(false)` to avoid the cold compilation cost.
 
