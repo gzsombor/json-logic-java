@@ -7,7 +7,6 @@ import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
 import io.github.jamsesso.jsonlogic.utils.ArrayLike;
 import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;
-import static io.github.jamsesso.jsonlogic.utils.MapHelpers.reduceContext;
 import java.util.*;
 
 public final class TestRule implements CompiledRule {
@@ -33,23 +32,19 @@ public final class TestRule implements CompiledRule {
     Object reduceAccumulator_2 = 0.0;
     Object result_0 = reduceAccumulator_2;
     if (ArrayLike.isEligible(reduceArray_1)) {
-      Map<String, Object> reduceContext_3 = reduceContext(data, reduceAccumulator_2);
-      for (Object reduceItem_4 : ArrayLike.iterable(reduceArray_1)) {
-        reduceContext_3.put("current", reduceItem_4);
-        final Object var_current_6 = resolveVarChecked(reduceContext_3, "current", null);
-        final Object var_accumulator_8 = resolveVarChecked(reduceContext_3, "accumulator", null);
-        Object arith_10;
-        if (var_current_6 == null || !isNumeric(var_current_6) || var_accumulator_8 == null || !isNumeric(var_accumulator_8)) {
-          arith_10 = null;
+      for (Object reduceItem_3 : ArrayLike.iterable(reduceArray_1)) {
+        Object arith_7;
+        if (reduceItem_3 == null || !isNumeric(reduceItem_3) || reduceAccumulator_2 == null || !isNumeric(reduceAccumulator_2)) {
+          arith_7 = null;
         } else {
-          double _d_7 = toDouble(var_current_6);
-          double _d_9 = toDouble(var_accumulator_8);
-          arith_10 = (_d_7 + _d_9);
+          double _d_5 = toDouble(reduceItem_3);
+          double _d_6 = toDouble(reduceAccumulator_2);
+          arith_7 = (_d_5 + _d_6);
         }
-        Object reduceBody_5 = arith_10;
-        reduceContext_3.put("accumulator", reduceBody_5);
+        Object reduceBody_4 = arith_7;
+        reduceAccumulator_2 = reduceBody_4;
       }
-      result_0 = reduceContext_3.get("accumulator");
+      result_0 = reduceAccumulator_2;
     }
     return result_0;
   }

@@ -222,7 +222,8 @@ public class RuleSourceGeneratorTest {
     final String source = generator.generate(JsonLogicParser.parse(ruleJson), "TestRule");
 
     assertTrue(source.contains("for (Object reduceItem_"));
-    assertTrue(source.contains("reduceContext("));
+    assertTrue(source.contains("Object reduceAccumulator_"));
+    assertFalse(source.contains("reduceContext("));
     assertFalse(source.contains("fallback.evaluate"));
   }
 

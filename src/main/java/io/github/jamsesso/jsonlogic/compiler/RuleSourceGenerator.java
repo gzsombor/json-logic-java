@@ -106,7 +106,6 @@ public final class RuleSourceGenerator {
    */
   private final Map<String, String> setCache = new LinkedHashMap<>();
   private final Map<JsonLogicNode, String> bodyMethodCache = new LinkedHashMap<>();
-  private boolean needsReduceHelpers = false;
   private boolean needsArrayLike = false;
 
   // -------------------------------------------------------------------------
@@ -134,9 +133,8 @@ public final class RuleSourceGenerator {
         + "import io.github.jamsesso.jsonlogic.compiler.CompiledRule;\n"
         + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;\n"
         + "import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;\n"
-        + ((needsReduceHelpers || needsArrayLike) ? "import io.github.jamsesso.jsonlogic.utils.ArrayLike;\n" : "")
+        + (needsArrayLike ? "import io.github.jamsesso.jsonlogic.utils.ArrayLike;\n" : "")
         + "import static io.github.jamsesso.jsonlogic.compiler.RuleHelpers.*;\n"
-        + (needsReduceHelpers ? "import static io.github.jamsesso.jsonlogic.utils.MapHelpers.reduceContext;\n" : "")
         + "import java.util.*;\n"
         + "\n"
         + "public final class " + className + " implements CompiledRule {\n"
@@ -340,6 +338,17 @@ public final class RuleSourceGenerator {
       }
       if (!varScopes.isEmpty()) {
         final VarScope varScope = varScopes.get(varScopes.size() - 1);
+        final String alias = varScope.aliases.get(varName);
+        if (alias != null) {
+          return alias;
+        }
+        for (Map.Entry<String, String> aliasEntry : varScope.aliases.entrySet()) {
+          final String prefix = aliasEntry.getKey() + ".";
+          if (varName.startsWith(prefix)) {
+            return "resolveVarChecked(" + aliasEntry.getValue() + ", "
+                + javaStringLiteral(varName.substring(prefix.length())) + ", null)";
+          }
+        }
         final String cached = varScope.cache.get(varName);
         if (cached != null) {
           return cached;
@@ -347,7 +356,7 @@ public final class RuleSourceGenerator {
         final String localName = freshVar("var_" + sanitize(varName));
         varScope.cache.put(varName, localName);
         varScope.preamble.append("    final Object ").append(localName)
-            .append(" = resolveVarChecked(").append(dataExpr).append(", ")
+            .append(" = resolveVarChecked(").append(varScope.dataExpr).append(", ")
             .append(javaStringLiteral(varName)).append(", null);\n");
         return localName;
       }
@@ -735,7 +744,6 @@ public final class RuleSourceGenerator {
 
   private void emitReduce(JsonLogicOperation op, String targetVar, StringBuilder out,
                           String dataExpr, String path) {
-    needsReduceHelpers = true;
     final JsonLogicArray args = op.getArguments();
     if (args.size() != 3) {
       out.append("    Object ").append(targetVar).append(" = ")
@@ -743,9 +751,9 @@ public final class RuleSourceGenerator {
       return;
     }
 
+    needsArrayLike = true;
     final String arrayVar = freshVar("reduceArray");
     final String accumulatorVar = freshVar("reduceAccumulator");
-    final String contextVar = freshVar("reduceContext");
     final String itemVar = freshVar("reduceItem");
     final String bodyVar = freshVar("reduceBody");
 
@@ -754,24 +762,23 @@ public final class RuleSourceGenerator {
     out.append("    Object ").append(targetVar).append(" = ").append(accumulatorVar).append(";\n");
     out.append("    if (ArrayLike.isEligible(")
         .append(arrayVar).append(")) {\n");
-    out.append("      Map<String, Object> ").append(contextVar)
-        .append(" = reduceContext(").append(dataExpr).append(", ").append(accumulatorVar).append(");\n");
-    out.append("      for (Object ").append(itemVar)
-        .append(" : ArrayLike.iterable(").append(arrayVar).append(")) {\n");
-    out.append("        ").append(contextVar).append(".put(\"current\", ").append(itemVar).append(");\n");
 
     final var body = new StringBuilder();
     final VarScope varScope = new VarScope();
+    varScope.dataExpr = dataExpr;
+    varScope.aliases.put("current", itemVar);
+    varScope.aliases.put("accumulator", accumulatorVar);
     varScopes.add(varScope);
-    emitStatement(args.get(1), bodyVar, body, contextVar, path + "[1]");
+    emitStatement(args.get(1), bodyVar, body, dataExpr, path + "[1]");
     varScopes.remove(varScopes.size() - 1);
-    indentBlock(varScope.preamble, out, "    ");
+    indentBlock(varScope.preamble, out, "  ");
+    out.append("      for (Object ").append(itemVar)
+        .append(" : ArrayLike.iterable(").append(arrayVar).append(")) {\n");
     indentBlock(body, out, "    ");
 
-    out.append("        ").append(contextVar).append(".put(\"accumulator\", ")
-        .append(bodyVar).append(");\n");
+    out.append("        ").append(accumulatorVar).append(" = ").append(bodyVar).append(";\n");
     out.append("      }\n");
-    out.append("      ").append(targetVar).append(" = ").append(contextVar).append(".get(\"accumulator\");\n");
+    out.append("      ").append(targetVar).append(" = ").append(accumulatorVar).append(";\n");
     out.append("    }\n");
   }
 
@@ -784,7 +791,9 @@ public final class RuleSourceGenerator {
 
   private static final class VarScope {
     private final Map<String, String> cache = new LinkedHashMap<>();
+    private final Map<String, String> aliases = new LinkedHashMap<>();
     private final StringBuilder preamble = new StringBuilder();
+    private String dataExpr = "item";
   }
 
   // ---- numeric comparisons ----
