@@ -211,6 +211,11 @@ public final class RuleSourceGenerator {
         case "reduce":
           emitReduce(op, targetVar, out, dataExpr, path + ".reduce");
           return;
+        case "map":
+          if (emitMap(op, targetVar, out, dataExpr, path + ".map")) {
+            return;
+          }
+          break;
         default:
           break;
       }
@@ -335,6 +340,9 @@ public final class RuleSourceGenerator {
       if (!(node.getDefaultValue() instanceof JsonLogicNull)) {
         return "resolveVarChecked(" + dataExpr + ", " + javaStringLiteral(varName) + ", "
             + emitExpression(node.getDefaultValue(), pre, dataExpr, path + "[1]") + ")";
+      }
+      if (varName.isEmpty()) {
+        return dataExpr;
       }
       if (!varScopes.isEmpty()) {
         final VarScope varScope = varScopes.get(varScopes.size() - 1);
@@ -545,6 +553,28 @@ public final class RuleSourceGenerator {
         .append("      }\n")
         .append("    }\n");
     return result;
+  }
+
+  private boolean emitMap(JsonLogicOperation op, String targetVar, StringBuilder out, String dataExpr, String path) {
+    final JsonLogicArray args = op.getArguments();
+    if (args.size() != 2) {
+      return false;
+    }
+    needsArrayLike = true;
+    final String arrayVar = freshVar("mapArray");
+    final String resultVar = freshVar("mapResult");
+    final String itemVar = freshVar("mapItem");
+    final String bodyMethod = bodyMethodFor(args.get(1), path + "[1]");
+
+    emitStatement(args.get(0), arrayVar, out, dataExpr, path + "[0]");
+    out.append("    final List<Object> ").append(resultVar).append(" = new ArrayList<>();\n");
+    out.append("    if (ArrayLike.isEligible(").append(arrayVar).append(")) {\n");
+    out.append("      for (Object ").append(itemVar).append(" : ArrayLike.iterable(").append(arrayVar).append(")) {\n");
+    out.append("        ").append(resultVar).append(".add(").append(bodyMethod).append("(").append(itemVar).append("));\n");
+    out.append("      }\n");
+    out.append("    }\n");
+    out.append("    Object ").append(targetVar).append(" = ").append(resultVar).append(";\n");
+    return true;
   }
 
   private String bodyMethodFor(JsonLogicNode body, String path) {
