@@ -48,19 +48,26 @@ public class RuleSourceGeneratorScenarioTest {
   @ParameterizedTest(name = "{0}")
   @MethodSource("scenarios")
   public void generatedSourceMatchesFixture(String scenarioName, Path jsonPath, Path javaPath) throws Exception {
-    assertTrue(
-        Files.exists(javaPath),
-        "Missing .java fixture for scenario: " + scenarioName);
-
     String json = new String(Files.readAllBytes(jsonPath), StandardCharsets.UTF_8).trim();
-    String expectedSource = new String(Files.readAllBytes(javaPath), StandardCharsets.UTF_8);
-
     JsonLogicNode node = JsonLogicParser.parse(json);
     RuleSourceGenerator generator = new RuleSourceGenerator();
     String actualSource = generator.generate(node, "TestRule");
+
+    if (!Files.exists(javaPath)) {
+      Path sourcePath = toSourcePath(javaPath);
+      Files.writeString(sourcePath, actualSource, StandardCharsets.UTF_8);
+      fail("Created missing fixture (re-run to verify): " + sourcePath);
+    }
+
+    String expectedSource = new String(Files.readAllBytes(javaPath), StandardCharsets.UTF_8);
     assertEquals(
         expectedSource.stripTrailing(),
         actualSource.stripTrailing(),
         "Generated source mismatch for scenario: " + scenarioName);
+  }
+
+  private static Path toSourcePath(Path buildPath) {
+    return Paths.get(buildPath.toString()
+        .replace("/build/resources/test/", "/src/test/resources/"));
   }
 }
