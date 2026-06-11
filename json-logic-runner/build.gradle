@@ -1,0 +1,56 @@
+import org.gradle.api.attributes.java.TargetJvmVersion
+
+plugins {
+  id "application"
+}
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(24)
+  }
+}
+
+// Runner source code only uses core APIs (reflection for providers) → Java 11 bytecode.
+compileJava.options.release = 11
+
+dependencies {
+  implementation project(":json-logic-core")
+  // javac and jep484 providers are loaded reflectively at runtime — not needed at compile time.
+  runtimeOnly project(":json-logic-java-compiler-javac")
+  runtimeOnly project(":json-logic-jep484")
+}
+
+// The fat JAR bundles jep484 (JVM 24 bytecode). Override the resolution attribute so
+// Gradle can include jep484 in runtimeClasspath regardless of our JVM 11 bytecode target.
+configurations.runtimeClasspath {
+  attributes {
+    attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 24)
+  }
+}
+
+application {
+  mainClass = "io.github.jamsesso.jsonlogic.runner.JsonLogicRunner"
+}
+
+tasks.register('fatJar', Jar) {
+  group = 'build'
+  description = 'Builds a fat JAR with all dependencies bundled'
+  archiveClassifier = 'fat'
+  manifest {
+    attributes 'Main-Class': 'io.github.jamsesso.jsonlogic.runner.JsonLogicRunner'
+  }
+  // Runner classes + resources (including the merged service file)
+  from sourceSets.main.output
+  // All dependency contents — exclude their individual service registrations and signing artifacts
+  from {
+    configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+  } {
+    exclude 'META-INF/services/io.github.jamsesso.jsonlogic.compiler.JsonLogicCompilerProvider'
+    exclude 'META-INF/MANIFEST.MF'
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+    exclude 'module-info.class'
+  }
+  duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
