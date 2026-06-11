@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     ALOAD 0
     GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b0dd14168185aea8.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
     ALOAD 0
@@ -46,3 +47,38 @@
     ARETURN
     MAXSTACK = 4
     MAXLOCALS = 4
+
+// collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
+    ALOAD 1
+    LDC "score"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
+    DSTORE 2
+    LDC 10.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
+    DSTORE 4
+    DLOAD 2
+    INVOKESTATIC java/lang/Double.isNaN (D)Z
+    IFNE L0
+    DLOAD 4
+    INVOKESTATIC java/lang/Double.isNaN (D)Z
+    IFNE L0
+    DLOAD 2
+    DLOAD 4
+    DCMPL
+    IFGE L1
+   L0
+   FRAME APPEND [D D]
+    ICONST_0
+    GOTO L2
+   L1
+   FRAME SAME
+    ICONST_1
+   L2
+   FRAME SAME1 I
+    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
+    ARETURN
+    MAXSTACK = 4
+    MAXLOCALS = 6

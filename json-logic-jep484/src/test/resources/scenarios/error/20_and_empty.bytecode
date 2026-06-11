@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     LDC "and operator expects at least 1 argument"
     LDC ".and"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.fail (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;

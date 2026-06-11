@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     ALOAD 0
     GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_bce696c308ec1a4e.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
     ALOAD 0
@@ -46,3 +47,19 @@
     ARETURN
     MAXSTACK = 4
     MAXLOCALS = 5
+
+// collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
+    ALOAD 1
+    LDC "name"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.catStr (Ljava/lang/Object;)Ljava/lang/String;
+    LDC " hello"
+    INVOKEDYNAMIC makeConcat(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String; [
+      // handle kind 0x6 : INVOKESTATIC
+      java/lang/invoke/StringConcatFactory.makeConcat(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;
+      // arguments: none
+    ]
+    ARETURN
+    MAXSTACK = 3
+    MAXLOCALS = 2

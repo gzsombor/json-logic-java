@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     ACONST_NULL
     ARETURN
     MAXSTACK = 1

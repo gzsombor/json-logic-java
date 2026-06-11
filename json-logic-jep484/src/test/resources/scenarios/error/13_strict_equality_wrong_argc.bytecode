@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     LDC "equality expressions expect exactly 2 arguments"
     LDC ".==="
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.fail (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;

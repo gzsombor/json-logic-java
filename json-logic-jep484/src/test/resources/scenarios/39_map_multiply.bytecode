@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     ALOAD 0
     GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_13e51f7688a5a22d.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
     ALOAD 0
@@ -46,3 +47,35 @@
     ARETURN
     MAXSTACK = 4
     MAXLOCALS = 5
+
+// collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
+    ALOAD 1
+    ASTORE 2
+    LDC 2.0D
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    ASTORE 3
+    ALOAD 2
+    IFNULL L0
+    ALOAD 2
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
+    IFEQ L0
+    ALOAD 3
+    IFNULL L0
+    ALOAD 3
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
+    IFEQ L0
+    ALOAD 2
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
+    ALOAD 3
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
+    DMUL
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    GOTO L1
+   L0
+   FRAME APPEND [java/lang/Object java/lang/Double]
+    ACONST_NULL
+   L1
+   FRAME SAME1 java/lang/Double
+    ARETURN
+    MAXSTACK = 4
+    MAXLOCALS = 4
