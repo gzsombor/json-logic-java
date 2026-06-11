@@ -29,24 +29,22 @@ public final class TestRule implements CompiledRule {
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
     final Object var_items_7 = resolveVarChecked(data, "items", null);
-    final Object someArray_1 = var_items_7;
-    Boolean someResult_2;
-    if (someArray_1 == null) {
-      someResult_2 = Boolean.FALSE;
-    } else if (!ArrayLike.isEligible(someArray_1)) {
-      someResult_2 = fail("first argument to some must be a valid array", ".some[0]");
+    final Object allArray_1 = var_items_7;
+    Boolean allResult_2;
+    if (allArray_1 == null || !ArrayLike.isEligible(allArray_1) || ArrayLike.isEmpty(allArray_1)) {
+      allResult_2 = Boolean.FALSE;
     } else {
-      someResult_2 = Boolean.FALSE;
-      final Iterator<Object> someIterator_3 = ArrayLike.iterator(someArray_1);
-      while (someIterator_3.hasNext()) {
-        final Object someItem_4 = someIterator_3.next();
-        if (filter$0(someItem_4)) {
-          someResult_2 = Boolean.TRUE;
+      allResult_2 = Boolean.TRUE;
+      final Iterator<Object> allIterator_3 = ArrayLike.iterator(allArray_1);
+      while (allIterator_3.hasNext()) {
+        final Object allItem_4 = allIterator_3.next();
+        if (!filter$0(allItem_4)) {
+          allResult_2 = Boolean.FALSE;
           break;
         }
       }
     }
-    Object result_0 = someResult_2;
+    Object result_0 = allResult_2;
     return result_0;
   }
 

@@ -40,7 +40,7 @@ public final class TestRule implements CompiledRule {
       final Iterator<Object> noneIterator_3 = ArrayLike.iterator(noneArray_1);
       while (noneIterator_3.hasNext()) {
         final Object noneItem_4 = noneIterator_3.next();
-        if (JsonLogic.truthy(collectionBody$0(noneItem_4))) {
+        if (filter$0(noneItem_4)) {
           noneResult_2 = Boolean.FALSE;
           break;
         }
@@ -50,9 +50,9 @@ public final class TestRule implements CompiledRule {
     return result_0;
   }
 
-  private Object collectionBody$0(Object item) throws JsonLogicEvaluationException {
+  private boolean filter$0(Object item) throws JsonLogicEvaluationException {
     final Object var_score_6 = resolveVarChecked(item, "score", null);
-    boolean collectionBodyResult_5 = (toComparableDouble(var_score_6) >= 10.0);
-    return collectionBodyResult_5;
+    boolean filterBodyResult_5 = (toComparableDouble(var_score_6) >= 10.0);
+    return filterBodyResult_5;
   }
 }

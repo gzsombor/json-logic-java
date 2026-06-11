@@ -28,31 +28,25 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    final Object var_items_7 = resolveVarChecked(data, "items", null);
-    final Object someArray_1 = var_items_7;
-    Boolean someResult_2;
-    if (someArray_1 == null) {
-      someResult_2 = Boolean.FALSE;
-    } else if (!ArrayLike.isEligible(someArray_1)) {
-      someResult_2 = fail("first argument to some must be a valid array", ".some[0]");
+    final Object var_items_6 = resolveVarChecked(data, "items", null);
+    Object filterArray_1 = var_items_6;
+    final List<Object> filterResult_2 = new ArrayList<>();
+    if (!ArrayLike.isEligible(filterArray_1)) {
+      fail("first argument to filter must be a valid array", ".filter[0]");
     } else {
-      someResult_2 = Boolean.FALSE;
-      final Iterator<Object> someIterator_3 = ArrayLike.iterator(someArray_1);
-      while (someIterator_3.hasNext()) {
-        final Object someItem_4 = someIterator_3.next();
-        if (filter$0(someItem_4)) {
-          someResult_2 = Boolean.TRUE;
-          break;
+      for (Object filterItem_3 : ArrayLike.iterable(filterArray_1)) {
+        if (filter$0(filterItem_3)) {
+          filterResult_2.add(filterItem_3);
         }
       }
     }
-    Object result_0 = someResult_2;
+    Object result_0 = filterResult_2;
     return result_0;
   }
 
   private boolean filter$0(Object item) throws JsonLogicEvaluationException {
-    final Object var_score_6 = resolveVarChecked(item, "score", null);
-    boolean filterBodyResult_5 = (toComparableDouble(var_score_6) >= 10.0);
-    return filterBodyResult_5;
+    final Object var_score_5 = resolveVarChecked(item, "score", null);
+    boolean filterBodyResult_4 = (toComparableDouble(var_score_5) >= 10.0);
+    return filterBodyResult_4;
   }
 }

@@ -1,0 +1,1 @@
+{"filter":[{"var":"items"},{">=":[{"var":"score"},10]}]}

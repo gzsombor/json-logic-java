@@ -106,6 +106,7 @@ public final class RuleSourceGenerator {
    */
   private final Map<String, String> setCache = new LinkedHashMap<>();
   private final Map<JsonLogicNode, String> bodyMethodCache = new LinkedHashMap<>();
+  private final Map<JsonLogicNode, String> filterBodyMethodCache = new LinkedHashMap<>();
   private boolean needsArrayLike = false;
 
   // -------------------------------------------------------------------------
@@ -213,6 +214,11 @@ public final class RuleSourceGenerator {
           return;
         case "map":
           if (emitMap(op, targetVar, out, dataExpr, path + ".map")) {
+            return;
+          }
+          break;
+        case "filter":
+          if (emitFilter(op, targetVar, out, dataExpr, path + ".filter")) {
             return;
           }
           break;
@@ -512,6 +518,7 @@ public final class RuleSourceGenerator {
       case "reduce": return emitReduceExpression(op, pre, dataExpr, opPath);
       case "some": return emitSomeNone("some", op, pre, dataExpr, opPath);
       case "none": return emitSomeNone("none", op, pre, dataExpr, opPath);
+      case "all":  return emitAll(op, pre, dataExpr, opPath);
       default:    return emitFallback(op, pre, dataExpr, path);
     }
   }
@@ -527,7 +534,7 @@ public final class RuleSourceGenerator {
     final String result = freshVar(operator + "Result");
     final String iterator = freshVar(operator + "Iterator");
     final String item = freshVar(operator + "Item");
-    final String bodyMethod = bodyMethodFor(args.get(1), opPath + "[1]");
+    final String bodyMethod = filterBodyMethodFor(args.get(1), opPath + "[1]");
     pre.append("    final Object ").append(maybeArray).append(" = ")
         .append(arg(args, 0, pre, dataExpr, opPath)).append(";\n")
         .append("    Boolean ").append(result).append(";\n")
@@ -545,7 +552,7 @@ public final class RuleSourceGenerator {
         .append(" = ArrayLike.iterator(").append(maybeArray).append(");\n")
         .append("      while (").append(iterator).append(".hasNext()) {\n")
         .append("        final Object ").append(item).append(" = ").append(iterator).append(".next();\n")
-        .append("        if (JsonLogic.truthy(").append(bodyMethod).append("(").append(item).append("))) {\n")
+        .append("        if (").append(bodyMethod).append("(").append(item).append(")) {\n")
         .append("          ").append(result).append(" = Boolean.")
         .append("some".equals(operator) ? "TRUE" : "FALSE").append(";\n")
         .append("          break;\n")
@@ -553,6 +560,66 @@ public final class RuleSourceGenerator {
         .append("      }\n")
         .append("    }\n");
     return result;
+  }
+
+  private String emitAll(JsonLogicOperation op, StringBuilder pre, String dataExpr, String opPath) {
+    final JsonLogicArray args = op.getArguments();
+    if (args.size() != 2) {
+      return emitFallback(op, pre, dataExpr, parentPath(opPath, "all"));
+    }
+
+    needsArrayLike = true;
+    final String maybeArray = freshVar("allArray");
+    final String result = freshVar("allResult");
+    final String iterator = freshVar("allIterator");
+    final String item = freshVar("allItem");
+    final String bodyMethod = filterBodyMethodFor(args.get(1), opPath + "[1]");
+    pre.append("    final Object ").append(maybeArray).append(" = ")
+        .append(arg(args, 0, pre, dataExpr, opPath)).append(";\n")
+        .append("    Boolean ").append(result).append(";\n")
+        .append("    if (").append(maybeArray).append(" == null || !ArrayLike.isEligible(").append(maybeArray)
+        .append(") || ArrayLike.isEmpty(").append(maybeArray).append(")) {\n")
+        .append("      ").append(result).append(" = Boolean.FALSE;\n")
+        .append("    } else {\n")
+        .append("      ").append(result).append(" = Boolean.TRUE;\n")
+        .append("      final Iterator<Object> ").append(iterator)
+          .append(" = ArrayLike.iterator(").append(maybeArray).append(");\n")
+        .append("      while (").append(iterator).append(".hasNext()) {\n")
+        .append("        final Object ").append(item).append(" = ").append(iterator).append(".next();\n")
+        .append("        if (!").append(bodyMethod).append("(").append(item).append(")) {\n")
+        .append("          ").append(result).append(" = Boolean.FALSE;\n")
+        .append("          break;\n")
+        .append("        }\n")
+        .append("      }\n")
+        .append("    }\n");
+    return result;
+  }
+
+  private boolean emitFilter(JsonLogicOperation op, String targetVar, StringBuilder out, String dataExpr, String path) {
+    final JsonLogicArray args = op.getArguments();
+    if (args.size() != 2) {
+      return false;
+    }
+    needsArrayLike = true;
+    final String arrayVar = freshVar("filterArray");
+    final String resultVar = freshVar("filterResult");
+    final String itemVar = freshVar("filterItem");
+    final String bodyMethod = filterBodyMethodFor(args.get(1), path + "[1]");
+
+    emitStatement(args.get(0), arrayVar, out, dataExpr, path + "[0]");
+    out.append("    final List<Object> ").append(resultVar).append(" = new ArrayList<>();\n");
+    out.append("    if (!ArrayLike.isEligible(").append(arrayVar).append(")) {\n");
+    out.append("      fail(").append(javaStringLiteral("first argument to filter must be a valid array"))
+       .append(", ").append(javaStringLiteral(path + "[0]")).append(");\n");
+    out.append("    } else {\n");
+    out.append("      for (Object ").append(itemVar).append(" : ArrayLike.iterable(").append(arrayVar).append(")) {\n");
+    out.append("        if (").append(bodyMethod).append("(").append(itemVar).append(")) {\n");
+    out.append("          ").append(resultVar).append(".add(").append(itemVar).append(");\n");
+    out.append("        }\n");
+    out.append("      }\n");
+    out.append("    }\n");
+    out.append("    Object ").append(targetVar).append(" = ").append(resultVar).append(";\n");
+    return true;
   }
 
   private boolean emitMap(JsonLogicOperation op, String targetVar, StringBuilder out, String dataExpr, String path) {
@@ -600,6 +667,36 @@ public final class RuleSourceGenerator {
         .append(varScope.preamble)
         .append(methodBody)
         .append("    return ").append(result).append(";\n")
+        .append("  }\n");
+    return methodName;
+  }
+
+  private String filterBodyMethodFor(JsonLogicNode body, String path) {
+    final String existing = filterBodyMethodCache.get(body);
+    if (existing != null) {
+      return existing;
+    }
+    final String methodName = "filter$" + filterBodyMethodCache.size();
+    filterBodyMethodCache.put(body, methodName);
+
+    final var methodBody = new StringBuilder();
+    final String result = freshVar("filterBodyResult");
+    final VarScope varScope = new VarScope();
+    varScopes.add(varScope);
+    try {
+      emitStatement(body, result, methodBody, "item", path);
+    } finally {
+      varScopes.remove(varScopes.size() - 1);
+    }
+    final String returnExpr = isBooleanExpression(body)
+        ? result
+        : "JsonLogic.truthy(" + result + ")";
+    helperMethods
+        .append("\n")
+        .append("  private boolean ").append(methodName).append("(Object item) throws JsonLogicEvaluationException {\n")
+        .append(varScope.preamble)
+        .append(methodBody)
+        .append("    return ").append(returnExpr).append(";\n")
         .append("  }\n");
     return methodName;
   }
