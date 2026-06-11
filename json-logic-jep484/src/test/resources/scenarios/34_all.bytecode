@@ -31,8 +31,7 @@
     ALOAD 0
     ALOAD 3
     INVOKEINTERFACE java/util/Iterator.next ()Ljava/lang/Object; (itf)
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b0dd14168185aea8.collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
-    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b0dd14168185aea8.filter$0 (Ljava/lang/Object;)Z
     IFEQ L0
     GOTO L1
    L0
@@ -48,7 +47,7 @@
     MAXSTACK = 4
     MAXLOCALS = 4
 
-// collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
+// filter$0 (Ljava/lang/Object;)Z
     ALOAD 1
     LDC "score"
     ACONST_NULL
@@ -78,7 +77,6 @@
     ICONST_1
    L2
    FRAME SAME1 I
-    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
-    ARETURN
+    IRETURN
     MAXSTACK = 4
     MAXLOCALS = 6

@@ -32,8 +32,7 @@
     ASTORE 5
     ALOAD 0
     ALOAD 5
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_c868ac3f215fa965.collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
-    INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
+    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_c868ac3f215fa965.filter$0 (Ljava/lang/Object;)Z
     IFEQ L3
     ALOAD 3
     ALOAD 5
@@ -55,7 +54,7 @@
     MAXSTACK = 4
     MAXLOCALS = 6
 
-// collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
+// filter$0 (Ljava/lang/Object;)Z
     ALOAD 1
     LDC "score"
     ACONST_NULL
@@ -85,7 +84,6 @@
     ICONST_1
    L2
    FRAME SAME1 I
-    INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
-    ARETURN
+    IRETURN
     MAXSTACK = 4
     MAXLOCALS = 6
