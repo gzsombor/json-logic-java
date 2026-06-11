@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     LDC 3.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D

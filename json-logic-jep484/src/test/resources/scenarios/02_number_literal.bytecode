@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     LDC 42.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
     ARETURN

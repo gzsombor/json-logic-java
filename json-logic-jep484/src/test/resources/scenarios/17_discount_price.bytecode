@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     ALOAD 1
     LDC "price"
     ACONST_NULL

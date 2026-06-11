@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     ALOAD 1
     LDC "customer"
     ACONST_NULL
@@ -16,3 +17,20 @@
     ARETURN
     MAXSTACK = 3
     MAXLOCALS = 2
+
+// <clinit> ()V
+    NEW java/util/HashSet
+    DUP
+    INVOKESPECIAL java/util/HashSet.<init> ()V
+    PUTSTATIC io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_41c8ab1ab1608113.SET$0 : Ljava/util/Set;
+    GETSTATIC io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_41c8ab1ab1608113.SET$0 : Ljava/util/Set;
+    LDC "cust1"
+    INVOKEINTERFACE java/util/Set.add (Ljava/lang/Object;)Z (itf)
+    POP
+    GETSTATIC io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_41c8ab1ab1608113.SET$0 : Ljava/util/Set;
+    LDC "cust2"
+    INVOKEINTERFACE java/util/Set.add (Ljava/lang/Object;)Z (itf)
+    POP
+    RETURN
+    MAXSTACK = 2
+    MAXLOCALS = 0

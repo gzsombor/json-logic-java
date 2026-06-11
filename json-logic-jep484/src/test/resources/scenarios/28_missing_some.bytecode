@@ -1,3 +1,4 @@
+// apply (Ljava/lang/Object;)Ljava/lang/Object;
     ALOAD 0
     GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_c8f1aad4ee2971f6.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
     ALOAD 0

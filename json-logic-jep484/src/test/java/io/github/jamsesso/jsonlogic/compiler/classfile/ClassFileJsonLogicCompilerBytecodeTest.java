@@ -1,7 +1,7 @@
 package io.github.jamsesso.jsonlogic.compiler.classfile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluator;
@@ -50,12 +50,16 @@ public class ClassFileJsonLogicCompilerBytecodeTest {
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("scenarios")
-  public void generatedApplyBytecodeMatchesFixture(String scenarioName, Path jsonPath, Path bytecodePath) throws Exception {
-    assertTrue(Files.exists(bytecodePath), "Missing .bytecode fixture for scenario: " + scenarioName);
-
+  public void generatedBytecodeMatchesFixture(String scenarioName, Path jsonPath, Path bytecodePath) throws Exception {
     final String json = Files.readString(jsonPath, StandardCharsets.UTF_8).trim();
-    final String expectedBytecode = Files.readString(bytecodePath, StandardCharsets.UTF_8);
     final String actualBytecode = disassemble(json);
+
+    if (!Files.exists(bytecodePath)) {
+      Files.writeString(bytecodePath, actualBytecode, StandardCharsets.UTF_8);
+      fail("Created missing fixture (re-run to verify): " + bytecodePath.getFileName());
+    }
+
+    final String expectedBytecode = Files.readString(bytecodePath, StandardCharsets.UTF_8);
     assertEquals(expectedBytecode.stripTrailing(), actualBytecode.stripTrailing(), scenarioName);
   }
 
@@ -67,12 +71,21 @@ public class ClassFileJsonLogicCompilerBytecodeTest {
 
     final var classNode = new ClassNode();
     new ClassReader(classBytes).accept(classNode, 0);
+    final var result = new StringBuilder();
     for (MethodNode method : classNode.methods) {
-      if ("apply".equals(method.name) && "(Ljava/lang/Object;)Ljava/lang/Object;".equals(method.desc)) {
-        return disassemble(method);
+      if ("<init>".equals(method.name) || "toString".equals(method.name)) {
+        continue;
       }
+      if (result.length() > 0) {
+        result.append("\n");
+      }
+      result.append("// ").append(method.name).append(" ").append(method.desc).append("\n");
+      result.append(disassemble(method));
     }
-    throw new AssertionError("Generated class does not contain apply(Object): " + classNode.name);
+    if (result.length() == 0) {
+      throw new AssertionError("Generated class has no testable methods: " + classNode.name);
+    }
+    return result.toString();
   }
 
   private static String disassemble(MethodNode method) {
