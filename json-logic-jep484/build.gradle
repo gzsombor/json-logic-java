@@ -9,6 +9,10 @@ java {
   }
 }
 
+tasks.withType(JavaCompile).configureEach {
+  options.release = 24
+}
+
 dependencies {
   api project(":json-logic-core")
   testImplementation libs.asm.tree
