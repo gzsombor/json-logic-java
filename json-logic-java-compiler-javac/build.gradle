@@ -3,6 +3,10 @@ plugins {
   id "com.vanniktech.maven.publish"
 }
 
+tasks.withType(JavaCompile).configureEach {
+  options.release = 11
+}
+
 dependencies {
   api project(":json-logic-core")
   testImplementation libs.junit.jupiter
