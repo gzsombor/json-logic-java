@@ -518,8 +518,9 @@ public final class RuleSourceGenerator {
       case "reduce": return emitReduceExpression(op, pre, dataExpr, opPath);
       case "some": return emitSomeNone("some", op, pre, dataExpr, opPath);
       case "none": return emitSomeNone("none", op, pre, dataExpr, opPath);
-      case "all":  return emitAll(op, pre, dataExpr, opPath);
-      default:    return emitFallback(op, pre, dataExpr, path);
+      case "all":   return emitAll(op, pre, dataExpr, opPath);
+      case "merge": return emitMerge(args, pre, dataExpr, opPath);
+      default:      return emitFallback(op, pre, dataExpr, path);
     }
   }
 
@@ -593,6 +594,30 @@ public final class RuleSourceGenerator {
         .append("      }\n")
         .append("    }\n");
     return result;
+  }
+
+  private String emitMerge(JsonLogicArray args, StringBuilder pre, String dataExpr, String path) {
+    if (args.isEmpty()) {
+      return "Collections.emptyList()";
+    }
+    needsArrayLike = true;
+    final String resultVar = freshVar("mergeResult");
+    pre.append("    final List<Object> ").append(resultVar).append(" = new ArrayList<>();\n");
+    for (int i = 0; i < args.size(); i++) {
+      final JsonLogicNode argNode = args.get(i);
+      if (argNode instanceof JsonLogicPrimitive || argNode instanceof JsonLogicNull) {
+        final String litExpr = arg(args, i, pre, dataExpr, path);
+        pre.append("    ").append(resultVar).append(".add(").append(litExpr).append(");\n");
+      } else {
+        final String argVar = freshVar("mergeArg");
+        final String argExpr = arg(args, i, pre, dataExpr, path);
+        pre.append("    final Object ").append(argVar).append(" = ").append(argExpr).append(";\n");
+        pre.append("    if (ArrayLike.isEligible(").append(argVar).append(")) { ")
+           .append(resultVar).append(".addAll(ArrayLike.toList(").append(argVar).append(")); } else { ")
+           .append(resultVar).append(".add(").append(argVar).append("); }\n");
+      }
+    }
+    return resultVar;
   }
 
   private boolean emitFilter(JsonLogicOperation op, String targetVar, StringBuilder out, String dataExpr, String path) {
