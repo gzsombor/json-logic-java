@@ -39,6 +39,11 @@ jobs:
         run: |
           CURRENT=$(grep '^version ' build.gradle | sed 's/version "\(.*\)"/\1/')
 
+          if [ -z "${{ inputs.version }}" ] && [[ "$CURRENT" != *-SNAPSHOT ]]; then
+            echo "Current version ($CURRENT) is not a -SNAPSHOT; please provide inputs.version" >&2
+            exit 1
+          fi
+
           if [ -n "${{ inputs.version }}" ]; then
             RELEASE_VERSION="${{ inputs.version }}"
           else
