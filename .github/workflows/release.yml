@@ -91,7 +91,8 @@ jobs:
           git add build.gradle
           git commit -m "Prepare ${{ steps.versions.outputs.next_version }} for development [skip ci]"
 
-      - name: Push commits to main
+      - name: Push commits to default branch
         run: |
-          git pull --rebase origin main
-          git push origin HEAD:main
+          DEFAULT_BRANCH="${{ github.event.repository.default_branch }}"
+          git pull --rebase origin "$DEFAULT_BRANCH"
+          git push origin "HEAD:$DEFAULT_BRANCH"
