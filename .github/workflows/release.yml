@@ -70,7 +70,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add build.gradle README.md
-
+          git commit -m "Release ${{ steps.versions.outputs.release_version }}"
       - name: Create and push release tag
         run: |
           git tag -a "${{ steps.versions.outputs.release_version }}" \
