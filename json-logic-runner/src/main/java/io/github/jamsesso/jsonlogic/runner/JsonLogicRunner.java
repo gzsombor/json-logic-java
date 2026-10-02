@@ -14,8 +14,6 @@ import io.github.jamsesso.jsonlogic.utils.JsonValueExtractor;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public final class JsonLogicRunner {
@@ -42,28 +40,18 @@ public final class JsonLogicRunner {
     System.out.println("Data    : " + dataJson);
     System.out.println();
 
-    List<ProviderEntry> entries = probeProviders();
-    System.out.println("Compiler providers (" + entries.size() + " found on classpath):");
-    for (ProviderEntry e : entries) {
-      if (e.provider != null) {
-        System.out.printf("  [priority=%3d, available=%-5s] %s%n",
-            e.provider.priority(), e.provider.isAvailable(), e.provider.getClass().getSimpleName());
-      } else {
-        System.out.printf("  [load failed] %s : %s%n", e.className, e.error);
-      }
-    }
+    List<JsonLogicCompilerProvider> providers = JsonLogicCompiler.discoverProviders();
+    System.out.println("Compiler providers (" + providers.size() + " found on classpath):");
+    printProviders(providers);
 
-    ProviderEntry selected = entries.stream()
-        .filter(e -> e.provider != null && e.provider.isAvailable())
-        .max(Comparator.comparingInt(e -> e.provider.priority()))
-        .orElse(null);
+    JsonLogicCompilerProvider selected = JsonLogicCompiler.selectProvider(providers).orElse(null);
 
     System.out.println();
     if (selected == null) {
       System.out.println("Selected: (none) — using interpreter fallback");
     } else {
-      System.out.println("Selected: " + selected.provider.getClass().getSimpleName()
-          + " (priority=" + selected.provider.priority() + ")");
+      System.out.println("Selected: " + selected.getClass().getSimpleName()
+          + " (priority=" + selected.priority() + ")");
     }
 
     JsonLogicEvaluator evaluator = new JsonLogicEvaluator();
@@ -73,7 +61,7 @@ public final class JsonLogicRunner {
     Object result;
     if (selected != null) {
       JsonLogicCompiler compiler = new JsonLogicCompiler(
-          selected.provider.create(evaluator, false, true));
+          selected.create(evaluator, false, true));
       try {
         CompiledRule compiledRule = compiler.compile(ruleJson, ruleAst);
         System.out.println("Compiled : " + compiledRule.getClass().getName());
@@ -95,30 +83,19 @@ public final class JsonLogicRunner {
         + " (" + System.getProperty("java.vendor") + ")");
     System.out.println();
 
-    List<ProviderEntry> entries = probeProviders();
-    ProviderEntry selected = entries.stream()
-        .filter(e -> e.provider != null && e.provider.isAvailable())
-        .max(Comparator.comparingInt(e -> e.provider.priority()))
-        .orElse(null);
+    List<JsonLogicCompilerProvider> providers = JsonLogicCompiler.discoverProviders();
+    JsonLogicCompilerProvider selected = JsonLogicCompiler.selectProvider(providers).orElse(null);
 
     if (selected == null) {
       System.out.println("Compiler: not available — rules will be interpreted");
     } else {
-      System.out.println("Compiler: " + selected.provider.getClass().getSimpleName()
-          + " (priority=" + selected.provider.priority() + ")");
+      System.out.println("Compiler: " + selected.getClass().getSimpleName()
+          + " (priority=" + selected.priority() + ")");
     }
 
     System.out.println();
     System.out.println("All providers on classpath:");
-    for (ProviderEntry e : entries) {
-      if (e.provider != null) {
-        System.out.printf("  [priority=%3d, available=%-5s] %s%n",
-            e.provider.priority(), e.provider.isAvailable(), e.provider.getClass().getSimpleName());
-      } else {
-        System.out.printf("  [unavailable] %s%n", e.className);
-        System.out.printf("                %s%n", e.error);
-      }
-    }
+    printProviders(providers);
 
     System.out.println();
     System.out.println("Usage: java -jar json-logic-runner.jar <rule-json|@rule-file> [data-json|@data-file]");
@@ -131,34 +108,11 @@ public final class JsonLogicRunner {
     return arg;
   }
 
-  private static List<ProviderEntry> probeProviders() {
-    String[] classNames = {
-        "io.github.jamsesso.jsonlogic.compiler.classfile.ClassFileJsonLogicCompilerProvider",
-        "io.github.jamsesso.jsonlogic.compiler.JavacJsonLogicCompilerProvider"
-    };
-    List<ProviderEntry> result = new ArrayList<>();
-    for (String className : classNames) {
-      try {
-        Class<?> cls = Class.forName(className);
-        JsonLogicCompilerProvider provider =
-            (JsonLogicCompilerProvider) cls.getDeclaredConstructor().newInstance();
-        result.add(new ProviderEntry(className, provider, null));
-      } catch (Throwable t) {
-        result.add(new ProviderEntry(className, null, t.toString()));
-      }
-    }
-    return result;
-  }
-
-  private static final class ProviderEntry {
-    final String className;
-    final JsonLogicCompilerProvider provider;
-    final String error;
-
-    ProviderEntry(String className, JsonLogicCompilerProvider provider, String error) {
-      this.className = className;
-      this.provider = provider;
-      this.error = error;
+  private static void printProviders(
+      List<JsonLogicCompilerProvider> providers) {
+    for (JsonLogicCompilerProvider p : providers) {
+      System.out.printf("  [priority=%3d, available=%-5s] %s%n",
+          p.priority(), p.isAvailable(), p.getClass().getSimpleName());
     }
   }
 }
