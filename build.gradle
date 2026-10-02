@@ -1,3 +1,5 @@
+import org.gradle.api.attributes.java.TargetJvmVersion
+
 plugins {
   id "java-library"
   alias(libs.plugins.maven.publish)
@@ -38,6 +40,16 @@ dependencies {
   api project(":json-logic-core")
   runtimeOnly project(":json-logic-java-compiler-javac")
   runtimeOnly project(":json-logic-jep484")
+}
+
+// The root artifact only aggregates the modules; jep484 requires JVM 24, but the other modules (and
+// consumers) must stay usable on 11. Resolve our own classpaths for 24 regardless of the JVM running Gradle.
+["runtimeClasspath", "testRuntimeClasspath"].each { name ->
+  configurations.named(name) {
+    attributes {
+      attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 24)
+    }
+  }
 }
 
 sourceSets {
