@@ -82,7 +82,10 @@ tasks.register('jmh', JavaExec) {
 
 mavenPublishing {
   publishToMavenCentral()
-  signAllPublications()
+  // Only sign when a key is provided (releases), so publishToMavenLocal works without GPG setup
+  if (providers.gradleProperty("signingInMemoryKey").isPresent() || providers.gradleProperty("signing.keyId").isPresent()) {
+    signAllPublications()
+  }
 
   pom {
     name = "json-logic-java"
