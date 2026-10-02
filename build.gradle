@@ -36,7 +36,8 @@ subprojects {
 
 dependencies {
   api project(":json-logic-core")
-  api project(":json-logic-java-compiler-javac")
+  runtimeOnly project(":json-logic-java-compiler-javac")
+  runtimeOnly project(":json-logic-jep484")
 }
 
 sourceSets {
