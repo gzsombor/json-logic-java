@@ -69,6 +69,7 @@ configurations {
 
 dependencies {
   jmhImplementation project(":")
+  jmhImplementation project(":json-logic-java-compiler-javac")
   jmhImplementation project(":json-logic-jep484")
   jmhImplementation libs.jmh.core
   jmhAnnotationProcessor libs.jmh.generator.annprocess
@@ -85,6 +86,10 @@ tasks.register('jmh', JavaExec) {
   description = 'Run JMH benchmarks (org.openjdk.jmh.Main)'
   mainClass = 'org.openjdk.jmh.Main'
   classpath = sourceSets.jmh.runtimeClasspath
+  // The benchmarks and the jep484 module are compiled for JDK 24, so run them on it too.
+  javaLauncher = javaToolchains.launcherFor {
+    languageVersion = JavaLanguageVersion.of(24)
+  }
   doFirst {
     if (project.hasProperty('jmhArgs')) {
       def parts = project.property('jmhArgs').toString().split('\\s+') as List
