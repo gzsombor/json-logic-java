@@ -99,28 +99,28 @@ Higher is better (ops/s = rule evaluations per second). Speedups are relative to
 
 | Scenario | Interpreter (ops/s) | javac (ops/s) | jep484 (ops/s) | javac speedup | jep484 speedup |
 |---|--:|--:|--:|--:|--:|
-| Arithmetic | 4,819,783 | 52,295,922 | 42,467,403 | **10.9x** | **8.8x** |
-| Dispatch table hit | 5,118,689 | 50,943,345 | 58,637,801 | **10.0x** | **11.5x** |
-| Dispatch table miss | 3,612,503 | 46,653,157 | 51,736,301 | **12.9x** | **14.3x** |
-| Dynamic `in` check, hit | 6,112,684 | 10,118,032 | 12,657,356 | **1.7x** | **2.1x** |
-| Five mixed operations | 2,057,426 | 16,097,198 | 16,455,153 | **7.8x** | **8.0x** |
-| FizzBuzz conditional chain | 661,483 | 12,081,806 | 15,316,750 | **18.3x** | **23.2x** |
-| Four string comparisons | 3,022,250 | 19,255,332 | 22,645,777 | **6.4x** | **7.5x** |
-| In-set check, hit | 4,413,076 | 49,750,118 | 59,380,486 | **11.3x** | **13.5x** |
-| In-set check, miss | 5,047,372 | 41,237,268 | 60,838,008 | **8.2x** | **12.1x** |
-| Map double | 1,871,900 | 24,583,231 | 26,912,120 | **13.1x** | **14.4x** |
-| Reduce count | 1,215,144 | 37,833,514 | 41,094,354 | **31.1x** | **33.8x** |
-| Reduce sum | 1,237,217 | 39,962,115 | 42,652,143 | **32.3x** | **34.5x** |
-| Repeated var lookup (same key used 3x) | 2,174,522 | 57,390,872 | 45,529,759 | **26.4x** | **20.9x** |
-| String concatenation | 4,105,548 | 20,586,475 | 21,881,380 | **5.0x** | **5.3x** |
-| Substring | 8,970,935 | 47,764,337 | 50,586,238 | **5.3x** | **5.6x** |
-| Three string comparisons | 4,171,339 | 30,643,510 | 40,867,782 | **7.3x** | **9.8x** |
-| Twenty-clause AND chain | 640,035 | 2,696,007 | 2,719,658 | **4.2x** | **4.2x** |
-| Two string comparisons | 4,946,492 | 36,797,043 | 42,335,742 | **7.4x** | **8.6x** |
+| Arithmetic | 4,876,320 | 45,828,969 | 39,441,600 | **9.4x** | **8.1x** |
+| Dispatch table hit | 4,486,138 | 45,471,401 | 51,152,383 | **10.1x** | **11.4x** |
+| Dispatch table miss | 3,308,082 | 42,275,471 | 51,269,094 | **12.8x** | **15.5x** |
+| Dynamic `in` check, hit | 5,500,815 | 9,340,658 | 10,712,456 | **1.7x** | **1.9x** |
+| Five mixed operations | 1,767,877 | 14,932,931 | 14,704,452 | **8.4x** | **8.3x** |
+| FizzBuzz conditional chain | 592,999 | 11,882,401 | 13,682,929 | **20.0x** | **23.1x** |
+| Four string comparisons | 2,408,044 | 18,129,474 | 19,689,931 | **7.5x** | **8.2x** |
+| In-set check, hit | 4,175,287 | 48,419,134 | 56,585,535 | **11.6x** | **13.6x** |
+| In-set check, miss | 4,812,438 | 43,152,809 | 56,239,276 | **9.0x** | **11.7x** |
+| Map double | 1,729,361 | 21,439,089 | 24,030,634 | **12.4x** | **13.9x** |
+| Reduce count | 1,203,321 | 35,733,459 | 39,687,539 | **29.7x** | **33.0x** |
+| Reduce sum | 1,100,784 | 33,372,076 | 36,336,539 | **30.3x** | **33.0x** |
+| Repeated var lookup (same key used 3x) | 1,971,797 | 48,116,604 | 51,758,687 | **24.4x** | **26.2x** |
+| String concatenation | 4,084,042 | 18,028,481 | 17,171,821 | **4.4x** | **4.2x** |
+| Substring | 7,618,476 | 40,359,040 | 43,146,428 | **5.3x** | **5.7x** |
+| Three string comparisons | 3,711,999 | 23,884,985 | 34,134,392 | **6.4x** | **9.2x** |
+| Twenty-clause AND chain | 542,808 | 2,785,912 | 2,202,235 | **5.1x** | **4.1x** |
+| Two string comparisons | 4,818,257 | 38,238,443 | 42,718,284 | **7.9x** | **8.9x** |
 
 Key observations:
 
-- **Both compilers beat the interpreter in every scenario**, by roughly 2x-35x. The interpreter pays a map lookup + virtual dispatch on every operator; the compilers emit direct code.
+- **Both compilers beat the interpreter in every scenario**, by roughly 2x-33x. The interpreter pays a map lookup + virtual dispatch on every operator; the compilers emit direct code.
 - **`javac` and `jep484` are on par.** Every scenario, including `map`, `reduce`, dispatch tables and repeated variable lookups, is within about 1.5x between the two compilers, and neither is consistently ahead.
 - **Variables are resolved at most once per evaluation.** A `{"var":"x"}` read is cached in a local on first use, so repeated lookups of the same key cost one resolution. The lookup stays lazy, so a variable that is only read in a branch that is not taken is never resolved.
 - **`in` against a literal set is compiled** to a single `HashSet.contains` on a set allocated once at class-load time.

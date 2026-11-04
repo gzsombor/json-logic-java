@@ -27,14 +27,14 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object var_x_1 = UNRESOLVED;
-    Object var_y_3 = UNRESOLVED;
+    final Object var_x_1 = resolveVarChecked(data, "x", null);
+    final Object var_y_3 = resolveVarChecked(data, "y", null);
     Object arith_5;
-    if ((var_x_1 != UNRESOLVED ? var_x_1 : (var_x_1 = resolveVarChecked(data, "x", null))) == null || !isNumeric((var_x_1 != UNRESOLVED ? var_x_1 : (var_x_1 = resolveVarChecked(data, "x", null)))) || (var_y_3 != UNRESOLVED ? var_y_3 : (var_y_3 = resolveVarChecked(data, "y", null))) == null || !isNumeric((var_y_3 != UNRESOLVED ? var_y_3 : (var_y_3 = resolveVarChecked(data, "y", null))))) {
+    if (var_x_1 == null || !isNumeric(var_x_1) || var_y_3 == null || !isNumeric(var_y_3)) {
       arith_5 = null;
     } else {
-      double _d_2 = toDouble((var_x_1 != UNRESOLVED ? var_x_1 : (var_x_1 = resolveVarChecked(data, "x", null))));
-      double _d_4 = toDouble((var_y_3 != UNRESOLVED ? var_y_3 : (var_y_3 = resolveVarChecked(data, "y", null))));
+      double _d_2 = toDouble(var_x_1);
+      double _d_4 = toDouble(var_y_3);
       arith_5 = ((_d_2 * 2.0) + _d_4);
     }
     Object result_0 = arith_5;

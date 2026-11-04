@@ -27,12 +27,12 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object var_score_2 = UNRESOLVED;
+    final Object var_score_2 = resolveVarChecked(data, "score", null);
     Object result_0 = null;
-    boolean andV_1 = (toComparableDouble((var_score_2 != UNRESOLVED ? var_score_2 : (var_score_2 = resolveVarChecked(data, "score", null)))) > 0.0);
+    boolean andV_1 = (toComparableDouble(var_score_2) > 0.0);
     result_0 = andV_1;
     if (andV_1) {
-      boolean andV_3 = (toComparableDouble((var_score_2 != UNRESOLVED ? var_score_2 : (var_score_2 = resolveVarChecked(data, "score", null)))) < 100.0);
+      boolean andV_3 = (toComparableDouble(var_score_2) < 100.0);
       result_0 = andV_3;
     }
     return result_0;

@@ -1,146 +1,114 @@
 // apply (Ljava/lang/Object;)Ljava/lang/Object;
+    ALOAD 1
+    LDC "x"
     ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     ASTORE 2
-    ICONST_0
-    ISTORE 3
     ALOAD 1
     LDC "a"
     ACONST_NULL
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 4
+    ALOAD 2
     ASTORE 5
-    ILOAD 3
-    IFNE L0
-    ALOAD 1
-    LDC "x"
-    ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-    ASTORE 2
-    ICONST_1
-    ISTORE 3
-   L0
-   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_60a974c4d2a902f6 java/lang/Object java/lang/Object I T java/lang/Object] []
     ALOAD 2
     ASTORE 6
-    ILOAD 3
-    IFNE L1
-    ALOAD 1
-    LDC "x"
-    ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-    ASTORE 2
-    ICONST_1
-    ISTORE 3
-   L1
-   FRAME APPEND [java/lang/Object]
-    ALOAD 2
-    ASTORE 7
+    ALOAD 4
+    IFNULL L0
+    ALOAD 4
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
+    IFEQ L0
     ALOAD 5
-    IFNULL L2
+    IFNULL L0
     ALOAD 5
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
-    IFEQ L2
+    IFEQ L0
     ALOAD 6
-    IFNULL L2
+    IFNULL L0
     ALOAD 6
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
-    IFEQ L2
-    ALOAD 7
-    IFNULL L2
-    ALOAD 7
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
-    IFEQ L2
+    IFEQ L0
+    ALOAD 4
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
     ALOAD 5
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
+    DMUL
     ALOAD 6
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
     DMUL
-    ALOAD 7
+    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
+    GOTO L1
+   L0
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_60a974c4d2a902f6 java/lang/Object java/lang/Object T java/lang/Object java/lang/Object java/lang/Object] []
+    ACONST_NULL
+   L1
+   FRAME SAME1 java/lang/Double
+    ASTORE 3
+    ALOAD 1
+    LDC "b"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 8
+    ALOAD 2
+    ASTORE 9
+    ALOAD 8
+    IFNULL L2
+    ALOAD 8
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
+    IFEQ L2
+    ALOAD 9
+    IFNULL L2
+    ALOAD 9
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
+    IFEQ L2
+    ALOAD 8
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
+    ALOAD 9
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
     DMUL
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
     GOTO L3
    L2
-   FRAME APPEND [java/lang/Object]
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_60a974c4d2a902f6 java/lang/Object java/lang/Object java/lang/Double java/lang/Object java/lang/Object java/lang/Object T java/lang/Object java/lang/Object] []
     ACONST_NULL
    L3
    FRAME SAME1 java/lang/Double
-    ASTORE 4
-    ALOAD 1
-    LDC "b"
-    ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-    ASTORE 9
-    ILOAD 3
-    IFNE L4
-    ALOAD 1
-    LDC "x"
-    ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-    ASTORE 2
-    ICONST_1
-    ISTORE 3
-   L4
-   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_60a974c4d2a902f6 java/lang/Object java/lang/Object I java/lang/Double java/lang/Object java/lang/Object java/lang/Object T java/lang/Object] []
-    ALOAD 2
-    ASTORE 10
-    ALOAD 9
-    IFNULL L5
-    ALOAD 9
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
-    IFEQ L5
-    ALOAD 10
-    IFNULL L5
-    ALOAD 10
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
-    IFEQ L5
-    ALOAD 9
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
-    ALOAD 10
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
-    DMUL
-    INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
-    GOTO L6
-   L5
-   FRAME APPEND [java/lang/Object]
-    ACONST_NULL
-   L6
-   FRAME SAME1 java/lang/Double
-    ASTORE 8
+    ASTORE 7
     ALOAD 1
     LDC "c"
     ACONST_NULL
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-    ASTORE 11
-    ALOAD 4
-    IFNULL L7
-    ALOAD 4
+    ASTORE 10
+    ALOAD 3
+    IFNULL L4
+    ALOAD 3
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
-    IFEQ L7
-    ALOAD 8
-    IFNULL L7
-    ALOAD 8
+    IFEQ L4
+    ALOAD 7
+    IFNULL L4
+    ALOAD 7
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
-    IFEQ L7
-    ALOAD 11
-    IFNULL L7
-    ALOAD 11
+    IFEQ L4
+    ALOAD 10
+    IFNULL L4
+    ALOAD 10
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.isNumeric (Ljava/lang/Object;)Z
-    IFEQ L7
-    ALOAD 4
+    IFEQ L4
+    ALOAD 3
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
-    ALOAD 8
+    ALOAD 7
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
     DADD
-    ALOAD 11
+    ALOAD 10
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toDouble (Ljava/lang/Object;)D
     DADD
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
-    GOTO L8
-   L7
-   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_60a974c4d2a902f6 java/lang/Object java/lang/Object I java/lang/Double java/lang/Object java/lang/Object java/lang/Object java/lang/Double java/lang/Object java/lang/Object java/lang/Object] []
+    GOTO L5
+   L4
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_60a974c4d2a902f6 java/lang/Object java/lang/Object java/lang/Double java/lang/Object java/lang/Object java/lang/Object java/lang/Double java/lang/Object java/lang/Object java/lang/Object] []
     ACONST_NULL
-   L8
+   L5
    FRAME SAME1 java/lang/Double
     ARETURN
     MAXSTACK = 4
-    MAXLOCALS = 12
+    MAXLOCALS = 11

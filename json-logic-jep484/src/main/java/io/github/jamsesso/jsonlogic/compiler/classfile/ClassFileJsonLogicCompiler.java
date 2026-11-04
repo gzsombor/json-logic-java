@@ -88,6 +88,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private Map<String, Integer> reduceVariableSlots;
   // Per generated method: variable key -> {value slot, resolved-flag slot} for variables read more than once.
   private Map<String, int[]> variableCacheSlots;
+  private static final int NO_RESOLVED_FLAG = -1;
 
   public ClassFileJsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
     this(fallbackEvaluator, strictMode, true);
@@ -255,7 +256,9 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     currentGeneratedClass = generatedClass;
     currentPath = "";
     nextLocalSlot = 2;
-    prepareVariableCache(codeBuilder, ast);
+    if (isSupported(ast)) {
+      prepareVariableCache(codeBuilder, ast);
+    }
     if (emitSupportedNode(codeBuilder, ast)) {
       codeBuilder.areturn();
       return;
@@ -471,13 +474,25 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return false;
   }
 
+  private static final Set<String> FLOW_OPERATORS = Set.of("if", "?:", "and", "or");
+  private static final Set<String> COLLECTION_OPERATORS = Set.of("map", "filter", "all", "some", "none", "reduce");
+  private static final Set<String> BUILTIN_OPERATORS = Set.of(
+      "==", "!=", "===", "!==", "!", "!!", ">", ">=", "<", "<=", "+", "*", "-", "/", "%", "min", "max", "if", "?:",
+      "and", "or", "cat", "substr", "in", "missing", "missing_some", "merge", "log",
+      "all", "map", "filter", "some", "none", "reduce");
+
   /**
-   * Allocates a cache local (plus a "resolved" flag) for every variable that the current method reads more than
-   * once, so repeated lookups of the same key resolve the data only once per evaluation.
+   * Allocates a cache local for every variable that the current method reads more than once, so repeated lookups
+   * of the same key resolve the data only once per evaluation.
+   *
+   * <p>A variable whose first read happens before any conditionally evaluated operand is always evaluated, so it
+   * is resolved right here in the method prologue. Any other variable gets a "resolved" flag and is resolved on its
+   * first read, so a lookup that is only reached in a branch that is not taken never runs (and cannot fail).
    */
   private void prepareVariableCache(CodeBuilder codeBuilder, JsonLogicNode root) {
     final Map<String, Integer> counts = new LinkedHashMap<>();
-    countVariableReads(root, counts);
+    final Set<String> alwaysEvaluated = new HashSet<>();
+    countVariableReads(root, counts, alwaysEvaluated, new boolean[1]);
     variableCacheSlots = null;
     for (Map.Entry<String, Integer> entry : counts.entrySet()) {
       if (entry.getValue() < 2) {
@@ -486,46 +501,72 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
       if (variableCacheSlots == null) {
         variableCacheSlots = new HashMap<>();
       }
+      final String key = entry.getKey();
       final int valueSlot = allocateLocalSlot(1);
-      final int flagSlot = allocateLocalSlot(1);
-      codeBuilder.aconst_null().astore(valueSlot).iconst_0().istore(flagSlot);
-      variableCacheSlots.put(entry.getKey(), new int[] {valueSlot, flagSlot});
+      if (alwaysEvaluated.contains(key)) {
+        codeBuilder.aload(1).ldc(key).aconst_null().invokestatic(
+            CD_RULE_HELPERS,
+            "resolveVarChecked",
+            MethodTypeDesc.of(CD_Object, CD_Object, CD_Object, CD_Object));
+        codeBuilder.astore(valueSlot);
+        variableCacheSlots.put(key, new int[] {valueSlot, NO_RESOLVED_FLAG});
+      } else {
+        final int flagSlot = allocateLocalSlot(1);
+        codeBuilder.aconst_null().astore(valueSlot).iconst_0().istore(flagSlot);
+        variableCacheSlots.put(key, new int[] {valueSlot, flagSlot});
+      }
     }
   }
 
-  private void countVariableReads(JsonLogicNode node, Map<String, Integer> counts) {
+  /**
+   * Counts reads of plain variable keys in evaluation order. {@code alwaysEvaluated} receives the keys whose first
+   * read is not preceded by any conditionally evaluated code; {@code flowSeen[0]} tracks whether such code was passed.
+   */
+  private void countVariableReads(
+      JsonLogicNode node, Map<String, Integer> counts, Set<String> alwaysEvaluated, boolean[] flowSeen) {
     if (node instanceof JsonLogicVariable) {
       final JsonLogicVariable variable = (JsonLogicVariable) node;
       if (variable.getKey() instanceof JsonLogicString && variable.getDefaultValue() instanceof JsonLogicNull) {
         final String key = ((JsonLogicString) variable.getKey()).getValue();
         if (!key.isEmpty() && (reduceVariableSlots == null || !reduceVariableSlots.containsKey(key))) {
+          if (!counts.containsKey(key) && !flowSeen[0]) {
+            alwaysEvaluated.add(key);
+          }
           counts.merge(key, 1, Integer::sum);
         }
       } else {
-        countVariableReads(variable.getKey(), counts);
-        countVariableReads(variable.getDefaultValue(), counts);
+        countVariableReads(variable.getKey(), counts, alwaysEvaluated, flowSeen);
+        countVariableReads(variable.getDefaultValue(), counts, alwaysEvaluated, flowSeen);
       }
     } else if (node instanceof JsonLogicOperation) {
       final JsonLogicOperation operation = (JsonLogicOperation) node;
-      final JsonLogicArray args = operation.getArguments();
       final String operator = operation.getOperator();
-      final boolean collectionOperator = "map".equals(operator) || "filter".equals(operator)
-          || "all".equals(operator) || "some".equals(operator) || "none".equals(operator)
-          || "reduce".equals(operator);
+      if (!BUILTIN_OPERATORS.contains(operator)) {
+        return; // custom operations are evaluated by the interpreter, not by the generated code
+      }
+      final JsonLogicArray args = operation.getArguments();
+      final boolean flowOperator = FLOW_OPERATORS.contains(operator);
+      final boolean collectionOperator = COLLECTION_OPERATORS.contains(operator);
       for (int i = 0; i < args.size(); i++) {
         // The body of a collection operator runs in its own method or in the interpreter, never inline.
         if (collectionOperator && i == 1) {
           continue;
         }
-        countVariableReads(args.get(i), counts);
+        if (flowOperator && i == 1) {
+          flowSeen[0] = true; // only the first operand of if/and/or is always evaluated
+        }
+        countVariableReads(args.get(i), counts, alwaysEvaluated, flowSeen);
+      }
+      if (collectionOperator) {
+        flowSeen[0] = true; // the loop may run zero times or exit early
       }
     } else if (node instanceof JsonLogicArray) {
       for (JsonLogicNode element : (JsonLogicArray) node) {
-        countVariableReads(element, counts);
+        countVariableReads(element, counts, alwaysEvaluated, flowSeen);
       }
     } else if (node instanceof JsonLogicObject) {
       for (JsonLogicNode value : ((JsonLogicObject) node).getEntries().values()) {
-        countVariableReads(value, counts);
+        countVariableReads(value, counts, alwaysEvaluated, flowSeen);
       }
     }
   }
@@ -551,6 +592,10 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         && variable.getDefaultValue() instanceof JsonLogicNull) {
       final String key = ((JsonLogicString) variable.getKey()).getValue();
       final int[] slots = variableCacheSlots.get(key);
+      if (slots != null && slots[1] == NO_RESOLVED_FLAG) {
+        codeBuilder.aload(slots[0]); // resolved in the method prologue
+        return true;
+      }
       if (slots != null) {
         // Resolve lazily on first use so evaluation order and error behaviour match the uncached code.
         final Label resolvedLabel = codeBuilder.newLabel();

@@ -244,15 +244,29 @@ public class RuleSourceGeneratorTest {
   }
 
   @Test
-  public void repeatedVarIsResolvedLazilyIntoOneLocal() throws Exception {
+  public void unconditionallyReadVarIsResolvedOnceInThePreamble() throws Exception {
     final String ruleJson = "{\"and\":[{\">\":[{\"var\":\"x\"},0]},{\"<\":[{\"var\":\"x\"},10]}]}";
-    final var generator = new RuleSourceGenerator();
-    final String source = generator.generate(
+    final String source = new RuleSourceGenerator().generate(
         io.github.jamsesso.jsonlogic.ast.JsonLogicParser.parse(ruleJson), "TestRule");
 
+    assertEquals(1, countOccurrences(source, "resolveVarChecked(data, \"x\", null)"),
+        "Expected exactly 1 resolveVarChecked call for 'x'");
+    assertTrue(source.contains("final Object var_x_"), "Expected a final Object local for var 'x'");
+    assertTrue(!source.contains("UNRESOLVED"), "A variable that is always evaluated needs no lazy guard");
+  }
+
+  @Test
+  public void conditionallyReadVarIsResolvedLazily() throws Exception {
+    // 'a' is read before any branch, 'x' only in operands that are skipped when 'a' is falsy.
+    final String ruleJson = "{\"and\":[{\">\":[{\"var\":\"a\"},0]},"
+        + "{\"<\":[{\"var\":\"x\"},10]},{\">\":[{\"var\":\"x\"},5]}]}";
+    final String source = new RuleSourceGenerator().generate(
+        io.github.jamsesso.jsonlogic.ast.JsonLogicParser.parse(ruleJson), "TestRule");
+
+    assertTrue(source.contains("final Object var_a_"), "Expected 'a' to be resolved in the preamble");
     assertEquals(1, countOccurrences(source, "Object var_x_"), "Expected exactly 1 local for var 'x'");
-    assertEquals(2, countOccurrences(source, "!= UNRESOLVED ?"), "Expected each read to be guarded");
-    assertTrue(source.contains("= UNRESOLVED;"), "Expected the local to start unresolved");
+    assertEquals(1, countOccurrences(source, "= UNRESOLVED;"), "Expected the local for 'x' to start unresolved");
+    assertEquals(2, countOccurrences(source, "!= UNRESOLVED ?"), "Expected each read of 'x' to be guarded");
   }
 
   private static int countOccurrences(String haystack, String needle) {

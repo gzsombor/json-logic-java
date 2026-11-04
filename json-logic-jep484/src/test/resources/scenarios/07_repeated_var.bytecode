@@ -1,90 +1,69 @@
 // apply (Ljava/lang/Object;)Ljava/lang/Object;
-    ACONST_NULL
-    ASTORE 2
-    ICONST_0
-    ISTORE 3
-    ILOAD 3
-    IFNE L0
     ALOAD 1
     LDC "score"
     ACONST_NULL
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     ASTORE 2
-    ICONST_1
-    ISTORE 3
-   L0
-   FRAME APPEND [java/lang/Object I]
     ALOAD 2
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
-    DSTORE 4
+    DSTORE 3
     LDC 0.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
-    DSTORE 6
-    DLOAD 4
+    DSTORE 5
+    DLOAD 3
     INVOKESTATIC java/lang/Double.isNaN (D)Z
-    IFNE L1
-    DLOAD 6
+    IFNE L0
+    DLOAD 5
     INVOKESTATIC java/lang/Double.isNaN (D)Z
-    IFNE L1
-    DLOAD 4
-    DLOAD 6
+    IFNE L0
+    DLOAD 3
+    DLOAD 5
     DCMPL
-    IFGT L2
-   L1
-   FRAME APPEND [D D]
+    IFGT L1
+   L0
+   FRAME APPEND [java/lang/Object D D]
     ICONST_0
-    GOTO L3
-   L2
+    GOTO L2
+   L1
    FRAME SAME
     ICONST_1
-   L3
+   L2
    FRAME SAME1 I
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
     DUP
     INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
-    IFEQ L4
+    IFEQ L3
     POP
-    ILOAD 3
-    IFNE L5
-    ALOAD 1
-    LDC "score"
-    ACONST_NULL
-    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-    ASTORE 2
-    ICONST_1
-    ISTORE 3
-   L5
-   FRAME SAME
     ALOAD 2
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
-    DSTORE 8
+    DSTORE 7
     LDC 100.0D
     INVOKESTATIC java/lang/Double.valueOf (D)Ljava/lang/Double;
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.toComparableDouble (Ljava/lang/Object;)D
-    DSTORE 10
-    DLOAD 8
+    DSTORE 9
+    DLOAD 7
     INVOKESTATIC java/lang/Double.isNaN (D)Z
-    IFNE L6
-    DLOAD 10
+    IFNE L4
+    DLOAD 9
     INVOKESTATIC java/lang/Double.isNaN (D)Z
-    IFNE L6
-    DLOAD 8
-    DLOAD 10
+    IFNE L4
+    DLOAD 7
+    DLOAD 9
     DCMPL
-    IFLT L7
-   L6
+    IFLT L5
+   L4
    FRAME APPEND [D D]
     ICONST_0
-    GOTO L8
-   L7
+    GOTO L6
+   L5
    FRAME SAME
     ICONST_1
-   L8
+   L6
    FRAME SAME1 I
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
-   L4
-   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_d7801585ba7f2c85 java/lang/Object java/lang/Object I D D] [java/lang/Boolean]
+   L3
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_d7801585ba7f2c85 java/lang/Object java/lang/Object D D] [java/lang/Boolean]
     ARETURN
     MAXSTACK = 4
-    MAXLOCALS = 12
+    MAXLOCALS = 11
