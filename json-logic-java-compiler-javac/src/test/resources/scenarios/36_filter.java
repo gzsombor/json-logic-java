@@ -28,8 +28,8 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object var_items_6 = UNRESOLVED;
-    Object filterArray_1 = (var_items_6 != UNRESOLVED ? var_items_6 : (var_items_6 = resolveVarChecked(data, "items", null)));
+    final Object var_items_6 = resolveVarChecked(data, "items", null);
+    Object filterArray_1 = var_items_6;
     final List<Object> filterResult_2 = new ArrayList<>();
     if (!ArrayLike.isEligible(filterArray_1)) {
       fail("first argument to filter must be a valid array", ".filter[0]");
@@ -45,8 +45,8 @@ public final class TestRule implements CompiledRule {
   }
 
   private boolean filter$0(Object item) throws JsonLogicEvaluationException {
-    Object var_score_5 = UNRESOLVED;
-    boolean filterBodyResult_4 = (toComparableDouble((var_score_5 != UNRESOLVED ? var_score_5 : (var_score_5 = resolveVarChecked(item, "score", null)))) >= 10.0);
+    final Object var_score_5 = resolveVarChecked(item, "score", null);
+    boolean filterBodyResult_4 = (toComparableDouble(var_score_5) >= 10.0);
     return filterBodyResult_4;
   }
 }

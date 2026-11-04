@@ -28,8 +28,8 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object var_data_5 = UNRESOLVED;
-    Object reduceArray_1 = (var_data_5 != UNRESOLVED ? var_data_5 : (var_data_5 = resolveVarChecked(data, "data", null)));
+    final Object var_data_5 = resolveVarChecked(data, "data", null);
+    Object reduceArray_1 = var_data_5;
     Object reduceAccumulator_2 = 0.0;
     Object result_0 = reduceAccumulator_2;
     if (ArrayLike.isEligible(reduceArray_1)) {

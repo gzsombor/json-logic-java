@@ -28,8 +28,8 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object var_users_6 = UNRESOLVED;
-    Object mapArray_1 = (var_users_6 != UNRESOLVED ? var_users_6 : (var_users_6 = resolveVarChecked(data, "users", null)));
+    final Object var_users_6 = resolveVarChecked(data, "users", null);
+    Object mapArray_1 = var_users_6;
     final List<Object> mapResult_2 = new ArrayList<>();
     if (ArrayLike.isEligible(mapArray_1)) {
       for (Object mapItem_3 : ArrayLike.iterable(mapArray_1)) {
@@ -41,8 +41,8 @@ public final class TestRule implements CompiledRule {
   }
 
   private Object collectionBody$0(Object item) throws JsonLogicEvaluationException {
-    Object var_name_5 = UNRESOLVED;
-    Object collectionBodyResult_4 = (catStr((var_name_5 != UNRESOLVED ? var_name_5 : (var_name_5 = resolveVarChecked(item, "name", null)))) + " hello");
+    final Object var_name_5 = resolveVarChecked(item, "name", null);
+    Object collectionBodyResult_4 = (catStr(var_name_5) + " hello");
     return collectionBodyResult_4;
   }
 }

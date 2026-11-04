@@ -27,9 +27,9 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object var_role_1 = UNRESOLVED;
+    final Object var_role_1 = resolveVarChecked(data, "role", null);
     Object result_0;
-    if (looseEq((var_role_1 != UNRESOLVED ? var_role_1 : (var_role_1 = resolveVarChecked(data, "role", null))), "admin")) {
+    if (looseEq(var_role_1, "admin")) {
     Object ifCons_2 = "full";
       result_0 = ifCons_2;
     } else {

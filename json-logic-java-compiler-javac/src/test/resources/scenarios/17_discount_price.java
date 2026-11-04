@@ -27,14 +27,14 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object var_price_1 = UNRESOLVED;
-    Object var_discount_3 = UNRESOLVED;
+    final Object var_price_1 = resolveVarChecked(data, "price", null);
+    final Object var_discount_3 = resolveVarChecked(data, "discount", null);
     Object arith_5;
-    if ((var_price_1 != UNRESOLVED ? var_price_1 : (var_price_1 = resolveVarChecked(data, "price", null))) == null || !isNumeric((var_price_1 != UNRESOLVED ? var_price_1 : (var_price_1 = resolveVarChecked(data, "price", null)))) || (var_discount_3 != UNRESOLVED ? var_discount_3 : (var_discount_3 = resolveVarChecked(data, "discount", null))) == null || !isNumeric((var_discount_3 != UNRESOLVED ? var_discount_3 : (var_discount_3 = resolveVarChecked(data, "discount", null))))) {
+    if (var_price_1 == null || !isNumeric(var_price_1) || var_discount_3 == null || !isNumeric(var_discount_3)) {
       arith_5 = null;
     } else {
-      double _d_2 = toDouble((var_price_1 != UNRESOLVED ? var_price_1 : (var_price_1 = resolveVarChecked(data, "price", null))));
-      double _d_4 = toDouble((var_discount_3 != UNRESOLVED ? var_discount_3 : (var_discount_3 = resolveVarChecked(data, "discount", null))));
+      double _d_2 = toDouble(var_price_1);
+      double _d_4 = toDouble(var_discount_3);
       arith_5 = (_d_2 * (1.0 - (_d_4 / 100.0)));
     }
     Object result_0 = arith_5;

@@ -27,8 +27,8 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    Object var_x_1 = UNRESOLVED;
-    boolean result_0 = looseEq((var_x_1 != UNRESOLVED ? var_x_1 : (var_x_1 = resolveVarChecked(data, "x", null))), 1.0);
+    final Object var_x_1 = resolveVarChecked(data, "x", null);
+    boolean result_0 = looseEq(var_x_1, 1.0);
     return result_0;
   }
 }
