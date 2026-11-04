@@ -17,6 +17,49 @@ allprojects {
   }
 }
 
+// Shared Maven Central configuration for the root artifact and every published module.
+def configureMavenPublishing = { Project p ->
+  p.mavenPublishing {
+    publishToMavenCentral()
+    // Only sign when a key is provided (releases), so publishToMavenLocal works without GPG setup
+    if (p.providers.gradleProperty("signingInMemoryKey").isPresent() || p.providers.gradleProperty("signing.keyId").isPresent()) {
+      signAllPublications()
+    }
+
+    pom {
+      name = p.name
+      description = "A native Java implementation of the json-logic project"
+      url = "https://github.com/gzsombor/json-logic-java"
+
+      licenses {
+        license {
+          name = "MIT License"
+          url = "https://github.com/gzsombor/json-logic-java/blob/master/LICENSE"
+        }
+      }
+
+      developers {
+        developer {
+          id = "jamsesso"
+          name = "Sam Jesso"
+          url = "https://github.com/jamsesso/"
+        }
+        developer {
+          id = "gzsombor"
+          name = "Zsombor Gegesy"
+          url = "https://github.com/gzsombor/"
+        }
+      }
+
+      scm {
+        url = "https://github.com/gzsombor/json-logic-java/"
+        connection = "scm:git:git://github.com/gzsombor/json-logic-java.git"
+        developerConnection = "scm:git:ssh://git@github.com/gzsombor/json-logic-java.git"
+      }
+    }
+  }
+}
+
 subprojects {
   plugins.withType(JavaPlugin).configureEach {
     java {
@@ -33,6 +76,12 @@ subprojects {
         showStandardStreams = true
       }
     }
+  }
+
+  // Applying the plugin only enables publishing to the local Maven repository. Each published
+  // module needs its own publishToMavenCentral() call, otherwise only the root artifact is released.
+  plugins.withId("com.vanniktech.maven.publish") {
+    configureMavenPublishing(project)
   }
 }
 
@@ -98,42 +147,4 @@ tasks.register('jmh', JavaExec) {
   }
 }
 
-mavenPublishing {
-  publishToMavenCentral()
-  // Only sign when a key is provided (releases), so publishToMavenLocal works without GPG setup
-  if (providers.gradleProperty("signingInMemoryKey").isPresent() || providers.gradleProperty("signing.keyId").isPresent()) {
-    signAllPublications()
-  }
-
-  pom {
-    name = "json-logic-java"
-    description = "A native Java implementation of the json-logic project"
-    url = "https://github.com/gzsombor/json-logic-java"
-
-    licenses {
-      license {
-        name = "MIT License"
-        url = "https://github.com/gzsombor/json-logic-java/blob/master/LICENSE"
-      }
-    }
-
-    developers {
-      developer {
-        id = "jamsesso"
-        name = "Sam Jesso"
-        url = "https://github.com/jamsesso/"
-      }
-      developer {
-        id = "gzsombor"
-        name = "Zsombor Gegesy"
-        url = "https://github.com/gzsombor/"
-      }
-    }
-
-    scm {
-      url = "https://github.com/gzsombor/json-logic-java/"
-      connection = "scm:git:git://github.com/gzsombor/json-logic-java.git"
-      developerConnection = "scm:git:ssh://git@github.com/gzsombor/json-logic-java.git"
-    }
-  }
-}
+configureMavenPublishing(project)
