@@ -3,6 +3,8 @@ package io.github.jamsesso.jsonlogic;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -133,5 +135,50 @@ public class ReduceExpressionTests {
     Object result = jsonLogic.apply(json, data);
 
     assertEquals(60.0, result);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldReadOuterDataInsideReducerBody(String label, JsonLogic jsonLogic) throws JsonLogicException {
+    String json = "{\"reduce\":[{\"var\":\"data\"},"
+        + "{\"+\":[{\"var\":\"accumulator\"},{\"*\":[{\"var\":\"mult\"},{\"var\":\"current\"}]}]},0]}";
+    final Map<String, Object> data = new HashMap<>();
+    data.put("mult", 2);
+    data.put("data", Arrays.asList(1, 2, 3));
+
+    assertEquals(12.0, jsonLogic.apply(json, data));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldReduceWithConditionalBody(String label, JsonLogic jsonLogic) throws JsonLogicException {
+    String json = "{\"reduce\":[{\"var\":\"data\"},"
+        + "{\"if\":[{\">\":[{\"var\":\"current\"},2]},"
+        + "{\"+\":[{\"var\":\"accumulator\"},{\"var\":\"current\"}]},{\"var\":\"accumulator\"}]},0]}";
+    final Map<String, Object> data = new HashMap<>();
+    data.put("data", Arrays.asList(1, 2, 3, 4, 5));
+
+    assertEquals(12.0, jsonLogic.apply(json, data));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldReadPropertiesOfCurrentItem(String label, JsonLogic jsonLogic) throws JsonLogicException {
+    String json = "{\"reduce\":[{\"var\":\"data\"},"
+        + "{\"+\":[{\"var\":\"accumulator\"},{\"var\":\"current.n\"}]},0]}";
+    final Map<String, Object> data = new HashMap<>();
+    data.put("data", Arrays.asList(Collections.singletonMap("n", 1), Collections.singletonMap("n", 5)));
+
+    assertEquals(6.0, jsonLogic.apply(json, data));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void shouldReturnInitialValueForEmptyList(String label, JsonLogic jsonLogic) throws JsonLogicException {
+    String json = "{\"reduce\":[{\"var\":\"data\"},{\"+\":[{\"var\":\"accumulator\"},{\"var\":\"current\"}]},7]}";
+    final Map<String, Object> data = new HashMap<>();
+    data.put("data", Collections.emptyList());
+
+    assertEquals(7.0, jsonLogic.apply(json, data));
   }
 }

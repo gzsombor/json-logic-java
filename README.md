@@ -99,30 +99,30 @@ Higher is better (ops/s = rule evaluations per second). Speedups are relative to
 
 | Scenario | Interpreter (ops/s) | javac (ops/s) | jep484 (ops/s) | javac speedup | jep484 speedup |
 |---|--:|--:|--:|--:|--:|
-| Arithmetic | 4,824,036 | 45,871,770 | 36,579,735 | **9.5x** | **7.6x** |
-| Dispatch table hit | 4,410,465 | 49,011,390 | 23,105,011 | **11.1x** | **5.2x** |
-| Dispatch table miss | 3,263,150 | 44,151,317 | 17,506,106 | **13.5x** | **5.4x** |
-| Dynamic `in` check, hit | 5,344,844 | 9,220,677 | 11,682,667 | **1.7x** | **2.2x** |
-| Five mixed operations | 1,844,650 | 12,186,526 | 15,845,459 | **6.6x** | **8.6x** |
-| FizzBuzz conditional chain | 598,315 | 12,008,861 | 12,034,286 | **20.1x** | **20.1x** |
-| Four string comparisons | 2,490,261 | 19,231,622 | 19,445,426 | **7.7x** | **7.8x** |
-| In-set check, hit | 3,852,950 | 45,546,064 | 54,360,391 | **11.8x** | **14.1x** |
-| In-set check, miss | 3,766,739 | 47,542,577 | 55,646,136 | **12.6x** | **14.8x** |
-| Map double | 1,731,183 | 23,156,613 | 11,480,695 | **13.4x** | **6.6x** |
-| Reduce count | 1,093,150 | 35,548,264 | 1,527,798 | **32.5x** | **1.4x** |
-| Reduce sum | 1,050,478 | 31,845,183 | 1,533,865 | **30.3x** | **1.5x** |
-| Repeated var lookup (same key used 3x) | 1,829,382 | 34,062,641 | 13,534,099 | **18.6x** | **7.4x** |
-| String concatenation | 3,702,215 | 19,835,826 | 16,953,220 | **5.4x** | **4.6x** |
-| Substring | 7,226,406 | 38,773,261 | 39,559,589 | **5.4x** | **5.5x** |
-| Three string comparisons | 3,613,048 | 29,004,636 | 24,371,942 | **8.0x** | **6.7x** |
-| Twenty-clause AND chain | 532,664 | 2,324,628 | 2,287,945 | **4.4x** | **4.3x** |
-| Two string comparisons | 4,948,437 | 40,424,863 | 40,974,198 | **8.2x** | **8.3x** |
+| Arithmetic | 3,913,430 | 42,788,100 | 48,508,328 | **10.9x** | **12.4x** |
+| Dispatch table hit | 4,169,013 | 48,036,657 | 30,820,665 | **11.5x** | **7.4x** |
+| Dispatch table miss | 3,381,616 | 41,433,380 | 18,436,580 | **12.3x** | **5.5x** |
+| Dynamic `in` check, hit | 6,462,928 | 9,525,125 | 10,064,912 | **1.5x** | **1.6x** |
+| Five mixed operations | 1,735,734 | 10,503,973 | 12,247,333 | **6.1x** | **7.1x** |
+| FizzBuzz conditional chain | 550,902 | 10,284,218 | 10,197,730 | **18.7x** | **18.5x** |
+| Four string comparisons | 2,358,126 | 17,900,114 | 20,406,405 | **7.6x** | **8.7x** |
+| In-set check, hit | 3,791,140 | 43,915,478 | 48,928,095 | **11.6x** | **12.9x** |
+| In-set check, miss | 4,224,244 | 43,687,012 | 51,791,699 | **10.3x** | **12.3x** |
+| Map double | 1,488,960 | 18,324,717 | 21,291,033 | **12.3x** | **14.3x** |
+| Reduce count | 1,042,113 | 31,540,678 | 36,465,970 | **30.3x** | **35.0x** |
+| Reduce sum | 898,404 | 27,102,752 | 32,173,942 | **30.2x** | **35.8x** |
+| Repeated var lookup (same key used 3x) | 1,714,567 | 42,091,960 | 15,370,926 | **24.5x** | **9.0x** |
+| String concatenation | 3,720,389 | 16,013,684 | 17,253,417 | **4.3x** | **4.6x** |
+| Substring | 6,218,028 | 31,837,718 | 36,874,209 | **5.1x** | **5.9x** |
+| Three string comparisons | 3,204,790 | 27,130,956 | 31,471,547 | **8.5x** | **9.8x** |
+| Twenty-clause AND chain | 459,886 | 2,424,002 | 2,152,473 | **5.3x** | **4.7x** |
+| Two string comparisons | 4,613,754 | 33,225,169 | 37,230,766 | **7.2x** | **8.1x** |
 
 Key observations:
 
-- **Both compilers beat the interpreter in every scenario**, by roughly 1.4x-33x. The interpreter pays a map lookup + virtual dispatch on every operator; the compilers emit direct code.
-- **`javac` and `jep484` are on par for most rules.** String comparisons, `substr`, FizzBuzz and the twenty-clause chain are within about 20% of each other. `jep484` is faster on the in-set checks and the dynamic `in`; `javac` is faster on arithmetic.
-- **`reduce` is where they differ most.** `javac` reaches ~30x over the interpreter, while `jep484` is only ~1.4-1.5x. `map`, dispatch tables and repeated variable lookups are also 2-3x faster with `javac` than with `jep484`.
+- **Both compilers beat the interpreter in every scenario**, by roughly 1.5x-36x. The interpreter pays a map lookup + virtual dispatch on every operator; the compilers emit direct code.
+- **`javac` and `jep484` are on par for most rules.** Most scenarios, including `map` and `reduce`, are within about 15% of each other, with `jep484` slightly ahead more often than not.
+- **`javac` still leads on repeated variable lookups (~2.7x) and dispatch tables (~1.6-2.3x).** The `javac` compiler hoists repeated `{"var":"x"}` lookups into `final` locals; `jep484` resolves each occurrence separately.
 - **`in` against a literal set is compiled** to a single `HashSet.contains` on a set allocated once at class-load time.
 - **Complex rules still benefit.** Even a twenty-clause AND chain sees a ~4x improvement.
 

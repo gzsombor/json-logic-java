@@ -84,6 +84,8 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private Map<String, BodyMethod> bodyMethodsByPath;
   private Map<String, StaticSetField> staticSetFieldsByKey;
   private int nextLocalSlot;
+  // Local variable slots of 'accumulator' and 'current' while a reduce body method is being emitted, else null.
+  private Map<String, Integer> reduceVariableSlots;
 
   public ClassFileJsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
     this(fallbackEvaluator, strictMode, true);
@@ -274,9 +276,11 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   }
 
   private void emitBodyMethod(ClassBuilder classBuilder, ClassDesc generatedClass, BodyMethod bodyMethod) {
-    final MethodTypeDesc desc = bodyMethod.predicate
-        ? MethodTypeDesc.of(CD_boolean, CD_Object)
-        : MethodTypeDesc.of(CD_Object, CD_Object);
+    final MethodTypeDesc desc = bodyMethod.reduce
+        ? MethodTypeDesc.of(CD_Object, CD_Object, CD_Object, CD_Object)
+        : bodyMethod.predicate
+            ? MethodTypeDesc.of(CD_boolean, CD_Object)
+            : MethodTypeDesc.of(CD_Object, CD_Object);
     classBuilder.withMethod(
         bodyMethod.name,
         desc,
@@ -286,8 +290,17 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
             .withCode(codeBuilder -> {
               currentGeneratedClass = generatedClass;
               currentPath = bodyMethod.path;
-              nextLocalSlot = 2;
-              if (bodyMethod.predicate) {
+              nextLocalSlot = bodyMethod.reduce ? 4 : 2;
+              if (bodyMethod.reduce) {
+                // (this, data, accumulator, current): data is the rule's own data, not a per-iteration context map.
+                reduceVariableSlots = Map.of("accumulator", 2, "current", 3);
+                try {
+                  emitRequiredNode(codeBuilder, bodyMethod.node);
+                } finally {
+                  reduceVariableSlots = null;
+                }
+                codeBuilder.areturn();
+              } else if (bodyMethod.predicate) {
                 if (!emitPrimitiveBoolean(codeBuilder, bodyMethod.node, "")) {
                   emitRequiredNode(codeBuilder, bodyMethod.node);
                   codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
@@ -316,8 +329,11 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         final long filterCount = bodyMethods.stream().filter(b -> b.predicate).count();
         bodyMethods.add(new BodyMethod("filter$" + filterCount, path + "." + operator + "[1]", args.get(1), true));
       } else if ("map".equals(operator) && args.size() == 2 && isSupported(args.get(1))) {
-        final long mapCount = bodyMethods.stream().filter(b -> !b.predicate).count();
+        final long mapCount = bodyMethods.stream().filter(b -> !b.predicate && !b.reduce).count();
         bodyMethods.add(new BodyMethod("collectionBody$" + mapCount, path + ".map[1]", args.get(1), false));
+      } else if ("reduce".equals(operator) && args.size() == 3 && allSupported(args) && isInlinableReduceBody(args.get(1))) {
+        final long reduceCount = bodyMethods.stream().filter(b -> b.reduce).count();
+        bodyMethods.add(new BodyMethod("reduceBody$" + reduceCount, path + ".reduce[1]", args.get(1), false, true));
       }
       for (int i = 0; i < args.size(); i++) {
         collectBodyMethods(args.get(i), path + "." + operator + "[" + i + "]", bodyMethods);
@@ -449,6 +465,13 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private boolean emitVariable(CodeBuilder codeBuilder, JsonLogicVariable variable) {
     if (!isSupported(variable.getKey()) || !isSupported(variable.getDefaultValue())) {
       return false;
+    }
+    if (reduceVariableSlots != null && variable.getKey() instanceof JsonLogicString) {
+      final Integer slot = reduceVariableSlots.get(((JsonLogicString) variable.getKey()).getValue());
+      if (slot != null) {
+        codeBuilder.aload(slot);
+        return true;
+      }
     }
     if (variable.getKey() instanceof JsonLogicString
         && "".equals(((JsonLogicString) variable.getKey()).getValue())
@@ -599,6 +622,68 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return false;
   }
 
+  private static final Set<String> INLINABLE_REDUCE_OPERATORS = Set.of(
+      "==", "!=", "===", "!==", "!", "!!", ">", ">=", "<", "<=", "+", "*", "-", "/", "%", "min", "max",
+      "if", "?:", "and", "or", "cat", "substr", "in", "merge");
+
+  /**
+   * A reduce body can be compiled into its own method when every variable it reads is either 'accumulator',
+   * 'current' or a plain key of the rule's data, and it only uses operators that read their data through variables.
+   * Anything that would observe the interpreter's per-iteration context map (empty or dotted-into-current keys,
+   * nested collection operators, missing, custom operations) keeps using the interpreter for the body.
+   */
+  private boolean isInlinableReduceBody(JsonLogicNode node) {
+    if (node instanceof JsonLogicNull || node instanceof JsonLogicBoolean
+        || node instanceof JsonLogicNumber || node instanceof JsonLogicString) {
+      return true;
+    }
+    if (node instanceof JsonLogicArray) {
+      for (JsonLogicNode element : (JsonLogicArray) node) {
+        if (!isInlinableReduceBody(element)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (node instanceof JsonLogicObject) {
+      for (JsonLogicNode value : ((JsonLogicObject) node).getEntries().values()) {
+        if (!isInlinableReduceBody(value)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (node instanceof JsonLogicVariable) {
+      final JsonLogicVariable variable = (JsonLogicVariable) node;
+      if (!(variable.getKey() instanceof JsonLogicString)) {
+        return false;
+      }
+      final String key = ((JsonLogicString) variable.getKey()).getValue();
+      if (key.isEmpty() || key.startsWith("current.") || key.startsWith("accumulator.")) {
+        return false;
+      }
+      if (("current".equals(key) || "accumulator".equals(key)) && !(variable.getDefaultValue() instanceof JsonLogicNull)) {
+        return false;
+      }
+      return isInlinableReduceBody(variable.getDefaultValue());
+    }
+    if (node instanceof JsonLogicOperation) {
+      final JsonLogicOperation operation = (JsonLogicOperation) node;
+      return INLINABLE_REDUCE_OPERATORS.contains(operation.getOperator())
+          && allInlinableReduceBody(operation.getArguments());
+    }
+    return false;
+  }
+
+  private boolean allInlinableReduceBody(JsonLogicArray args) {
+    for (JsonLogicNode arg : args) {
+      if (!isInlinableReduceBody(arg)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private void emitReduce(CodeBuilder codeBuilder, JsonLogicArray args) {
     final int maybeArraySlot = allocateLocalSlot(1);
     final int accumulatorSlot = allocateLocalSlot(1);
@@ -606,6 +691,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     final int iteratorSlot = allocateLocalSlot(1);
     final Label endLabel = codeBuilder.newLabel();
     final Label loopLabel = codeBuilder.newLabel();
+    final BodyMethod bodyMethod = bodyMethodsByPath.get(currentPath + ".reduce[1]");
 
     emitRequiredNode(codeBuilder, args.get(0), ".reduce[0]");
     codeBuilder.astore(maybeArraySlot);
@@ -613,6 +699,18 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     codeBuilder.astore(accumulatorSlot);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
     codeBuilder.ifeq(endLabel);
+    if (bodyMethod != null) {
+      // Compiled body: accumulator and current are passed as arguments, no per-item context map or interpreter.
+      codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "iterator", MethodTypeDesc.of(CD_ITERATOR, CD_Object)).astore(iteratorSlot);
+      codeBuilder.labelBinding(loopLabel);
+      codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "hasNext", MethodTypeDesc.of(CD_boolean)).ifeq(endLabel);
+      codeBuilder.aload(0).aload(1).aload(accumulatorSlot);
+      codeBuilder.aload(iteratorSlot).invokeinterface(CD_ITERATOR, "next", MethodTypeDesc.of(CD_Object));
+      codeBuilder.invokevirtual(currentGeneratedClass, bodyMethod.name, MethodTypeDesc.of(CD_Object, CD_Object, CD_Object, CD_Object));
+      codeBuilder.astore(accumulatorSlot).goto_(loopLabel);
+      codeBuilder.labelBinding(endLabel).aload(accumulatorSlot);
+      return;
+    }
     codeBuilder.aload(1).aload(accumulatorSlot).invokestatic(
         CD_MAP_HELPERS, "reduceContext", MethodTypeDesc.of(CD_MAP, CD_Object, CD_Object));
     codeBuilder.astore(contextSlot);
@@ -820,7 +918,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
 
     final BodyMethod bodyMethod = bodyMethodsByPath.get(currentPath + ".all[1]");
 
-    emitEvaluateOperationArgument(codeBuilder, 0, ".all[0]");
+    emitRequiredNode(codeBuilder, args.get(0), ".all[0]");
     codeBuilder.astore(maybeArraySlot);
     codeBuilder.aload(maybeArraySlot).ifnull(falseLabel);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
@@ -861,7 +959,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
 
     final BodyMethod bodyMethod = bodyMethodsByPath.get(currentPath + ".map[1]");
 
-    emitEvaluateOperationArgument(codeBuilder, 0, ".map[0]");
+    emitRequiredNode(codeBuilder, args.get(0), ".map[0]");
     codeBuilder.astore(maybeArraySlot);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
     codeBuilder.ifeq(emptyLabel);
@@ -907,7 +1005,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
 
     final BodyMethod bodyMethod = bodyMethodsByPath.get(currentPath + ".filter[1]");
 
-    emitEvaluateOperationArgument(codeBuilder, 0, ".filter[0]");
+    emitRequiredNode(codeBuilder, args.get(0), ".filter[0]");
     codeBuilder.astore(maybeArraySlot);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
     codeBuilder.ifeq(failLabel);
@@ -958,7 +1056,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     final Label loopLabel = codeBuilder.newLabel();
     final Label endLabel = codeBuilder.newLabel();
 
-    emitEvaluateOperationArgument(codeBuilder, 0, "." + operator + "[0]");
+    emitRequiredNode(codeBuilder, args.get(0), "." + operator + "[0]");
     codeBuilder.astore(maybeArraySlot);
     codeBuilder.aload(maybeArraySlot).ifnull(nullLabel);
     codeBuilder.aload(maybeArraySlot).invokestatic(CD_ARRAY_LIKE, "isEligible", MethodTypeDesc.of(CD_boolean, CD_Object));
@@ -1690,12 +1788,18 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     private final String path;
     private final JsonLogicNode node;
     private final boolean predicate;
+    private final boolean reduce;
 
     private BodyMethod(String name, String path, JsonLogicNode node, boolean predicate) {
+      this(name, path, node, predicate, false);
+    }
+
+    private BodyMethod(String name, String path, JsonLogicNode node, boolean predicate, boolean reduce) {
       this.name = name;
       this.path = path;
       this.node = node;
       this.predicate = predicate;
+      this.reduce = reduce;
     }
   }
 
