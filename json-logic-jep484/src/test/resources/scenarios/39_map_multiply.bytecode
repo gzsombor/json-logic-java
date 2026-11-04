@@ -1,16 +1,8 @@
 // apply (Ljava/lang/Object;)Ljava/lang/Object;
-    ALOAD 0
-    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_13e51f7688a5a22d.fallback : Lio/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator;
-    ALOAD 0
-    GETFIELD io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_13e51f7688a5a22d.ast : Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;
-    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicOperation
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/ast/JsonLogicOperation.getArguments ()Lio/github/jamsesso/jsonlogic/ast/JsonLogicArray;
-    LDC 0
-    INVOKEINTERFACE java/util/List.get (I)Ljava/lang/Object; (itf)
-    CHECKCAST io/github/jamsesso/jsonlogic/ast/JsonLogicNode
     ALOAD 1
-    LDC ".map[0]"
-    INVOKEVIRTUAL io/github/jamsesso/jsonlogic/evaluator/JsonLogicEvaluator.evaluate (Lio/github/jamsesso/jsonlogic/ast/JsonLogicNode;Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;
+    LDC "items"
+    ACONST_NULL
+    INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
     ASTORE 2
     ALOAD 2
     INVOKESTATIC io/github/jamsesso/jsonlogic/utils/ArrayLike.isEligible (Ljava/lang/Object;)Z
@@ -45,7 +37,7 @@
    FRAME APPEND [java/util/ArrayList]
     ALOAD 3
     ARETURN
-    MAXSTACK = 4
+    MAXSTACK = 3
     MAXLOCALS = 5
 
 // collectionBody$0 (Ljava/lang/Object;)Ljava/lang/Object;
