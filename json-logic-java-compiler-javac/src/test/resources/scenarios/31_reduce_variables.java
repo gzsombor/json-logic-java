@@ -28,18 +28,18 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    final Object var_data_5 = resolveVarChecked(data, "data", null);
-    Object reduceArray_1 = var_data_5;
+    Object var_data_5 = UNRESOLVED;
+    Object reduceArray_1 = (var_data_5 != UNRESOLVED ? var_data_5 : (var_data_5 = resolveVarChecked(data, "data", null)));
     Object reduceAccumulator_2 = 0.0;
     Object result_0 = reduceAccumulator_2;
     if (ArrayLike.isEligible(reduceArray_1)) {
-      final Object var_multiplicator_6 = resolveVarChecked(data, "multiplicator", null);
+      Object var_multiplicator_6 = UNRESOLVED;
       for (Object reduceItem_3 : ArrayLike.iterable(reduceArray_1)) {
         Object arith_10;
-        if (var_multiplicator_6 == null || !isNumeric(var_multiplicator_6) || reduceItem_3 == null || !isNumeric(reduceItem_3) || reduceAccumulator_2 == null || !isNumeric(reduceAccumulator_2)) {
+        if ((var_multiplicator_6 != UNRESOLVED ? var_multiplicator_6 : (var_multiplicator_6 = resolveVarChecked(data, "multiplicator", null))) == null || !isNumeric((var_multiplicator_6 != UNRESOLVED ? var_multiplicator_6 : (var_multiplicator_6 = resolveVarChecked(data, "multiplicator", null)))) || reduceItem_3 == null || !isNumeric(reduceItem_3) || reduceAccumulator_2 == null || !isNumeric(reduceAccumulator_2)) {
           arith_10 = null;
         } else {
-          double _d_7 = toDouble(var_multiplicator_6);
+          double _d_7 = toDouble((var_multiplicator_6 != UNRESOLVED ? var_multiplicator_6 : (var_multiplicator_6 = resolveVarChecked(data, "multiplicator", null))));
           double _d_8 = toDouble(reduceItem_3);
           double _d_9 = toDouble(reduceAccumulator_2);
           arith_10 = (_d_7 * (_d_8 + _d_9));

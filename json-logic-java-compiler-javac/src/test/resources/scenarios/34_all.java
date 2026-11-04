@@ -28,8 +28,8 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    final Object var_items_7 = resolveVarChecked(data, "items", null);
-    final Object allArray_1 = var_items_7;
+    Object var_items_7 = UNRESOLVED;
+    final Object allArray_1 = (var_items_7 != UNRESOLVED ? var_items_7 : (var_items_7 = resolveVarChecked(data, "items", null)));
     Boolean allResult_2;
     if (allArray_1 == null || !ArrayLike.isEligible(allArray_1) || ArrayLike.isEmpty(allArray_1)) {
       allResult_2 = Boolean.FALSE;
@@ -49,8 +49,8 @@ public final class TestRule implements CompiledRule {
   }
 
   private boolean filter$0(Object item) throws JsonLogicEvaluationException {
-    final Object var_score_6 = resolveVarChecked(item, "score", null);
-    boolean filterBodyResult_5 = (toComparableDouble(var_score_6) >= 10.0);
+    Object var_score_6 = UNRESOLVED;
+    boolean filterBodyResult_5 = (toComparableDouble((var_score_6 != UNRESOLVED ? var_score_6 : (var_score_6 = resolveVarChecked(item, "score", null)))) >= 10.0);
     return filterBodyResult_5;
   }
 }

@@ -1,59 +1,99 @@
 // apply (Ljava/lang/Object;)Ljava/lang/Object;
+    ACONST_NULL
+    ASTORE 2
+    ICONST_0
+    ISTORE 3
+    ACONST_NULL
+    ASTORE 4
+    ICONST_0
+    ISTORE 5
+    ILOAD 3
+    IFNE L0
     ALOAD 1
     LDC "customer"
     ACONST_NULL
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 2
+    ICONST_1
+    ISTORE 3
+   L0
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b87e56152d008ced java/lang/Object java/lang/Object I N I] []
+    ALOAD 2
     LDC "cus1"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
     DUP
     INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
-    IFEQ L0
+    IFEQ L1
     POP
+    ILOAD 5
+    IFNE L2
     ALOAD 1
     LDC "action"
     ACONST_NULL
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 4
+    ICONST_1
+    ISTORE 5
+   L2
+   FRAME FULL [io/github/jamsesso/jsonlogic/compiler/classfile/gen/Rule_b87e56152d008ced java/lang/Object java/lang/Object I java/lang/Object I] []
+    ALOAD 4
     LDC "login"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
-   L0
+   L1
    FRAME SAME1 java/lang/Boolean
     INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
-    IFEQ L1
+    IFEQ L3
     LDC "log"
-    GOTO L2
-   L1
+    GOTO L4
+   L3
    FRAME SAME
+    ILOAD 3
+    IFNE L5
     ALOAD 1
     LDC "customer"
     ACONST_NULL
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 2
+    ICONST_1
+    ISTORE 3
+   L5
+   FRAME SAME
+    ALOAD 2
     LDC "cus2"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
     DUP
     INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
-    IFEQ L3
+    IFEQ L6
     POP
+    ILOAD 5
+    IFNE L7
     ALOAD 1
     LDC "action"
     ACONST_NULL
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.resolveVarChecked (Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+    ASTORE 4
+    ICONST_1
+    ISTORE 5
+   L7
+   FRAME SAME
+    ALOAD 4
     LDC "delete"
     INVOKESTATIC io/github/jamsesso/jsonlogic/compiler/RuleHelpers.strictEq (Ljava/lang/Object;Ljava/lang/Object;)Z
     INVOKESTATIC java/lang/Boolean.valueOf (Z)Ljava/lang/Boolean;
-   L3
+   L6
    FRAME SAME1 java/lang/Boolean
     INVOKESTATIC io/github/jamsesso/jsonlogic/JsonLogic.truthy (Ljava/lang/Object;)Z
-    IFEQ L4
+    IFEQ L8
     LDC "log"
-    GOTO L2
-   L4
+    GOTO L4
+   L8
    FRAME SAME
     LDC "allow"
-   L2
+   L4
    FRAME SAME1 java/lang/String
     ARETURN
     MAXSTACK = 3
-    MAXLOCALS = 2
+    MAXLOCALS = 6
