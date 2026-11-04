@@ -363,29 +363,27 @@ public final class RuleSourceGenerator {
                 + javaStringLiteral(varName.substring(prefix.length())) + ", null)";
           }
         }
-        final String cached = varScope.cache.get(varName);
-        if (cached != null) {
-          return cached;
+        String localName = varScope.cache.get(varName);
+        if (localName == null) {
+          localName = freshVar("var_" + sanitize(varName));
+          varScope.cache.put(varName, localName);
+          varScope.preamble.append("    Object ").append(localName).append(" = UNRESOLVED;\n");
         }
-        final String localName = freshVar("var_" + sanitize(varName));
-        varScope.cache.put(varName, localName);
-        varScope.preamble.append("    final Object ").append(localName)
-            .append(" = resolveVarChecked(").append(varScope.dataExpr).append(", ")
-            .append(javaStringLiteral(varName)).append(", null);\n");
-        return localName;
+        return lazyVar(localName, varScope.dataExpr, varName);
       }
-      final String cached = varCache.get(varName);
-      if (cached != null) {
-        return cached;
-      }
-      // First occurrence: emit the declaration into the preamble.
+      // Operand expressions are pasted several times into the generated code (null check, numeric check,
+      // conversion), so every variable gets a local. It is declared once in the preamble and resolved on
+      // first use, so a variable that is only read in a branch that is not taken is never resolved (and
+      // cannot fail), like in the interpreter.
       // Use resolveVarChecked so that any JsonLogicEvaluationException gets ".var" prepended,
       // matching the path the tree-walking interpreter produces for var errors.
-      final String localName = freshVar("var_" + sanitize(varName));
-      varCache.put(varName, localName);
-      varPreamble.append("    final Object ").append(localName)
-          .append(" = resolveVarChecked(data, ").append(javaStringLiteral(varName)).append(", null);\n");
-      return localName;
+      String localName = varCache.get(varName);
+      if (localName == null) {
+        localName = freshVar("var_" + sanitize(varName));
+        varCache.put(varName, localName);
+        varPreamble.append("    Object ").append(localName).append(" = UNRESOLVED;\n");
+      }
+      return lazyVar(localName, "data", varName);
     }
     // General case: key is dynamic.
     // Use the fallback evaluator so that invalid key types throw with the right path.
@@ -393,6 +391,12 @@ public final class RuleSourceGenerator {
     final int idx = fallbackNodes.size();
     fallbackNodes.add(node);
     return "fallback.evaluate(fallbackNodes[" + idx + "], " + dataExpr + ", " + javaStringLiteral(path) + ")";
+  }
+
+  /** Expression that yields the cached variable, resolving it on first use. */
+  private static String lazyVar(String localName, String dataExpr, String varName) {
+    return "(" + localName + " != UNRESOLVED ? " + localName + " : (" + localName
+        + " = resolveVarChecked(" + dataExpr + ", " + javaStringLiteral(varName) + ", null)))";
   }
 
   /**

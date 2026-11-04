@@ -229,4 +229,29 @@ public class VariableTests {
     }
     return m;
   }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testRepeatedVariableIsResolvedConsistently(String label, JsonLogic jsonLogic) throws JsonLogicException {
+    final Map<String, Object> data = new HashMap<>();
+    data.put("a", 5);
+    data.put("b", null);
+
+    assertEquals(true, jsonLogic.apply(
+        "{\"and\":[{\">\":[{\"var\":\"a\"},1]},{\"<\":[{\"var\":\"a\"},10]},{\"==\":[{\"var\":\"b\"},{\"var\":\"b\"}]}]}",
+        data));
+    assertEquals(10.0, jsonLogic.apply("{\"+\":[{\"var\":\"a\"},{\"var\":\"a\"}]}", data));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("io.github.jamsesso.jsonlogic.JsonLogicTestEngines#engines")
+  public void testRepeatedVariableInUntakenBranchIsNotResolved(String label, JsonLogic jsonLogic)
+      throws JsonLogicException {
+    // "x.y" cannot be resolved against a list and would fail, but it is only used in the branch that is not taken.
+    final Map<String, Object> data = new HashMap<>();
+    data.put("x", Arrays.asList(1, 2));
+
+    assertEquals(1.0, jsonLogic.apply(
+        "{\"if\":[false,{\"+\":[{\"var\":\"x.y\"},{\"var\":\"x.y\"}]},1]}", data));
+  }
 }

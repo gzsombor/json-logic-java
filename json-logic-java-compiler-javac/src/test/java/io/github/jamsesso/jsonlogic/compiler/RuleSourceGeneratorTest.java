@@ -244,17 +244,15 @@ public class RuleSourceGeneratorTest {
   }
 
   @Test
-  public void repeatedVarGeneratesOneFinalLocal() throws Exception {
+  public void repeatedVarIsResolvedLazilyIntoOneLocal() throws Exception {
     final String ruleJson = "{\"and\":[{\">\":[{\"var\":\"x\"},0]},{\"<\":[{\"var\":\"x\"},10]}]}";
     final var generator = new RuleSourceGenerator();
     final String source = generator.generate(
         io.github.jamsesso.jsonlogic.ast.JsonLogicParser.parse(ruleJson), "TestRule");
 
-    int resolveVarCount = countOccurrences(source, "resolveVarChecked(data, \"x\", null)");
-    assertEquals(1, resolveVarCount, "Expected exactly 1 resolveVarChecked call for 'x'");
-
-    assertTrue(source.contains("final Object var_x_"),
-        "Expected a final Object local for var 'x'");
+    assertEquals(1, countOccurrences(source, "Object var_x_"), "Expected exactly 1 local for var 'x'");
+    assertEquals(2, countOccurrences(source, "!= UNRESOLVED ?"), "Expected each read to be guarded");
+    assertTrue(source.contains("= UNRESOLVED;"), "Expected the local to start unresolved");
   }
 
   private static int countOccurrences(String haystack, String needle) {

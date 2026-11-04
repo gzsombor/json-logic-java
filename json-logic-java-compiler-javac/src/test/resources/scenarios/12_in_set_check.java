@@ -29,9 +29,9 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    final Object var_customer_2 = resolveVarChecked(data, "customer", null);
+    Object var_customer_2 = UNRESOLVED;
     Object result_0;
-    if (SET_1.contains(var_customer_2)) {
+    if (SET_1.contains((var_customer_2 != UNRESOLVED ? var_customer_2 : (var_customer_2 = resolveVarChecked(data, "customer", null))))) {
     Object ifCons_3 = "ok";
       result_0 = ifCons_3;
     } else {

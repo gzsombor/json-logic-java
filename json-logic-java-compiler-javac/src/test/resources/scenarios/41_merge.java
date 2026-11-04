@@ -28,12 +28,12 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    final Object var_a_3 = resolveVarChecked(data, "a", null);
-    final Object var_b_5 = resolveVarChecked(data, "b", null);
+    Object var_a_3 = UNRESOLVED;
+    Object var_b_5 = UNRESOLVED;
     final List<Object> mergeResult_1 = new ArrayList<>();
-    final Object mergeArg_2 = var_a_3;
+    final Object mergeArg_2 = (var_a_3 != UNRESOLVED ? var_a_3 : (var_a_3 = resolveVarChecked(data, "a", null)));
     if (ArrayLike.isEligible(mergeArg_2)) { mergeResult_1.addAll(ArrayLike.toList(mergeArg_2)); } else { mergeResult_1.add(mergeArg_2); }
-    final Object mergeArg_4 = var_b_5;
+    final Object mergeArg_4 = (var_b_5 != UNRESOLVED ? var_b_5 : (var_b_5 = resolveVarChecked(data, "b", null)));
     if (ArrayLike.isEligible(mergeArg_4)) { mergeResult_1.addAll(ArrayLike.toList(mergeArg_4)); } else { mergeResult_1.add(mergeArg_4); }
     mergeResult_1.add(99.0);
     Object result_0 = mergeResult_1;

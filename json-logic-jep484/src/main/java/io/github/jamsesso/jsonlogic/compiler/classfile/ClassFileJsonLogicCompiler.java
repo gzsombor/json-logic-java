@@ -86,6 +86,8 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
   private int nextLocalSlot;
   // Local variable slots of 'accumulator' and 'current' while a reduce body method is being emitted, else null.
   private Map<String, Integer> reduceVariableSlots;
+  // Per generated method: variable key -> {value slot, resolved-flag slot} for variables read more than once.
+  private Map<String, int[]> variableCacheSlots;
 
   public ClassFileJsonLogicCompiler(JsonLogicEvaluator fallbackEvaluator, boolean strictMode) {
     this(fallbackEvaluator, strictMode, true);
@@ -253,6 +255,7 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     currentGeneratedClass = generatedClass;
     currentPath = "";
     nextLocalSlot = 2;
+    prepareVariableCache(codeBuilder, ast);
     if (emitSupportedNode(codeBuilder, ast)) {
       codeBuilder.areturn();
       return;
@@ -295,19 +298,25 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
                 // (this, data, accumulator, current): data is the rule's own data, not a per-iteration context map.
                 reduceVariableSlots = Map.of("accumulator", 2, "current", 3);
                 try {
+                  prepareVariableCache(codeBuilder, bodyMethod.node);
                   emitRequiredNode(codeBuilder, bodyMethod.node);
                 } finally {
                   reduceVariableSlots = null;
+                  variableCacheSlots = null;
                 }
                 codeBuilder.areturn();
               } else if (bodyMethod.predicate) {
+                prepareVariableCache(codeBuilder, bodyMethod.node);
                 if (!emitPrimitiveBoolean(codeBuilder, bodyMethod.node, "")) {
                   emitRequiredNode(codeBuilder, bodyMethod.node);
                   codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
                 }
+                variableCacheSlots = null;
                 codeBuilder.ireturn();
               } else {
+                prepareVariableCache(codeBuilder, bodyMethod.node);
                 emitRequiredNode(codeBuilder, bodyMethod.node);
+                variableCacheSlots = null;
                 codeBuilder.areturn();
               }
             }));
@@ -462,6 +471,65 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
     return false;
   }
 
+  /**
+   * Allocates a cache local (plus a "resolved" flag) for every variable that the current method reads more than
+   * once, so repeated lookups of the same key resolve the data only once per evaluation.
+   */
+  private void prepareVariableCache(CodeBuilder codeBuilder, JsonLogicNode root) {
+    final Map<String, Integer> counts = new LinkedHashMap<>();
+    countVariableReads(root, counts);
+    variableCacheSlots = null;
+    for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+      if (entry.getValue() < 2) {
+        continue;
+      }
+      if (variableCacheSlots == null) {
+        variableCacheSlots = new HashMap<>();
+      }
+      final int valueSlot = allocateLocalSlot(1);
+      final int flagSlot = allocateLocalSlot(1);
+      codeBuilder.aconst_null().astore(valueSlot).iconst_0().istore(flagSlot);
+      variableCacheSlots.put(entry.getKey(), new int[] {valueSlot, flagSlot});
+    }
+  }
+
+  private void countVariableReads(JsonLogicNode node, Map<String, Integer> counts) {
+    if (node instanceof JsonLogicVariable) {
+      final JsonLogicVariable variable = (JsonLogicVariable) node;
+      if (variable.getKey() instanceof JsonLogicString && variable.getDefaultValue() instanceof JsonLogicNull) {
+        final String key = ((JsonLogicString) variable.getKey()).getValue();
+        if (!key.isEmpty() && (reduceVariableSlots == null || !reduceVariableSlots.containsKey(key))) {
+          counts.merge(key, 1, Integer::sum);
+        }
+      } else {
+        countVariableReads(variable.getKey(), counts);
+        countVariableReads(variable.getDefaultValue(), counts);
+      }
+    } else if (node instanceof JsonLogicOperation) {
+      final JsonLogicOperation operation = (JsonLogicOperation) node;
+      final JsonLogicArray args = operation.getArguments();
+      final String operator = operation.getOperator();
+      final boolean collectionOperator = "map".equals(operator) || "filter".equals(operator)
+          || "all".equals(operator) || "some".equals(operator) || "none".equals(operator)
+          || "reduce".equals(operator);
+      for (int i = 0; i < args.size(); i++) {
+        // The body of a collection operator runs in its own method or in the interpreter, never inline.
+        if (collectionOperator && i == 1) {
+          continue;
+        }
+        countVariableReads(args.get(i), counts);
+      }
+    } else if (node instanceof JsonLogicArray) {
+      for (JsonLogicNode element : (JsonLogicArray) node) {
+        countVariableReads(element, counts);
+      }
+    } else if (node instanceof JsonLogicObject) {
+      for (JsonLogicNode value : ((JsonLogicObject) node).getEntries().values()) {
+        countVariableReads(value, counts);
+      }
+    }
+  }
+
   private boolean emitVariable(CodeBuilder codeBuilder, JsonLogicVariable variable) {
     if (!isSupported(variable.getKey()) || !isSupported(variable.getDefaultValue())) {
       return false;
@@ -478,6 +546,23 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
         && variable.getDefaultValue() instanceof JsonLogicNull) {
       codeBuilder.aload(1);
       return true;
+    }
+    if (variableCacheSlots != null && variable.getKey() instanceof JsonLogicString
+        && variable.getDefaultValue() instanceof JsonLogicNull) {
+      final String key = ((JsonLogicString) variable.getKey()).getValue();
+      final int[] slots = variableCacheSlots.get(key);
+      if (slots != null) {
+        // Resolve lazily on first use so evaluation order and error behaviour match the uncached code.
+        final Label resolvedLabel = codeBuilder.newLabel();
+        codeBuilder.iload(slots[1]).ifne(resolvedLabel);
+        codeBuilder.aload(1).ldc(key).aconst_null().invokestatic(
+            CD_RULE_HELPERS,
+            "resolveVarChecked",
+            MethodTypeDesc.of(CD_Object, CD_Object, CD_Object, CD_Object));
+        codeBuilder.astore(slots[0]).iconst_1().istore(slots[1]);
+        codeBuilder.labelBinding(resolvedLabel).aload(slots[0]);
+        return true;
+      }
     }
     codeBuilder
         .aload(1);

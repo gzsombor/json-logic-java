@@ -27,9 +27,9 @@ public final class TestRule implements CompiledRule {
 
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
-    final Object var_enabled_2 = resolveVarChecked(data, "enabled", null);
+    Object var_enabled_2 = UNRESOLVED;
     Object result_0;
-    Object ifCond_1 = var_enabled_2;
+    Object ifCond_1 = (var_enabled_2 != UNRESOLVED ? var_enabled_2 : (var_enabled_2 = resolveVarChecked(data, "enabled", null)));
     if (JsonLogic.truthy(ifCond_1)) {
     final Map<String, Object> object_4 = new LinkedHashMap<>();
     object_4.put("key_a", 1.0);
