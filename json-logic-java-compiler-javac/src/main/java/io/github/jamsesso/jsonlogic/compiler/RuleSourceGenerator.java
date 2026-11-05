@@ -2,6 +2,7 @@ package io.github.jamsesso.jsonlogic.compiler;
 
 import io.github.jamsesso.jsonlogic.ast.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
@@ -102,6 +103,9 @@ public final class RuleSourceGenerator {
   /** Locals that are resolved on first use ({@code UNRESOLVED} until then) instead of in the preamble. */
   private final Set<String> lazyVarLocals = new HashSet<>();
 
+  /** Lazy local name to the plain resolving expression that can replace its lazy read when it is read only once. */
+  private final Map<String, String> lazyVarPlainReads = new HashMap<>();
+
   private int counter = 0;
   /**
    * Static {@code Set} field declarations accumulated during generation, emitted once per
@@ -128,9 +132,11 @@ public final class RuleSourceGenerator {
     final var body = new StringBuilder();
     topLevelFlowSeen = false;
     lazyVarLocals.clear();
+    lazyVarPlainReads.clear();
     final String resultVar = freshVar("result");
     // Path starts empty — JsonLogic.apply() will prepend "$" to any exception.
     emitStatement(ast, resultVar, body, "data", "");
+    inlineSingleUseLazyVars(varPreamble, body);
     final boolean omitReturn = ast instanceof JsonLogicOperation
         && isControlFlow(((JsonLogicOperation) ast).getOperator())
         && ((JsonLogicOperation) ast).getArguments().isEmpty()
@@ -408,6 +414,7 @@ public final class RuleSourceGenerator {
       cache.put(varName, localName);
       if (flowSeen) {
         lazyVarLocals.add(localName);
+        lazyVarPlainReads.put(localName, "resolveVarChecked(" + dataExpr + ", " + javaStringLiteral(varName) + ", null)");
         preamble.append("    Object ").append(localName).append(" = UNRESOLVED;\n");
       } else {
         preamble.append("    final Object ").append(localName).append(" = resolveVarChecked(")
@@ -415,6 +422,38 @@ public final class RuleSourceGenerator {
       }
     }
     return lazyVarLocals.contains(localName) ? lazyVar(localName, dataExpr, varName) : localName;
+  }
+
+  /**
+   * Removes the {@code UNRESOLVED} local of every lazy variable that is read exactly once in {@code body} and
+   * replaces its read with a direct lookup: with a single read there is nothing to cache or to check.
+   */
+  private void inlineSingleUseLazyVars(StringBuilder preamble, StringBuilder body) {
+    for (Map.Entry<String, String> entry : lazyVarPlainReads.entrySet()) {
+      final String local = entry.getKey();
+      final String declaration = "    Object " + local + " = UNRESOLVED;\n";
+      final int declarationAt = preamble.indexOf(declaration);
+      if (declarationAt < 0) {
+        continue;
+      }
+      final String plain = entry.getValue();
+      final String lazyRead = "(" + local + " != UNRESOLVED ? " + local + " : (" + local + " = " + plain + "))";
+      final int readAt = body.indexOf(lazyRead);
+      // The lazy read mentions the local three times; any other mention means it is used some other way.
+      if (readAt < 0 || body.indexOf(lazyRead, readAt + 1) >= 0 || countOccurrences(body, local) != 3) {
+        continue;
+      }
+      body.replace(readAt, readAt + lazyRead.length(), plain);
+      preamble.delete(declarationAt, declarationAt + declaration.length());
+    }
+  }
+
+  private static int countOccurrences(StringBuilder text, String needle) {
+    int count = 0;
+    for (int at = text.indexOf(needle); at >= 0; at = text.indexOf(needle, at + needle.length())) {
+      count++;
+    }
+    return count;
   }
 
   /** Marks the current method as containing conditionally evaluated code; later new variables are lazy. */
@@ -723,6 +762,7 @@ public final class RuleSourceGenerator {
     } finally {
       varScopes.remove(varScopes.size() - 1);
     }
+    inlineSingleUseLazyVars(varScope.preamble, methodBody);
     helperMethods
         .append("\n")
         .append("  private Object ").append(methodName).append("(Object item) throws JsonLogicEvaluationException {\n")
@@ -750,6 +790,7 @@ public final class RuleSourceGenerator {
     } finally {
       varScopes.remove(varScopes.size() - 1);
     }
+    inlineSingleUseLazyVars(varScope.preamble, methodBody);
     final String returnExpr = isBooleanExpression(body)
         ? result
         : "JsonLogic.truthy(" + result + ")";

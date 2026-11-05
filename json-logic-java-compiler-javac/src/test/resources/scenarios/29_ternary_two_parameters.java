@@ -28,11 +28,10 @@ public final class TestRule implements CompiledRule {
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
     final Object var_condition_2 = resolveVarChecked(data, "condition", null);
-    Object var_value_4 = UNRESOLVED;
     Object result_0;
     Object ifCond_1 = var_condition_2;
     if (JsonLogic.truthy(ifCond_1)) {
-    Object ifCons_3 = (var_value_4 != UNRESOLVED ? var_value_4 : (var_value_4 = resolveVarChecked(data, "value", null)));
+    Object ifCons_3 = resolveVarChecked(data, "value", null);
       result_0 = ifCons_3;
     } else {
     result_0 = null;
