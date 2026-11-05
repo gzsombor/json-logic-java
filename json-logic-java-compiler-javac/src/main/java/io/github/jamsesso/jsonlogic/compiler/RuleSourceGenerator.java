@@ -3,12 +3,10 @@ package io.github.jamsesso.jsonlogic.compiler;
 import io.github.jamsesso.jsonlogic.ast.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 
 /**
@@ -100,10 +98,10 @@ public final class RuleSourceGenerator {
    */
   private boolean topLevelFlowSeen;
 
-  /** Locals that are resolved on first use ({@code UNRESOLVED} until then) instead of in the preamble. */
-  private final Set<String> lazyVarLocals = new HashSet<>();
-
-  /** Lazy local name to the plain resolving expression that can replace its lazy read when it is read only once. */
+  /**
+   * Locals that are resolved on first use ({@code UNRESOLVED} until then) instead of in the preamble, mapped to the
+   * plain resolving expression that can replace their lazy read when they are read only once.
+   */
   private final Map<String, String> lazyVarPlainReads = new HashMap<>();
 
   private int counter = 0;
@@ -131,7 +129,6 @@ public final class RuleSourceGenerator {
   public String generate(JsonLogicNode ast, String className) {
     final var body = new StringBuilder();
     topLevelFlowSeen = false;
-    lazyVarLocals.clear();
     lazyVarPlainReads.clear();
     final String resultVar = freshVar("result");
     // Path starts empty — JsonLogic.apply() will prepend "$" to any exception.
@@ -413,7 +410,6 @@ public final class RuleSourceGenerator {
       localName = freshVar("var_" + sanitize(varName));
       cache.put(varName, localName);
       if (flowSeen) {
-        lazyVarLocals.add(localName);
         lazyVarPlainReads.put(localName, "resolveVarChecked(" + dataExpr + ", " + javaStringLiteral(varName) + ", null)");
         preamble.append("    Object ").append(localName).append(" = UNRESOLVED;\n");
       } else {
@@ -421,7 +417,7 @@ public final class RuleSourceGenerator {
             .append(dataExpr).append(", ").append(javaStringLiteral(varName)).append(", null);\n");
       }
     }
-    return lazyVarLocals.contains(localName) ? lazyVar(localName, dataExpr, varName) : localName;
+    return lazyVarPlainReads.containsKey(localName) ? lazyVar(localName, dataExpr, varName) : localName;
   }
 
   /**

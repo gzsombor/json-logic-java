@@ -46,6 +46,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplementation {
   private static final Logger LOG = Logger.getLogger(ClassFileJsonLogicCompiler.class.getName());
@@ -300,27 +302,22 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
               if (bodyMethod.reduce) {
                 // (this, data, accumulator, current): data is the rule's own data, not a per-iteration context map.
                 reduceVariableSlots = Map.of("accumulator", 2, "current", 3);
-                try {
-                  prepareVariableCache(codeBuilder, bodyMethod.node);
-                  emitRequiredNode(codeBuilder, bodyMethod.node);
-                } finally {
-                  reduceVariableSlots = null;
-                  variableCacheSlots = null;
-                }
-                codeBuilder.areturn();
-              } else if (bodyMethod.predicate) {
+              }
+              try {
                 prepareVariableCache(codeBuilder, bodyMethod.node);
-                if (!emitPrimitiveBoolean(codeBuilder, bodyMethod.node, "")) {
+                if (bodyMethod.predicate) {
+                  if (!emitPrimitiveBoolean(codeBuilder, bodyMethod.node, "")) {
+                    emitRequiredNode(codeBuilder, bodyMethod.node);
+                    codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
+                  }
+                  codeBuilder.ireturn();
+                } else {
                   emitRequiredNode(codeBuilder, bodyMethod.node);
-                  codeBuilder.invokestatic(CD_JSON_LOGIC, "truthy", MethodTypeDesc.of(CD_boolean, CD_Object));
+                  codeBuilder.areturn();
                 }
+              } finally {
+                reduceVariableSlots = null;
                 variableCacheSlots = null;
-                codeBuilder.ireturn();
-              } else {
-                prepareVariableCache(codeBuilder, bodyMethod.node);
-                emitRequiredNode(codeBuilder, bodyMethod.node);
-                variableCacheSlots = null;
-                codeBuilder.areturn();
               }
             }));
   }
@@ -476,10 +473,12 @@ public final class ClassFileJsonLogicCompiler implements JsonLogicCompilerImplem
 
   private static final Set<String> FLOW_OPERATORS = Set.of("if", "?:", "and", "or");
   private static final Set<String> COLLECTION_OPERATORS = Set.of("map", "filter", "all", "some", "none", "reduce");
-  private static final Set<String> BUILTIN_OPERATORS = Set.of(
-      "==", "!=", "===", "!==", "!", "!!", ">", ">=", "<", "<=", "+", "*", "-", "/", "%", "min", "max", "if", "?:",
-      "and", "or", "cat", "substr", "in", "missing", "missing_some", "merge", "log",
-      "all", "map", "filter", "some", "none", "reduce");
+  private static final Set<String> BUILTIN_OPERATORS = Stream.of(
+          FLOW_OPERATORS.stream(), COLLECTION_OPERATORS.stream(), Stream.of(
+              "==", "!=", "===", "!==", "!", "!!", ">", ">=", "<", "<=", "+", "*", "-", "/", "%", "min", "max",
+              "cat", "substr", "in", "missing", "missing_some", "merge", "log"))
+      .flatMap(stream -> stream)
+      .collect(Collectors.toUnmodifiableSet());
 
   /**
    * Allocates a cache local for every variable that the current method reads more than once, so repeated lookups
