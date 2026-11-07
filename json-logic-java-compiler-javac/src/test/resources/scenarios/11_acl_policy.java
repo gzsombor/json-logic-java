@@ -28,13 +28,13 @@ public final class TestRule implements CompiledRule {
   @Override
   public Object apply(Object data) throws JsonLogicEvaluationException {
     final Object var_customer_3 = resolveVarChecked(data, "customer", null);
-    final Object var_action_5 = resolveVarChecked(data, "action", null);
+    Object var_action_5 = UNRESOLVED;
     Object result_0;
     Object ifCond_1 = null;
     boolean andV_2 = strictEq(var_customer_3, "cus1");
     ifCond_1 = andV_2;
     if (andV_2) {
-      boolean andV_4 = strictEq(var_action_5, "login");
+      boolean andV_4 = strictEq((var_action_5 != UNRESOLVED ? var_action_5 : (var_action_5 = resolveVarChecked(data, "action", null))), "login");
       ifCond_1 = andV_4;
     }
     if (JsonLogic.truthy(ifCond_1)) {
@@ -46,7 +46,7 @@ public final class TestRule implements CompiledRule {
     boolean andV_9 = strictEq(var_customer_3, "cus2");
     ifCond_8 = andV_9;
     if (andV_9) {
-      boolean andV_10 = strictEq(var_action_5, "delete");
+      boolean andV_10 = strictEq((var_action_5 != UNRESOLVED ? var_action_5 : (var_action_5 = resolveVarChecked(data, "action", null))), "delete");
       ifCond_8 = andV_10;
     }
     if (JsonLogic.truthy(ifCond_8)) {

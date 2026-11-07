@@ -408,6 +408,9 @@ public final class RuleHelpers {
 
   // ---- variable resolution ----
 
+  /** Marks a cached variable local of generated code that has not been resolved yet (null is a valid value). */
+  public static final Object UNRESOLVED = new Object();
+
   public static Object resolveVar(Object data, Object key, Object defaultValue) throws JsonLogicEvaluationException {
     if (data == null) {
       return defaultValue;

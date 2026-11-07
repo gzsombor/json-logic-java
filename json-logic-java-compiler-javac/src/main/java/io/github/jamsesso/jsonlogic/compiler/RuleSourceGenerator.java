@@ -2,6 +2,7 @@ package io.github.jamsesso.jsonlogic.compiler;
 
 import io.github.jamsesso.jsonlogic.ast.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -91,6 +92,18 @@ public final class RuleSourceGenerator {
    */
   private final StringBuilder varPreamble = new StringBuilder();
 
+  /**
+   * True once a conditionally evaluated operand (a branch of if/ternary, a later operand of and/or) has been
+   * emitted into the top-level method. A variable first read after that point may never be evaluated.
+   */
+  private boolean topLevelFlowSeen;
+
+  /**
+   * Locals that are resolved on first use ({@code UNRESOLVED} until then) instead of in the preamble, mapped to the
+   * plain resolving expression that can replace their lazy read when they are read only once.
+   */
+  private final Map<String, String> lazyVarPlainReads = new HashMap<>();
+
   private int counter = 0;
   /**
    * Static {@code Set} field declarations accumulated during generation, emitted once per
@@ -115,9 +128,12 @@ public final class RuleSourceGenerator {
 
   public String generate(JsonLogicNode ast, String className) {
     final var body = new StringBuilder();
+    topLevelFlowSeen = false;
+    lazyVarPlainReads.clear();
     final String resultVar = freshVar("result");
     // Path starts empty — JsonLogic.apply() will prepend "$" to any exception.
     emitStatement(ast, resultVar, body, "data", "");
+    inlineSingleUseLazyVars(varPreamble, body);
     final boolean omitReturn = ast instanceof JsonLogicOperation
         && isControlFlow(((JsonLogicOperation) ast).getOperator())
         && ((JsonLogicOperation) ast).getArguments().isEmpty()
@@ -363,29 +379,9 @@ public final class RuleSourceGenerator {
                 + javaStringLiteral(varName.substring(prefix.length())) + ", null)";
           }
         }
-        final String cached = varScope.cache.get(varName);
-        if (cached != null) {
-          return cached;
-        }
-        final String localName = freshVar("var_" + sanitize(varName));
-        varScope.cache.put(varName, localName);
-        varScope.preamble.append("    final Object ").append(localName)
-            .append(" = resolveVarChecked(").append(varScope.dataExpr).append(", ")
-            .append(javaStringLiteral(varName)).append(", null);\n");
-        return localName;
+        return cachedVar(varScope.cache, varScope.preamble, varScope.flowSeen, varScope.dataExpr, varName);
       }
-      final String cached = varCache.get(varName);
-      if (cached != null) {
-        return cached;
-      }
-      // First occurrence: emit the declaration into the preamble.
-      // Use resolveVarChecked so that any JsonLogicEvaluationException gets ".var" prepended,
-      // matching the path the tree-walking interpreter produces for var errors.
-      final String localName = freshVar("var_" + sanitize(varName));
-      varCache.put(varName, localName);
-      varPreamble.append("    final Object ").append(localName)
-          .append(" = resolveVarChecked(data, ").append(javaStringLiteral(varName)).append(", null);\n");
-      return localName;
+      return cachedVar(varCache, varPreamble, topLevelFlowSeen, "data", varName);
     }
     // General case: key is dynamic.
     // Use the fallback evaluator so that invalid key types throw with the right path.
@@ -393,6 +389,82 @@ public final class RuleSourceGenerator {
     final int idx = fallbackNodes.size();
     fallbackNodes.add(node);
     return "fallback.evaluate(fallbackNodes[" + idx + "], " + dataExpr + ", " + javaStringLiteral(path) + ")";
+  }
+
+  /**
+   * Returns the expression for a plain variable read, caching the lookup in a local of the generated method.
+   *
+   * <p>Operand expressions are pasted several times into the generated code (null check, numeric check,
+   * conversion), so every variable gets a local. When no conditionally evaluated code has been emitted before
+   * the first read, the variable is always evaluated, so it is resolved once in the preamble. Otherwise the local
+   * starts {@code UNRESOLVED} and is resolved on first use, so a variable that is only read in a branch that is
+   * not taken is never resolved (and cannot fail), like in the interpreter.
+   *
+   * <p>Uses {@code resolveVarChecked} so that any JsonLogicEvaluationException gets ".var" prepended, matching
+   * the path the tree-walking interpreter produces for var errors.
+   */
+  private String cachedVar(Map<String, String> cache, StringBuilder preamble, boolean flowSeen,
+                           String dataExpr, String varName) {
+    String localName = cache.get(varName);
+    if (localName == null) {
+      localName = freshVar("var_" + sanitize(varName));
+      cache.put(varName, localName);
+      if (flowSeen) {
+        lazyVarPlainReads.put(localName, "resolveVarChecked(" + dataExpr + ", " + javaStringLiteral(varName) + ", null)");
+        preamble.append("    Object ").append(localName).append(" = UNRESOLVED;\n");
+      } else {
+        preamble.append("    final Object ").append(localName).append(" = resolveVarChecked(")
+            .append(dataExpr).append(", ").append(javaStringLiteral(varName)).append(", null);\n");
+      }
+    }
+    return lazyVarPlainReads.containsKey(localName) ? lazyVar(localName, dataExpr, varName) : localName;
+  }
+
+  /**
+   * Removes the {@code UNRESOLVED} local of every lazy variable that is read exactly once in {@code body} and
+   * replaces its read with a direct lookup: with a single read there is nothing to cache or to check.
+   */
+  private void inlineSingleUseLazyVars(StringBuilder preamble, StringBuilder body) {
+    for (Map.Entry<String, String> entry : lazyVarPlainReads.entrySet()) {
+      final String local = entry.getKey();
+      final String declaration = "    Object " + local + " = UNRESOLVED;\n";
+      final int declarationAt = preamble.indexOf(declaration);
+      if (declarationAt < 0) {
+        continue;
+      }
+      final String plain = entry.getValue();
+      final String lazyRead = "(" + local + " != UNRESOLVED ? " + local + " : (" + local + " = " + plain + "))";
+      final int readAt = body.indexOf(lazyRead);
+      // The lazy read mentions the local three times; any other mention means it is used some other way.
+      if (readAt < 0 || body.indexOf(lazyRead, readAt + 1) >= 0 || countOccurrences(body, local) != 3) {
+        continue;
+      }
+      body.replace(readAt, readAt + lazyRead.length(), plain);
+      preamble.delete(declarationAt, declarationAt + declaration.length());
+    }
+  }
+
+  private static int countOccurrences(StringBuilder text, String needle) {
+    int count = 0;
+    for (int at = text.indexOf(needle); at >= 0; at = text.indexOf(needle, at + needle.length())) {
+      count++;
+    }
+    return count;
+  }
+
+  /** Marks the current method as containing conditionally evaluated code; later new variables are lazy. */
+  private void markConditionalFlow() {
+    if (varScopes.isEmpty()) {
+      topLevelFlowSeen = true;
+    } else {
+      varScopes.get(varScopes.size() - 1).flowSeen = true;
+    }
+  }
+
+  /** Expression that yields the cached variable, resolving it on first use. */
+  private static String lazyVar(String localName, String dataExpr, String varName) {
+    return "(" + localName + " != UNRESOLVED ? " + localName + " : (" + localName
+        + " = resolveVarChecked(" + dataExpr + ", " + javaStringLiteral(varName) + ", null)))";
   }
 
   /**
@@ -686,6 +758,7 @@ public final class RuleSourceGenerator {
     } finally {
       varScopes.remove(varScopes.size() - 1);
     }
+    inlineSingleUseLazyVars(varScope.preamble, methodBody);
     helperMethods
         .append("\n")
         .append("  private Object ").append(methodName).append("(Object item) throws JsonLogicEvaluationException {\n")
@@ -713,6 +786,7 @@ public final class RuleSourceGenerator {
     } finally {
       varScopes.remove(varScopes.size() - 1);
     }
+    inlineSingleUseLazyVars(varScope.preamble, methodBody);
     final String returnExpr = isBooleanExpression(body)
         ? result
         : "JsonLogic.truthy(" + result + ")";
@@ -791,6 +865,7 @@ public final class RuleSourceGenerator {
     }
     out.append("    if (").append(ifTest).append(") {\n");
 
+    markConditionalFlow();
     final String consVar = freshVar("ifCons");
     emitStatement(args.get(index + 1), consVar, out, dataExpr, path + "[" + (index + 1) + "]");
     out.append("      ").append(targetVar).append(" = ").append(consVar).append(";\n");
@@ -837,6 +912,7 @@ public final class RuleSourceGenerator {
           ? andVar
           : "JsonLogic.truthy(" + targetVar + ")";
       out.append("    if (").append(test).append(") {\n");
+      markConditionalFlow();
       final var inner = new StringBuilder();
       emitAndChain(args, idx + 1, targetVar, inner, dataExpr, path);
       indentBlock(inner, out);
@@ -872,6 +948,7 @@ public final class RuleSourceGenerator {
           ? "!" + orVar
           : "!JsonLogic.truthy(" + targetVar + ")";
       out.append("    if (").append(test).append(") {\n");
+      markConditionalFlow();
       final var inner = new StringBuilder();
       emitOrChain(args, idx + 1, targetVar, inner, dataExpr, path);
       indentBlock(inner, out);
@@ -918,6 +995,8 @@ public final class RuleSourceGenerator {
     final var body = new StringBuilder();
     final VarScope varScope = new VarScope();
     varScope.dataExpr = dataExpr;
+    // The preamble sits before the loop, but the body only runs for a non-empty array: always resolve lazily.
+    varScope.flowSeen = true;
     varScope.aliases.put("current", itemVar);
     varScope.aliases.put("accumulator", accumulatorVar);
     varScopes.add(varScope);
@@ -945,6 +1024,7 @@ public final class RuleSourceGenerator {
     private final Map<String, String> cache = new LinkedHashMap<>();
     private final Map<String, String> aliases = new LinkedHashMap<>();
     private final StringBuilder preamble = new StringBuilder();
+    private boolean flowSeen;
     private String dataExpr = "item";
   }
 
